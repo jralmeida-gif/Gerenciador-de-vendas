@@ -230,8 +230,7 @@ class _PainelDesempenho extends StatelessWidget {
     final formato = linhas.first.formato;
 
     return CartaoSecao(
-      titulo: 'Painel de desempenho',
-      subtitulo: 'GAP e ritmo diário até o fim do mês',
+      titulo: 'Painel de desempenho · GAP e ritmo diário',
       child: Column(
         children: [
           Row(
