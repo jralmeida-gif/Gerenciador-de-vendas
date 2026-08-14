@@ -154,6 +154,11 @@ class _Cabecalho extends StatelessWidget {
                         fontSize: 12.5,
                       ),
                     ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Início',
+                      style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700),
+                    ),
                   ],
                 ),
               ),

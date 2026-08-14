@@ -59,7 +59,7 @@ class TelaConfiguracoes extends StatelessWidget {
           const HeaderCurvo(
             titulo: 'Configurações',
             subtitulo: 'Ajustes gerais do aplicativo',
-            mostrarVoltar: false,
+            mostrarVoltar: true,
             mostrarAcoesGlobais: false,
           ),
           Expanded(

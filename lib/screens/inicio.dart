@@ -35,6 +35,7 @@ class _TelaInicioState extends State<TelaInicio> {
       agenda: () => _abrirGlobal(const TelaAgenda()),
       configuracoes: () => _abrirGlobal(TelaConfiguracoes(user: widget.user, onLogout: widget.onLogout)),
       ajuda: () => _abrirGlobal(const TelaAjuda()),
+      voltar: _fecharGlobal,
     );
     _paginas = [
       TelaDashboard(
@@ -62,6 +63,11 @@ class _TelaInicioState extends State<TelaInicio> {
   void _abrirGlobal(Widget pagina) {
     if (!mounted) return;
     setState(() => _paginaGlobal = pagina);
+  }
+
+  void _fecharGlobal() {
+    if (!mounted) return;
+    setState(() => _paginaGlobal = null);
   }
 
   @override
@@ -108,7 +114,7 @@ class _TelaInicioState extends State<TelaInicio> {
             child: NavigationBar(
               height: 64,
               selectedIndex: _indice,
-              onDestinationSelected: (i) => setState(() => _indice = i),
+              onDestinationSelected: _selecionarAba,
               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
               destinations: const [
                 NavigationDestination(

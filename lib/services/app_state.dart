@@ -21,14 +21,16 @@ class AppState extends ChangeNotifier {
   VoidCallback? onAbrirAgenda;
   VoidCallback? onAbrirConfiguracoes;
   VoidCallback? onAbrirAjuda;
+  VoidCallback? onVoltarGlobal;
 
   AppState(this.repo);
 
   AuthUser? get authUser => _authUser;
-  void configurarNavegacaoGlobal({VoidCallback? agenda, VoidCallback? configuracoes, VoidCallback? ajuda}) {
+  void configurarNavegacaoGlobal({VoidCallback? agenda, VoidCallback? configuracoes, VoidCallback? ajuda, VoidCallback? voltar}) {
     onAbrirAgenda = agenda;
     onAbrirConfiguracoes = configuracoes;
     onAbrirAjuda = ajuda;
+    onVoltarGlobal = voltar;
   }
   void definirUsuarioAutenticado(AuthUser? user) {
     _authUser = user;

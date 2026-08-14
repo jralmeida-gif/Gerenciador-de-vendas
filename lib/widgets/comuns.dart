@@ -9,6 +9,7 @@ import '../screens/agenda.dart';
 import '../screens/configuracoes.dart';
 import '../services/app_state.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 
 /// Cabeçalho azul curvo usado no topo das telas de formulário.
 class HeaderCurvo extends StatelessWidget {
@@ -67,7 +68,7 @@ class HeaderCurvo extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 18),
+          padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -76,7 +77,14 @@ class HeaderCurvo extends StatelessWidget {
                   if (mostrarVoltar)
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.of(context).maybePop(),
+                      onPressed: () {
+                        final voltar = estado.onVoltarGlobal;
+                        if (voltar != null) {
+                          voltar();
+                        } else {
+                          Navigator.of(context).maybePop();
+                        }
+                      },
                     )
                   else
                     const SizedBox(width: 8),
@@ -93,14 +101,15 @@ class HeaderCurvo extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(titulo, style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                        const Text('Gestor de Vendas', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
                         if (usuario != null)
-                          Text('${estado.nomeUsuario} · ${usuario.username}', style: TextStyle(color: Colors.white.withValues(alpha: 0.82), fontSize: 11.5), overflow: TextOverflow.ellipsis),
+                          Text('${Fmt.data(DateTime.now())} · ${estado.nomeUsuario}', style: TextStyle(color: Colors.white.withValues(alpha: 0.86), fontSize: 11.5), overflow: TextOverflow.ellipsis),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(titulo, style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                        ),
                         if (subtitulo != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(subtitulo!, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5), overflow: TextOverflow.ellipsis),
-                          ),
+                          Text(subtitulo!, style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 11.5), overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
