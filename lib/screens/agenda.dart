@@ -64,6 +64,7 @@ class TelaAgenda extends StatelessWidget {
             itens: aniversarios,
             vazio: 'Nenhum aniversário informado para os próximos 30 dias.',
           ),
+          ],
           )),
         ],
       ),
