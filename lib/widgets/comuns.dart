@@ -109,13 +109,27 @@ class HeaderCurvo extends StatelessWidget {
                     _AtalhoCabecalho(
                       rotulo: 'Agenda',
                       icone: Icons.event_note_outlined,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAgenda())),
+                      onTap: () {
+                        final abrir = estado.onAbrirAgenda;
+                        if (abrir != null) {
+                          abrir();
+                        } else {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAgenda()));
+                        }
+                      },
                     ),
                   if (mostrarAcoesGlobais && usuario != null && titulo != 'Configurações')
                     _AtalhoCabecalho(
                       rotulo: 'Configuração',
                       icone: Icons.settings_outlined,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: usuario))),
+                      onTap: () {
+                        final abrir = estado.onAbrirConfiguracoes;
+                        if (abrir != null) {
+                          abrir();
+                        } else {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: usuario)));
+                        }
+                      },
                     ),
                 ],
               ),

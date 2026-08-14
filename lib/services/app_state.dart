@@ -18,10 +18,18 @@ class AppState extends ChangeNotifier {
   final _uuid = const Uuid();
   final _cloud = CloudDataClient();
   AuthUser? _authUser;
+  VoidCallback? onAbrirAgenda;
+  VoidCallback? onAbrirConfiguracoes;
+  VoidCallback? onAbrirAjuda;
 
   AppState(this.repo);
 
   AuthUser? get authUser => _authUser;
+  void configurarNavegacaoGlobal({VoidCallback? agenda, VoidCallback? configuracoes, VoidCallback? ajuda}) {
+    onAbrirAgenda = agenda;
+    onAbrirConfiguracoes = configuracoes;
+    onAbrirAjuda = ajuda;
+  }
   void definirUsuarioAutenticado(AuthUser? user) {
     _authUser = user;
     notifyListeners();

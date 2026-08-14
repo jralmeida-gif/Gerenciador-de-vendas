@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_client.dart';
 import '../theme/app_theme.dart';
+import '../services/app_state.dart';
+import 'ajuda.dart';
 import 'dashboard.dart';
+import 'agenda.dart';
+import 'configuracoes.dart';
 import 'portabilidade_lista.dart';
 import 'prospeccao_lista.dart';
 import 'relatorios.dart';
@@ -20,13 +24,25 @@ class TelaInicio extends StatefulWidget {
 
 class _TelaInicioState extends State<TelaInicio> {
   int _indice = 0;
+  Widget? _paginaGlobal;
   late final List<Widget> _paginas;
 
   @override
   void initState() {
     super.initState();
+    context.read<AppState>().configurarNavegacaoGlobal(
+      agenda: () => _abrirGlobal(const TelaAgenda()),
+      configuracoes: () => _abrirGlobal(TelaConfiguracoes(user: widget.user, onLogout: widget.onLogout)),
+      ajuda: () => _abrirGlobal(const TelaAjuda()),
+    );
     _paginas = [
-      TelaDashboard(user: widget.user, onNavigate: _selecionarAba, onLogout: widget.onLogout),
+      TelaDashboard(
+        user: widget.user,
+        onNavigate: _selecionarAba,
+        onLogout: widget.onLogout,
+        onAgenda: () => _abrirGlobal(const TelaAgenda()),
+        onConfig: () => _abrirGlobal(TelaConfiguracoes(user: widget.user, onLogout: widget.onLogout)),
+      ),
       const TelaVendasLista(),
       const TelaPortabilidadeLista(),
       const TelaProspeccaoLista(),
@@ -36,13 +52,21 @@ class _TelaInicioState extends State<TelaInicio> {
 
   void _selecionarAba(int indice) {
     if (!mounted) return;
-    setState(() => _indice = indice);
+    setState(() {
+      _indice = indice;
+      _paginaGlobal = null;
+    });
+  }
+
+  void _abrirGlobal(Widget pagina) {
+    if (!mounted) return;
+    setState(() => _paginaGlobal = pagina);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _indice, children: _paginas),
+      body: _paginaGlobal ?? IndexedStack(index: _indice, children: _paginas),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,

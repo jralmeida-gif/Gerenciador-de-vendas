@@ -19,8 +19,10 @@ class TelaDashboard extends StatelessWidget {
   final AuthUser user;
   final ValueChanged<int>? onNavigate;
   final VoidCallback? onLogout;
+  final VoidCallback? onAgenda;
+  final VoidCallback? onConfig;
 
-  const TelaDashboard({super.key, required this.user, this.onNavigate, this.onLogout});
+  const TelaDashboard({super.key, required this.user, this.onNavigate, this.onLogout, this.onAgenda, this.onConfig});
 
   @override
   Widget build(BuildContext context) {
@@ -40,14 +42,8 @@ class TelaDashboard extends StatelessWidget {
                   nome: estado.nomeUsuario,
                   avatarData: estado.avatarData,
                   data: hoje,
-                  onAgenda: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TelaAgenda()),
-                  ),
-                  onConfig: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: user, onLogout: onLogout)),
-                ),
+                  onAgenda: onAgenda ?? () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAgenda())),
+                  onConfig: onConfig ?? () => Navigator.push(context, MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: user, onLogout: onLogout))),
               ),
             ),
             SliverPadding(

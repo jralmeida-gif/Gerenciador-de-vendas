@@ -60,6 +60,7 @@ class TelaConfiguracoes extends StatelessWidget {
             titulo: 'Configurações',
             subtitulo: 'Ajustes gerais do aplicativo',
             mostrarVoltar: false,
+            mostrarAcoesGlobais: false,
           ),
           Expanded(
             child: ListView(
@@ -102,7 +103,14 @@ class TelaConfiguracoes extends StatelessWidget {
                     icone: Icons.help_outline,
                     titulo: 'Ajuda e dicas',
                     valor: 'Como usar os principais recursos',
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAjuda())),
+                    onTap: () {
+                      final abrir = estado.onAbrirAjuda;
+                      if (abrir != null) {
+                        abrir();
+                      } else {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAjuda()));
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(height: 14),

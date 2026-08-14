@@ -44,7 +44,7 @@ class TelaAjuda extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: [
-          const HeaderCurvo(titulo: 'Ajuda', subtitulo: 'Orientações rápidas sobre o sistema'),
+          const HeaderCurvo(titulo: 'Ajuda', subtitulo: 'Orientações rápidas sobre o sistema', mostrarVoltar: false, mostrarAcoesGlobais: false),
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
