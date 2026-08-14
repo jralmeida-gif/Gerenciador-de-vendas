@@ -59,7 +59,7 @@ class _TelaMetasEditarState extends State<TelaMetasEditar> {
       initialDatePickerMode: DatePickerMode.year,
       locale: const Locale('pt', 'BR'),
     );
-    if (d == null) return;
+    if (d == null || !mounted) return;
     final estado = context.read<AppState>();
     setState(() {
       _mesSelecionado = DateTime(d.year, d.month);
