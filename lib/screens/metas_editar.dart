@@ -18,13 +18,21 @@ class _TelaMetasEditarState extends State<TelaMetasEditar> {
   final Map<String, TextEditingController> _ctrls = {};
   final _busca = TextEditingController();
   bool _somenteComMeta = false;
+  DateTime _mesSelecionado = DateTime(DateTime.now().year, DateTime.now().month);
+  static const _nomesMeses = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  ];
+
+  String get _mesRef => '${_mesSelecionado.year}-${_mesSelecionado.month.toString().padLeft(2, '0')}';
+  String get _mesLabel => '${_nomesMeses[_mesSelecionado.month - 1]} / ${_mesSelecionado.year}';
 
   @override
   void initState() {
     super.initState();
     final estado = context.read<AppState>();
     for (final p in estado.produtos) {
-      final meta = estado.metaDoProduto(p.nome);
+      final meta = estado.metaMensalDoProduto(p.nome, _mesRef);
       _ctrls[p.nome] = TextEditingController(
         text: meta > 0
             ? (p.ehQuantidade ? Fmt.inteiro(meta) : Fmt.decimal(meta))
@@ -42,11 +50,34 @@ class _TelaMetasEditarState extends State<TelaMetasEditar> {
     super.dispose();
   }
 
+  Future<void> _trocarMes() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _mesSelecionado,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      initialDatePickerMode: DatePickerMode.year,
+      locale: const Locale('pt', 'BR'),
+    );
+    if (d == null) return;
+    final estado = context.read<AppState>();
+    setState(() {
+      _mesSelecionado = DateTime(d.year, d.month);
+      for (final p in estado.produtos) {
+        final valor = estado.metaMensalDoProduto(p.nome, _mesRef);
+        _ctrls[p.nome]!.text = valor > 0 ? (p.ehQuantidade ? Fmt.inteiro(valor) : Fmt.decimal(valor)) : '';
+      }
+    });
+  }
+
   Future<void> _salvar() async {
     final estado = context.read<AppState>();
     for (final e in _ctrls.entries) {
       final v = Fmt.parseNumero(e.value.text);
-      await estado.salvarMeta(e.key, v);
+      await estado.salvarMetaMensal(e.key, _mesRef, v);
+      if (_mesRef == '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}') {
+        await estado.salvarMeta(e.key, v);
+      }
     }
     if (!mounted) return;
     Navigator.pop(context);
@@ -116,6 +147,12 @@ class _TelaMetasEditarState extends State<TelaMetasEditar> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
             child: Row(
               children: [
+                OutlinedButton.icon(
+                  onPressed: _trocarMes,
+                  icon: const Icon(Icons.calendar_month_outlined, size: 17),
+                  label: Text(_mesLabel),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Row(
                     children: [

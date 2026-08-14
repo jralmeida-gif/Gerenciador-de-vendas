@@ -73,6 +73,8 @@ class AppState extends ChangeNotifier {
 
   String formatoDoProduto(String p) => repo.formatoDoProduto(p);
   double metaDoProduto(String p) => repo.metaDoProduto(p);
+  List<MetaMensal> get metasMensais => repo.metasMensais;
+  double metaMensalDoProduto(String produto, String mes) => repo.metaMensalDoProduto(produto, mes);
 
   Venda? encontrarVendaDuplicada(Venda candidata) {
     for (final existente in vendas) {
@@ -188,6 +190,12 @@ class AppState extends ChangeNotifier {
 
   Future<void> salvarMeta(String produto, double valor) async {
     await repo.salvarMeta(produto, valor);
+    notifyListeners();
+    unawaited(sincronizarNuvem());
+  }
+
+  Future<void> salvarMetaMensal(String produto, String mes, double valor) async {
+    await repo.salvarMetaMensal(produto, mes, valor);
     notifyListeners();
     unawaited(sincronizarNuvem());
   }

@@ -314,6 +314,25 @@ class MetaProduto {
       MetaProduto(produto: _s(j['produto']), metaMes: _d(j['metaMes']));
 }
 
+/// Meta individual de um produto para um mês específico.
+class MetaMensal {
+  final String produto;
+  final String mes;
+  final double valor;
+
+  const MetaMensal({required this.produto, required this.mes, required this.valor});
+
+  String get chave => '${produto}_$mes';
+
+  Map<String, dynamic> toJson() => {'produto': produto, 'mes': mes, 'valor': valor};
+
+  factory MetaMensal.fromJson(Map<dynamic, dynamic> j) => MetaMensal(
+        produto: _s(j['produto']),
+        mes: _s(j['mes']),
+        valor: _d(j['valor']),
+      );
+}
+
 /// Tabela1 (Base Campanhas): Campanha | DataInício | DataFim | Produto | Meta
 class Campanha {
   final String id;

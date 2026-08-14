@@ -15,6 +15,7 @@ class Repositorio {
   static const _bProdutos = 'produtos';
   static const _bConvenios = 'convenios';
   static const _bMetas = 'metas';
+  static const _bMetasMensais = 'metas_mensais';
   static const _bCampanhas = 'campanhas';
   static const _bClientes = 'clientes';
   static const _bConfig = 'config';
@@ -25,6 +26,7 @@ class Repositorio {
   late Box _produtos;
   late Box _convenios;
   late Box _metas;
+  late Box _metasMensais;
   late Box _campanhas;
   late Box _clientes;
   late Box _config;
@@ -46,6 +48,7 @@ class Repositorio {
     _produtos = await Hive.openBox(_name(_bProdutos));
     _convenios = await Hive.openBox(_name(_bConvenios));
     _metas = await Hive.openBox(_name(_bMetas));
+    _metasMensais = await Hive.openBox(_name(_bMetasMensais));
     _campanhas = await Hive.openBox(_name(_bCampanhas));
     _clientes = await Hive.openBox(_name(_bClientes));
     _config = await Hive.openBox(_name(_bConfig));
@@ -61,6 +64,7 @@ class Repositorio {
     await _produtos.close();
     await _convenios.close();
     await _metas.close();
+    await _metasMensais.close();
     await _campanhas.close();
     await _clientes.close();
     await _config.close();
@@ -76,6 +80,7 @@ class Repositorio {
       _bProdutos: await Hive.openBox(_bProdutos),
       _bConvenios: await Hive.openBox(_bConvenios),
       _bMetas: await Hive.openBox(_bMetas),
+      _bMetasMensais: await Hive.openBox(_bMetasMensais),
       _bCampanhas: await Hive.openBox(_bCampanhas),
       _bClientes: await Hive.openBox(_bClientes),
       _bConfig: await Hive.openBox(_bConfig),
@@ -87,6 +92,7 @@ class Repositorio {
       _bProdutos: _produtos,
       _bConvenios: _convenios,
       _bMetas: _metas,
+      _bMetasMensais: _metasMensais,
       _bCampanhas: _campanhas,
       _bClientes: _clientes,
     };
@@ -252,6 +258,21 @@ class Repositorio {
       .map((e) => MetaProduto.fromJson(Map<dynamic, dynamic>.from(e as Map)))
       .toList();
 
+  List<MetaMensal> get metasMensais => _metasMensais.values
+      .map((e) => MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)))
+      .toList();
+
+  double metaMensalDoProduto(String produto, String mes) {
+    final e = _metasMensais.get('${produto}_$mes');
+    if (e != null) return MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)).valor;
+    return metaDoProduto(produto);
+  }
+
+  Future<void> salvarMetaMensal(String produto, String mes, double valor) => _metasMensais.put(
+        '${produto}_$mes',
+        MetaMensal(produto: produto, mes: mes, valor: valor).toJson(),
+      );
+
   double metaDoProduto(String produto) {
     final e = _metas.get(produto);
     if (e == null) return 0;
@@ -291,6 +312,7 @@ class Repositorio {
       'produtos': produtos.map((e) => e.toJson()).toList(),
       'convenios': convenios.map((e) => e.toJson()).toList(),
       'metas': metas.map((e) => e.toJson()).toList(),
+      'metasMensais': metasMensais.map((e) => e.toJson()).toList(),
       'vendas': vendas.map((e) => e.toJson()).toList(),
       'portabilidades': portabilidades.map((e) => e.toJson()).toList(),
       'prospeccoes': prospeccoes.map((e) => e.toJson()).toList(),
@@ -310,6 +332,7 @@ class Repositorio {
       await _produtos.clear();
       await _convenios.clear();
       await _metas.clear();
+      await _metasMensais.clear();
       await _campanhas.clear();
       await _clientes.clear();
     }
@@ -332,6 +355,10 @@ class Repositorio {
     for (final e in (mapa['metas'] as List? ?? [])) {
       final m = MetaProduto.fromJson(e as Map);
       await _metas.put(m.produto, m.toJson());
+    }
+    for (final e in (mapa['metasMensais'] as List? ?? [])) {
+      final m = MetaMensal.fromJson(e as Map);
+      await _metasMensais.put(m.chave, m.toJson());
     }
     for (final e in (mapa['vendas'] as List? ?? [])) {
       final v = Venda.fromJson(e as Map);
