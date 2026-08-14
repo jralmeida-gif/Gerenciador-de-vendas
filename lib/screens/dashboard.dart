@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -35,6 +37,7 @@ class TelaDashboard extends StatelessWidget {
             SliverToBoxAdapter(
               child: _Cabecalho(
                 nome: estado.nomeUsuario,
+                avatarData: estado.avatarData,
                 data: hoje,
                 onConfig: () => Navigator.push(
                   context,
@@ -78,13 +81,25 @@ class TelaDashboard extends StatelessWidget {
 
 class _Cabecalho extends StatelessWidget {
   final String nome;
+  final String avatarData;
   final DateTime data;
   final VoidCallback onConfig;
   const _Cabecalho({
     required this.nome,
+    required this.avatarData,
     required this.data,
     required this.onConfig,
   });
+
+  Widget _avatar() {
+    if (avatarData.isEmpty) return const Icon(Icons.person, color: Colors.white);
+    try {
+      final encoded = avatarData.contains(',') ? avatarData.split(',').last : avatarData;
+      return ClipOval(child: Image.memory(base64Decode(encoded), width: 44, height: 44, fit: BoxFit.cover));
+    } catch (_) {
+      return const Icon(Icons.person, color: Colors.white);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +128,7 @@ class _Cabecalho extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person, color: Colors.white),
+                child: _avatar(),
               ),
               const SizedBox(width: 12),
               Expanded(

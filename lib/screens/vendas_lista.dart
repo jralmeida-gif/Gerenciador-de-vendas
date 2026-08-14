@@ -369,7 +369,7 @@ class _CartaoGrupoVenda extends StatelessWidget {
             title: const Text('Enviar mensagem pelo WhatsApp'),
             onTap: () async {
               Navigator.pop(ctx);
-              final ok = await WhatsApp.abrir(telefone: grupo.telefone, mensagem: WhatsApp.saudacao(grupo.nome, complemento: 'Estou acompanhando suas compras.'));
+              final ok = await WhatsApp.abrir(telefone: grupo.telefone, mensagem: WhatsApp.saudacao(grupo.nome));
               if (!ok && context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Telefone inválido para abrir o WhatsApp.')));
             },
           ),

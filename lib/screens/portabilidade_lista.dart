@@ -313,7 +313,7 @@ class _CartaoPort extends StatelessWidget {
               title: const Text('Enviar mensagem pelo WhatsApp'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final ok = await WhatsApp.abrir(telefone: port.telefone, mensagem: WhatsApp.saudacao(port.nome, complemento: 'Estou acompanhando sua portabilidade.'));
+                final ok = await WhatsApp.abrir(telefone: port.telefone, mensagem: WhatsApp.saudacao(port.nome));
                 if (!ok && context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Telefone inválido para abrir o WhatsApp.')));
               },
             ),

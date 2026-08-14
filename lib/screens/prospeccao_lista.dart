@@ -264,7 +264,7 @@ class _TelaProspeccaoListaState extends State<TelaProspeccaoLista>
               title: const Text('Enviar mensagem pelo WhatsApp'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final ok = await WhatsApp.abrir(telefone: p.telefone, mensagem: WhatsApp.saudacao(p.nome, complemento: 'Estou retornando o contato sobre ${p.produto}.'));
+                final ok = await WhatsApp.abrir(telefone: p.telefone, mensagem: WhatsApp.saudacao(p.nome));
                 if (!ok && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Telefone inválido para abrir o WhatsApp.')));
               },
             ),
