@@ -27,19 +27,20 @@ class _AuthGateState extends State<AuthGate> {
   void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
+    final appState = context.read<AppState>();
     final user = await _auth.session();
     var setup = false;
     if (user != null) {
       await widget.repo.switchProfile(user.username);
       if (mounted) {
-        await context.read<AppState>().carregarDaNuvem();
-        unawaited(context.read<AppState>().criarBackupInterno());
+        await appState.carregarDaNuvem();
+        unawaited(appState.criarBackupInterno());
       }
     } else {
       setup = await _auth.setupRequired();
     }
     if (!mounted) return;
-    if (user != null) context.read<AppState>().definirUsuarioAutenticado(user);
+    if (user != null) appState.definirUsuarioAutenticado(user);
     setState(() {
       _user = user;
       _setup = setup;
@@ -49,13 +50,14 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _loggedIn(AuthResult result) async {
     if (!result.ok || result.user == null) { _showError(result.error ?? 'Não foi possível entrar.'); return; }
+    final appState = context.read<AppState>();
     await widget.repo.switchProfile(result.user!.username);
     if (mounted) {
-      await context.read<AppState>().carregarDaNuvem();
-      unawaited(context.read<AppState>().criarBackupInterno());
+      await appState.carregarDaNuvem();
+      unawaited(appState.criarBackupInterno());
     }
     if (!mounted) return;
-    context.read<AppState>().definirUsuarioAutenticado(result.user);
+    appState.definirUsuarioAutenticado(result.user);
     setState(() => _user = result.user);
   }
 
