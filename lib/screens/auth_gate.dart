@@ -81,9 +81,10 @@ class _AuthGateState extends State<AuthGate> {
     if (_user!.mustChangePassword) return ChangePasswordView(auth: _auth, onDone: _senhaDefinitivaSalva);
     Future<void> sair() async {
       // Primeiro invalida a sessão remota; depois limpa o perfil local e a árvore autenticada.
+      final appState = context.read<AppState>();
       await _auth.logout();
       if (!mounted) return;
-      await context.read<AppState>().mudarPerfilLocal('guest');
+      await appState.mudarPerfilLocal('guest');
       if (!mounted) return;
       setState(() => _user = null);
     }
