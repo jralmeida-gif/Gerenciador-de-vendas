@@ -19,7 +19,7 @@ async function requireAdmin(request: Request, env: AuthEnv) {
 export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => {
   if (!await requireAdmin(request, env)) return json(request, { error: 'Acesso restrito aos administradores.' }, 403);
   const rows = await env.DB.prepare(
-    `SELECT id, username, role, must_change_password, active, created_at, updated_at
+    `SELECT id, username, display_name, role, must_change_password, active, created_at, updated_at
      FROM users ORDER BY username`,
   ).all();
   return json(request, { users: rows.results ?? [] });
@@ -50,10 +50,26 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   }
 };
 
+export const onRequestDelete: PagesFunction<AuthEnv> = async ({ request, env }) => {
+  const admin = await requireAdmin(request, env);
+  if (!admin) return json(request, { error: 'Acesso restrito aos administradores.' }, 403);
+  const body = await request.json().catch(() => null) as { id?: unknown } | null;
+  if (typeof body?.id !== 'string') return json(request, { error: 'Usuário inválido.' }, 400);
+  if (body.id === admin.id) return json(request, { error: 'Você não pode excluir a própria conta.' }, 400);
+  const target = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(body.id).first<{ id: string; role: 'admin' | 'user' }>();
+  if (!target) return json(request, { error: 'Usuário não encontrado.' }, 404);
+  if (target.role === 'admin') {
+    const admins = await env.DB.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'admin' AND active = 1").first<{ count: number }>();
+    if ((admins?.count ?? 0) <= 1) return json(request, { error: 'Não é possível excluir o último administrador ativo.' }, 400);
+  }
+  await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(body.id).run();
+  return json(request, { ok: true });
+};
+
 export const onRequestPatch: PagesFunction<AuthEnv> = async ({ request, env }) => {
   const admin = await requireAdmin(request, env);
   if (!admin) return json(request, { error: 'Acesso restrito aos administradores.' }, 403);
-  const body = await request.json().catch(() => null) as { id?: unknown; role?: unknown; active?: unknown; password?: unknown } | null;
+  const body = await request.json().catch(() => null) as { id?: unknown; role?: unknown; active?: unknown; password?: unknown; displayName?: unknown } | null;
   if (typeof body?.id !== 'string') return json(request, { error: 'Usuário inválido.' }, 400);
   const target = await env.DB.prepare('SELECT id, role, active FROM users WHERE id = ?').bind(body.id).first<{ id: string; role: 'admin' | 'user'; active: number }>();
   if (!target) return json(request, { error: 'Usuário não encontrado.' }, 404);
@@ -64,6 +80,7 @@ export const onRequestPatch: PagesFunction<AuthEnv> = async ({ request, env }) =
     statements.push(env.DB.prepare('UPDATE users SET role = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(body.role, body.id));
   }
   if (typeof body?.active === 'boolean') statements.push(env.DB.prepare('UPDATE users SET active = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(body.active ? 1 : 0, body.id));
+  if (typeof body?.displayName === 'string') statements.push(env.DB.prepare('UPDATE users SET display_name = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(body.displayName.trim().slice(0, 80), body.id));
   if (validPassword(body?.password)) {
     const password = await hashPassword(body.password as string);
     statements.push(env.DB.prepare('UPDATE users SET password_hash = ?, password_salt = ?, must_change_password = 1, updated_at = datetime(\'now\') WHERE id = ?').bind(password.hash, password.salt, body.id));

@@ -91,6 +91,27 @@ class AuthClient {
     } catch (_) { return 'Não foi possível conectar ao servidor.'; }
   }
 
+  Future<String?> updateUser({required String id, String? displayName, String? role, bool? active, String? password}) async {
+    try {
+      final body = <String, dynamic>{'id': id};
+      if (displayName != null) body['displayName'] = displayName;
+      if (role != null) body['role'] = role;
+      if (active != null) body['active'] = active;
+      if (password != null) body['password'] = password;
+      final response = await _client.patch(Uri.parse('$_origin/api/auth/users'), headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+      if (response.statusCode >= 200 && response.statusCode < 300) return null;
+      return (jsonDecode(response.body) as Map<String, dynamic>)['error']?.toString() ?? 'Não foi possível alterar o usuário.';
+    } catch (_) { return 'Não foi possível conectar ao servidor.'; }
+  }
+
+  Future<String?> deleteUser(String id) async {
+    try {
+      final response = await _client.delete(Uri.parse('$_origin/api/auth/users'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'id': id}));
+      if (response.statusCode >= 200 && response.statusCode < 300) return null;
+      return (jsonDecode(response.body) as Map<String, dynamic>)['error']?.toString() ?? 'Não foi possível excluir o usuário.';
+    } catch (_) { return 'Não foi possível conectar ao servidor.'; }
+  }
+
   Future<void> logout() async {
     try {
       await _client.post(
