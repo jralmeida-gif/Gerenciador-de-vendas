@@ -140,9 +140,33 @@ class AppState extends ChangeNotifier {
 
   Future<void> salvarPortabilidade(Portabilidade p) async {
     await repo.salvarPortabilidade(p);
+    if (p.confirmado) {
+      await _registrarVendaDaPortabilidade(p);
+    }
     notifyListeners();
     unawaited(sincronizarNuvem());
     await sincronizarPrazosPush();
+  }
+
+  Future<void> _registrarVendaDaPortabilidade(Portabilidade p) async {
+    final id = 'portabilidade-venda-${p.id}';
+    final correspondentes = vendas.where((v) => v.id == id).toList();
+    final existente = correspondentes.isEmpty ? null : correspondentes.first;
+    final venda = Venda(
+      id: id,
+      data: p.data,
+      cpf: p.cpf,
+      nome: p.nome,
+      telefone: p.telefone,
+      produto: 'Portabilidade',
+      valorRealizado: p.saldoDevedor,
+      observacoes: 'Gerada automaticamente a partir da confirmação da portabilidade ${p.numeroContrato}.',
+    );
+    if (existente == null) {
+      await repo.salvarVenda(venda);
+    } else if (existente.data != venda.data || existente.valorRealizado != venda.valorRealizado || existente.nome != venda.nome || existente.telefone != venda.telefone) {
+      await repo.salvarVenda(venda);
+    }
   }
 
   Future<void> excluirPortabilidade(String id) async {

@@ -222,15 +222,17 @@ class _PainelDesempenho extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (linhas.isEmpty) return const SizedBox.shrink();
-    final meta = linhas.fold<double>(0, (s, l) => s + l.metaIndividual);
-    final realizado = linhas.fold<double>(0, (s, l) => s + l.realizadoMes);
-    final gap = linhas.fold<double>(0, (s, l) => s + (l.gap > 0 ? l.gap : 0));
-    final ritmoAtual = linhas.fold<double>(0, (s, l) => s + l.ritmoAtual);
-    final ritmoNecessario = linhas.fold<double>(0, (s, l) => s + l.metaDia);
-    final projecao = linhas.fold<double>(0, (s, l) => s + l.projecaoMes);
-    final eficiencia = meta > 0 ? (realizado / meta) : 0.0;
-    final tendencia = ritmoAtual >= ritmoNecessario;
-    final formato = linhas.first.formato;
+    final comMeta = linhas.where((l) => l.metaIndividual > 0).toList();
+    if (comMeta.isEmpty) return const SizedBox.shrink();
+    final media = (Iterable<double> valores) => valores.isEmpty
+        ? 0.0
+        : valores.fold<double>(0, (s, v) => s + v) / valores.length;
+    final realizadoPerc = media(comMeta.map((l) => l.percRealizado));
+    final gapPerc = media(comMeta.map((l) => (1 - l.percRealizado).clamp(0.0, 1.0).toDouble()));
+    final ritmoPerc = media(comMeta.map((l) => l.metaDia > 0 ? l.ritmoAtual / l.metaDia : 0.0));
+    final projecaoPerc = media(comMeta.map((l) => l.metaIndividual > 0 ? l.projecaoMes / l.metaIndividual : 0.0));
+    final tendencia = ritmoPerc >= 1.0;
+    String percentual(double valor) => '${(valor * 100).toStringAsFixed(0)}%';
 
     return CartaoSecao(
       titulo: 'Painel de desempenho · GAP e ritmo diário',
@@ -238,15 +240,15 @@ class _PainelDesempenho extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: _IndicadorDesempenho(rotulo: 'Realizado', valor: Fmt.valorPorFormato(realizado, formato), cor: AppColors.primary)),
-              Expanded(child: _IndicadorDesempenho(rotulo: 'GAP', valor: gap == 0 ? 'Meta batida' : Fmt.valorPorFormato(gap, formato), cor: gap == 0 ? AppColors.success : AppColors.danger)),
+              Expanded(child: _IndicadorDesempenho(rotulo: 'Realizado', valor: percentual(realizadoPerc), cor: AppColors.primary)),
+              Expanded(child: _IndicadorDesempenho(rotulo: 'GAP', valor: gapPerc <= 0 ? 'Meta batida' : percentual(gapPerc), cor: gapPerc <= 0 ? AppColors.success : AppColors.danger)),
             ],
           ),
           const Divider(height: 24),
           Row(
             children: [
-              Expanded(child: _IndicadorDesempenho(rotulo: 'Ritmo atual/dia', valor: Fmt.valorPorFormato(ritmoAtual, formato), cor: AppColors.primary)),
-              Expanded(child: _IndicadorDesempenho(rotulo: 'Necessário/dia', valor: Fmt.valorPorFormato(ritmoNecessario, formato), cor: AppColors.accent)),
+              Expanded(child: _IndicadorDesempenho(rotulo: 'Ritmo atual', valor: percentual(ritmoPerc), cor: AppColors.primary)),
+              Expanded(child: _IndicadorDesempenho(rotulo: 'Projeção', valor: percentual(projecaoPerc), cor: AppColors.accent)),
             ],
           ),
           const SizedBox(height: 14),
@@ -265,8 +267,8 @@ class _PainelDesempenho extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: Text('Eficiência no período: ${(eficiencia * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
-              Text('Projeção: ${Fmt.valorPorFormato(projecao, formato)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w700)),
+              Expanded(child: Text('Média percentual dos produtos com meta', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
+              Text('Projeção média: ${percentual(projecaoPerc)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w700)),
             ],
           ),
         ],

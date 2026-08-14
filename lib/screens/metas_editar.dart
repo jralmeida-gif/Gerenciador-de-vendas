@@ -30,8 +30,12 @@ class _TelaMetasEditarState extends State<TelaMetasEditar> {
   @override
   void initState() {
     super.initState();
-    final estado = context.read<AppState>();
+    _sincronizarControles(context.read<AppState>());
+  }
+
+  void _sincronizarControles(AppState estado) {
     for (final p in estado.produtos) {
+      if (_ctrls.containsKey(p.nome)) continue;
       final meta = estado.metaMensalDoProduto(p.nome, _mesRef);
       _ctrls[p.nome] = TextEditingController(
         text: meta > 0
@@ -51,18 +55,47 @@ class _TelaMetasEditarState extends State<TelaMetasEditar> {
   }
 
   Future<void> _trocarMes() async {
-    final d = await showDatePicker(
+    var ano = _mesSelecionado.year;
+    var mes = _mesSelecionado.month;
+    final escolha = await showDialog<DateTime>(
       context: context,
-      initialDate: _mesSelecionado,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-      initialDatePickerMode: DatePickerMode.year,
-      locale: const Locale('pt', 'BR'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, atualizar) => AlertDialog(
+          title: const Text('Escolher mês da meta'),
+          content: Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  initialValue: mes,
+                  decoration: const InputDecoration(labelText: 'Mês'),
+                  items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(_nomesMeses[i]))),
+                  onChanged: (v) { if (v != null) atualizar(() => mes = v); },
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 110,
+                child: DropdownButtonFormField<int>(
+                  initialValue: ano,
+                  decoration: const InputDecoration(labelText: 'Ano'),
+                  items: List.generate(11, (i) => DropdownMenuItem(value: DateTime.now().year - 5 + i, child: Text('${DateTime.now().year - 5 + i}'))),
+                  onChanged: (v) { if (v != null) atualizar(() => ano = v); },
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, DateTime(ano, mes)), child: const Text('Selecionar')),
+          ],
+        ),
+      ),
     );
-    if (d == null || !mounted) return;
+    if (escolha == null || !mounted) return;
     final estado = context.read<AppState>();
+    _sincronizarControles(estado);
     setState(() {
-      _mesSelecionado = DateTime(d.year, d.month);
+      _mesSelecionado = DateTime(escolha.year, escolha.month);
       for (final p in estado.produtos) {
         final valor = estado.metaMensalDoProduto(p.nome, _mesRef);
         _ctrls[p.nome]!.text = valor > 0 ? (p.ehQuantidade ? Fmt.inteiro(valor) : Fmt.decimal(valor)) : '';
@@ -93,6 +126,7 @@ class _TelaMetasEditarState extends State<TelaMetasEditar> {
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<AppState>();
+    _sincronizarControles(estado);
     final q = _busca.text.trim().toLowerCase();
 
     var produtos = estado.produtos;

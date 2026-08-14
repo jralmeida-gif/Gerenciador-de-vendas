@@ -19,7 +19,7 @@ class TelaVendasLista extends StatefulWidget {
 class _TelaVendasListaState extends State<TelaVendasLista> {
   final _busca = TextEditingController();
   String _filtroProduto = 'Todos';
-  int _periodo = 0; // 0=hoje 1=mês 2=tudo
+  int _periodo = 0; // 0=hoje 1=semana 2=mês 3=tudo
 
   @override
   void dispose() {
@@ -33,6 +33,10 @@ class _TelaVendasListaState extends State<TelaVendasLista> {
     if (_periodo == 0) {
       l = l.where((v) => mesmoDia(v.data, hoje)).toList();
     } else if (_periodo == 1) {
+      final inicioSemana = DateTime(hoje.year, hoje.month, hoje.day).subtract(Duration(days: hoje.weekday - DateTime.monday));
+      final fimSemana = inicioSemana.add(const Duration(days: 7));
+      l = l.where((v) => !v.data.isBefore(inicioSemana) && v.data.isBefore(fimSemana)).toList();
+    } else if (_periodo == 2) {
       l = l
           .where((v) => v.data.year == hoje.year && v.data.month == hoje.month)
           .toList();
@@ -101,16 +105,21 @@ class _TelaVendasListaState extends State<TelaVendasLista> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _chipPeriodo('Hoje', 0),
-                    const SizedBox(width: 8),
-                    _chipPeriodo('Este mês', 1),
-                    const SizedBox(width: 8),
-                    _chipPeriodo('Tudo', 2),
-                    const Spacer(),
-                    _botaoFiltroProduto(estado),
-                  ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _chipPeriodo('Hoje', 0),
+                      const SizedBox(width: 8),
+                      _chipPeriodo('Semana', 1),
+                      const SizedBox(width: 8),
+                      _chipPeriodo('Este mês', 2),
+                      const SizedBox(width: 8),
+                      _chipPeriodo('Tudo', 3),
+                      const SizedBox(width: 8),
+                      _botaoFiltroProduto(estado),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -153,7 +162,9 @@ class _TelaVendasListaState extends State<TelaVendasLista> {
                     titulo: 'Nenhuma venda encontrada',
                     mensagem: _periodo == 0
                         ? 'Ainda não há vendas lançadas hoje.'
-                        : 'Ajuste os filtros ou lance uma nova venda.',
+                        : _periodo == 1
+                            ? 'Ainda não há vendas lançadas nesta semana.'
+                            : 'Ajuste os filtros ou lance uma nova venda.',
                     acao: ElevatedButton.icon(
                       onPressed: () => Navigator.push(
                         context,

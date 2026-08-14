@@ -72,6 +72,14 @@ class TelaRelatorios extends StatelessWidget {
       icone: Icons.badge_outlined,
       cor: AppColors.primaryLight,
     ),
+    TipoRel(
+      id: 'historico_desempenho',
+      titulo: 'Histórico de Desempenho',
+      descricao: 'Análise percentual das metas por mês, semestre ou ano',
+      icone: Icons.insights_outlined,
+      cor: AppColors.success,
+    ),
+
   ];
 
   @override
@@ -208,13 +216,15 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
   DateTime _fim = DateTime.now();
   String? _produto;
   String _foco = 'cliente';
+  String _periodoHistorico = 'mensal';
   final _cliente = TextEditingController();
   bool _gerando = false;
 
   String get _tipoId => widget.tipo.id;
 
   bool get _precisaData => _tipoId == 'venda_dia';
-  bool get _precisaPeriodo => !_precisaData && _tipoId != 'contatos' && _tipoId != 'clientes';
+  bool get _precisaPeriodo => !_precisaData && _tipoId != 'contatos' && _tipoId != 'clientes' && _tipoId != 'historico_desempenho';
+  bool get _ehHistorico => _tipoId == 'historico_desempenho';
   bool get _precisaProduto =>
       _tipoId == 'contatos' || _tipoId == 'venda_produto';
   bool get _precisaCliente => _tipoId == 'venda_cliente' || _tipoId == 'clientes';
@@ -298,6 +308,41 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
 
   _DadosRel _montar(AppState estado) {
     switch (_tipoId) {
+      case 'historico_desempenho':
+        {
+          final linhas = <List<String>>[];
+          var metaTotal = 0.0;
+          var realizadoTotal = 0.0;
+          for (var cursor = DateTime(_inicio.year, _inicio.month); !cursor.isAfter(DateTime(_fim.year, _fim.month)); cursor = DateTime(cursor.year, cursor.month + 1)) {
+            final mesRef = '${cursor.year}-${cursor.month.toString().padLeft(2, '0')}';
+            for (final produto in estado.produtos) {
+              final meta = estado.metaMensalDoProduto(produto.nome, mesRef);
+              final realizado = estado.realizadoProduto(produto.nome, DateTime(cursor.year, cursor.month, 1), DateTime(cursor.year, cursor.month + 1, 0));
+              if (meta <= 0 && realizado <= 0) continue;
+              final atingido = meta > 0 ? realizado / meta : 0.0;
+              final gap = (1 - atingido).clamp(0.0, 1.0).toDouble();
+              metaTotal += meta;
+              realizadoTotal += realizado;
+              linhas.add([
+                '${cursor.month.toString().padLeft(2, '0')}/${cursor.year}',
+                produto.nome,
+                Fmt.valorPorFormato(meta, produto.formato),
+                Fmt.valorPorFormato(realizado, produto.formato),
+                '${(atingido * 100).toStringAsFixed(0)}%',
+                '${(gap * 100).toStringAsFixed(0)}%',
+              ]);
+            }
+          }
+          final atingimentoGeral = metaTotal > 0 ? realizadoTotal / metaTotal : 0.0;
+          return _DadosRel(
+            periodo: 'Período ${_periodoHistorico}: ${Fmt.data(_inicio)} a ${Fmt.data(_fim)}',
+            colunas: const ['Mês', 'Produto', 'Meta', 'Realizado', '% atingido', 'GAP %'],
+            linhas: linhas,
+            direita: const [2, 3, 4, 5],
+            resumo: '${linhas.length} linha(s) · Atingimento geral ponderado: ${(atingimentoGeral * 100).toStringAsFixed(0)}%',
+          );
+        }
+
       case 'venda_dia':
         {
           final itens =
@@ -632,6 +677,36 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (_ehHistorico) ...[
+                        const Text('Período de análise', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<String>(
+                          initialValue: _periodoHistorico,
+                          decoration: const InputDecoration(prefixIcon: Icon(Icons.date_range_outlined, size: 20)),
+                          items: const [
+                            DropdownMenuItem(value: 'mensal', child: Text('Mensal')),
+                            DropdownMenuItem(value: 'semestral', child: Text('Semestral')),
+                            DropdownMenuItem(value: 'anual', child: Text('Anual')),
+                          ],
+                          onChanged: (v) {
+                            if (v == null) return;
+                            final n = DateTime.now();
+                            setState(() {
+                              _periodoHistorico = v;
+                              if (v == 'mensal') {
+                                _inicio = DateTime(n.year, n.month, 1);
+                                _fim = DateTime(n.year, n.month + 1, 0);
+                              } else if (v == 'semestral') {
+                                _inicio = DateTime(n.year, n.month - 5, 1);
+                                _fim = DateTime(n.year, n.month + 1, 0);
+                              } else {
+                                _inicio = DateTime(n.year, 1, 1);
+                                _fim = DateTime(n.year, 12, 31);
+                              }
+                            });
+                          },
+                        ),
+                      ],
                       if (_precisaData)
                         _Data(
                           rotulo: 'Data do relatório',
