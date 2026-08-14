@@ -14,6 +14,44 @@ import 'relatorios.dart';
 import 'vendas_lista.dart';
 
 /// Casca principal com a navegação inferior de 5 abas.
+class _NavItem extends StatelessWidget {
+  final int index;
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _NavItem({required this.index, required this.label, required this.icon, required this.selectedIcon, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.primary : AppColors.textSecondary;
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox.expand(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                  decoration: BoxDecoration(color: selected ? AppColors.primary.withValues(alpha: 0.12) : Colors.transparent, borderRadius: BorderRadius.circular(18)),
+                  child: Icon(selected ? selectedIcon : icon, size: 23, color: color),
+                ),
+                const SizedBox(height: 1),
+                Text(label, style: TextStyle(fontSize: 10.5, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: color)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class TelaInicio extends StatefulWidget {
   final AuthUser user;
   final VoidCallback onLogout;
@@ -87,61 +125,15 @@ class _TelaInicioState extends State<TelaInicio> {
         ),
         child: SafeArea(
           top: false,
-          child: NavigationBarTheme(
-            data: NavigationBarThemeData(
-              backgroundColor: Colors.white,
-              indicatorColor: AppColors.primary.withValues(alpha: 0.12),
-              labelTextStyle: WidgetStateProperty.resolveWith(
-                (states) => TextStyle(
-                  fontSize: 11,
-                  fontWeight: states.contains(WidgetState.selected)
-                      ? FontWeight.w700
-                      : FontWeight.w500,
-                  color: states.contains(WidgetState.selected)
-                      ? AppColors.primary
-                      : AppColors.textSecondary,
-                ),
-              ),
-              iconTheme: WidgetStateProperty.resolveWith(
-                (states) => IconThemeData(
-                  size: 23,
-                  color: states.contains(WidgetState.selected)
-                      ? AppColors.primary
-                      : AppColors.textSecondary,
-                ),
-              ),
-            ),
-            child: NavigationBar(
-              height: 64,
-              selectedIndex: _indice,
-              onDestinationSelected: _selecionarAba,
-              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.dashboard_outlined),
-                  selectedIcon: Icon(Icons.dashboard),
-                  label: 'Início',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.point_of_sale_outlined),
-                  selectedIcon: Icon(Icons.point_of_sale),
-                  label: 'Vendas',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.swap_horiz_outlined),
-                  selectedIcon: Icon(Icons.swap_horiz),
-                  label: 'Portab.',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.phone_in_talk_outlined),
-                  selectedIcon: Icon(Icons.phone_in_talk),
-                  label: 'Prospec.',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.insert_chart_outlined),
-                  selectedIcon: Icon(Icons.insert_chart),
-                  label: 'Relatórios',
-                ),
+          child:           SizedBox(
+            height: 68,
+            child: Row(
+              children: [
+                _NavItem(index: 0, label: 'Início', icon: Icons.dashboard_outlined, selectedIcon: Icons.dashboard, selected: _indice == 0, onTap: () => _selecionarAba(0)),
+                _NavItem(index: 1, label: 'Vendas', icon: Icons.point_of_sale_outlined, selectedIcon: Icons.point_of_sale, selected: _indice == 1, onTap: () => _selecionarAba(1)),
+                _NavItem(index: 2, label: 'Portab.', icon: Icons.swap_horiz_outlined, selectedIcon: Icons.swap_horiz, selected: _indice == 2, onTap: () => _selecionarAba(2)),
+                _NavItem(index: 3, label: 'Prospec.', icon: Icons.phone_in_talk_outlined, selectedIcon: Icons.phone_in_talk, selected: _indice == 3, onTap: () => _selecionarAba(3)),
+                _NavItem(index: 4, label: 'Relatórios', icon: Icons.insert_chart_outlined, selectedIcon: Icons.insert_chart, selected: _indice == 4, onTap: () => _selecionarAba(4)),
               ],
             ),
           ),

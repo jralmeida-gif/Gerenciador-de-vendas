@@ -162,16 +162,38 @@ class _Cabecalho extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: onAgenda,
-                icon: const Icon(Icons.event_note_outlined, color: Colors.white),
-                tooltip: 'Agenda',
-              ),
-              IconButton(
-                onPressed: onConfig,
-                icon: const Icon(Icons.settings_outlined, color: Colors.white),
-                tooltip: 'Configurações',
-              ),
+              _CabecalhoAcao(icone: Icons.event_note_outlined, rotulo: 'Agenda', onTap: onAgenda),
+              _CabecalhoAcao(icone: Icons.settings_outlined, rotulo: 'Configuração', onTap: onConfig),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CabecalhoAcao extends StatelessWidget {
+  final IconData icone;
+  final String rotulo;
+  final VoidCallback onTap;
+  const _CabecalhoAcao({required this.icone, required this.rotulo, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 58,
+      height: 54,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icone, color: Colors.white, size: 22),
+              const SizedBox(height: 2),
+              Text(rotulo, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w700)),
             ],
           ),
         ),
