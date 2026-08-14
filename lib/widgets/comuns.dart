@@ -186,7 +186,7 @@ class HeaderCurvo extends StatelessWidget {
             Text(ajudaContextualComoUsar ?? '', style: const TextStyle(color: AppColors.textSecondary, height: 1.4)),
             if (ajudaContextualAtencao != null) ...[
               const SizedBox(height: 12),
-              Container(width: double.infinity, padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(10)), child: Text('Atenção: ${ajudaContextualAtencao}', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600))),
+              Container(width: double.infinity, padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(10)), child: Text('Atenção: $ajudaContextualAtencao', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600))),
             ],
           ]),
         ),
