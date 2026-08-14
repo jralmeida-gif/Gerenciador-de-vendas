@@ -21,6 +21,17 @@ class TelaAgenda extends StatelessWidget {
     final portabilidades = estado.portPendentes
         .map((p) => _AgendaItem(nome: p.nome, detalhe: 'Portabilidade pendente', data: p.data))
         .toList();
+    final aniversarios = estado.clientes
+        .where((c) => c.dataNascimento != null)
+        .map((c) {
+          final nascimento = c.dataNascimento!;
+          var data = DateTime(hoje.year, nascimento.month, nascimento.day);
+          if (data.isBefore(limiteHoje)) data = DateTime(hoje.year + 1, nascimento.month, nascimento.day);
+          return _AgendaItem(nome: c.nome, detalhe: 'Aniversário em ${Fmt.data(data)}', data: data);
+        })
+        .where((item) => item.data.difference(limiteHoje).inDays <= 30)
+        .toList()
+      ..sort((a, b) => a.data.compareTo(b.data));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Agenda')),
@@ -42,6 +53,13 @@ class TelaAgenda extends StatelessWidget {
             icone: Icons.event_available_outlined,
             itens: retornos.where((item) => item.data.isAfter(limiteHoje)).toList(),
             vazio: 'Nenhum retorno futuro cadastrado.',
+          ),
+          const SizedBox(height: 16),
+          _SecaoAgenda(
+            titulo: 'Aniversários nos próximos 30 dias',
+            icone: Icons.cake_outlined,
+            itens: aniversarios,
+            vazio: 'Nenhum aniversário informado para os próximos 30 dias.',
           ),
         ],
       ),

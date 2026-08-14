@@ -234,7 +234,7 @@ class TelaConfiguracoes extends StatelessWidget {
                                 content: Text(
                                   ok
                                       ? 'Notificações ativadas neste dispositivo.'
-                                      : 'Não foi possível ativar. Verifique a permissão do navegador.',
+                                      : 'A permissão está bloqueada. No iPhone, ative as notificações em Ajustes → Notificações → Gestor de Vendas ou Safari e tente novamente.',
                                 ),
                                 backgroundColor: ok
                                     ? AppColors.success
