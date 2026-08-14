@@ -83,81 +83,97 @@ class HeaderCurvo extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (mostrarVoltar)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () {
-                        final voltar = voltarGlobal ? estado.onVoltarGlobal : null;
-                        if (voltar != null) {
-                          voltar();
-                        } else {
-                          Navigator.of(context).maybePop();
-                        }
-                      },
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () {
+                          final voltar = voltarGlobal ? estado.onVoltarGlobal : null;
+                          if (voltar != null) {
+                            voltar();
+                          } else {
+                            Navigator.of(context).maybePop();
+                          }
+                        },
+                      ),
                     )
                   else
                     const SizedBox(width: 8),
                   if (mostrarAcoesGlobais && usuario != null) ...[
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
                       child: _avatar(estado),
                     ),
-                    const SizedBox(width: 9),
+                    const SizedBox(width: 10),
                   ],
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Gestor de Vendas', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                        const Text('Gestor de Vendas', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
                         if (usuario != null)
-                          Text('${Fmt.data(DateTime.now())} · ${estado.nomeUsuario}', style: TextStyle(color: Colors.white.withValues(alpha: 0.86), fontSize: 11.5), overflow: TextOverflow.ellipsis),
+                          Text('${Fmt.data(DateTime.now())} · ${estado.nomeUsuario}', style: TextStyle(color: Colors.white.withValues(alpha: 0.86), fontSize: 11.5)),
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
-                          child: Text(titulo, style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                          child: Text(titulo, style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700)),
                         ),
                         if (subtitulo != null)
-                          Text(subtitulo!, style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 11.5), overflow: TextOverflow.ellipsis),
+                          Text(subtitulo!, style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 11.5)),
                       ],
                     ),
                   ),
-                  ...acoes,
-                  if (ajudaContextualTitulo != null)
-                    IconButton(
-                      tooltip: 'Ajuda desta tela',
-                      icon: const Icon(Icons.help_outline, color: Colors.white),
-                      onPressed: () => _mostrarAjudaContextual(context),
-                    ),
-                  if (mostrarAcoesGlobais && usuario != null && titulo != 'Agenda')
-                    _AtalhoCabecalho(
-                      rotulo: 'Agenda',
-                      icone: Icons.event_note_outlined,
-                      onTap: () {
-                        final abrir = estado.onAbrirAgenda;
-                        if (abrir != null) {
-                          abrir();
-                        } else {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAgenda()));
-                        }
-                      },
-                    ),
-                  if (mostrarAcoesGlobais && usuario != null && titulo != 'Configurações')
-                    _AtalhoCabecalho(
-                      rotulo: 'Configurações',
-                      icone: Icons.settings_outlined,
-                      onTap: () {
-                        final abrir = estado.onAbrirConfiguracoes;
-                        if (abrir != null) {
-                          abrir();
-                        } else {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: usuario)));
-                        }
-                      },
-                    ),
                 ],
               ),
+              if (acoes.isNotEmpty || ajudaContextualTitulo != null || (mostrarAcoesGlobais && usuario != null)) ...[
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      ...acoes,
+                      if (ajudaContextualTitulo != null)
+                        _AtalhoCabecalho(
+                          rotulo: 'Ajuda',
+                          icone: Icons.help_outline,
+                          onTap: () => _mostrarAjudaContextual(context),
+                        ),
+                      if (mostrarAcoesGlobais && usuario != null && titulo != 'Agenda')
+                        _AtalhoCabecalho(
+                          rotulo: 'Agenda',
+                          icone: Icons.event_note_outlined,
+                          onTap: () {
+                            final abrir = estado.onAbrirAgenda;
+                            if (abrir != null) {
+                              abrir();
+                            } else {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAgenda()));
+                            }
+                          },
+                        ),
+                      if (mostrarAcoesGlobais && usuario != null && titulo != 'Configurações')
+                        _AtalhoCabecalho(
+                          rotulo: 'Configurações',
+                          icone: Icons.settings_outlined,
+                          onTap: () {
+                            final abrir = estado.onAbrirConfiguracoes;
+                            if (abrir != null) {
+                              abrir();
+                            } else {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: usuario)));
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ],
               if (rodape != null) ...[const SizedBox(height: 14), rodape!],
             ],
           ),

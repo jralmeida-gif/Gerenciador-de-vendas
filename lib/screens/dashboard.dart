@@ -227,7 +227,7 @@ class _PainelDesempenho extends StatelessWidget {
     double media(Iterable<double> valores) => valores.isEmpty
         ? 0.0
         : valores.fold<double>(0, (s, v) => s + v) / valores.length;
-    final realizadoPerc = media(comMeta.map((l) => l.percRealizado));
+    final realizadoPerc = media(comMeta.map((l) => l.percRealizado.clamp(0.0, 1.0).toDouble()));
     final gapPerc = media(comMeta.map((l) => (1 - l.percRealizado).clamp(0.0, 1.0).toDouble()));
     final ritmoPerc = media(comMeta.map((l) => l.metaDia > 0 ? l.ritmoAtual / l.metaDia : 0.0));
     final projecaoPerc = media(comMeta.map((l) => l.metaIndividual > 0 ? l.projecaoMes / l.metaIndividual : 0.0));

@@ -388,10 +388,10 @@ class AppState extends ChangeNotifier {
     final linhas = calcularMetas(referencia: hoje);
     final comMeta = linhas.where((l) => !l.semMeta).toList();
 
-    // Atingimento médio ponderado pelo peso de cada produto.
+    // Consolidação justa: cada produto contribui no máximo com 100%.
     double somaPerc = 0;
     for (final l in comMeta) {
-      somaPerc += l.percRealizado.clamp(0, 2);
+      somaPerc += l.percRealizado.clamp(0.0, 1.0).toDouble();
     }
     final percGeral = comMeta.isEmpty ? 0.0 : somaPerc / comMeta.length;
 
