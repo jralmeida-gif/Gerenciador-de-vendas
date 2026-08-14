@@ -261,7 +261,7 @@ class _TelaProspeccaoListaState extends State<TelaProspeccaoLista>
             ),
             const SizedBox(height: 8),
             ListTile(
-              leading: Image.asset('assets/icon/whatsapp_logo.png', width: 28, height: 28),
+              leading: Image.asset('assets/icon/whatsapp_logo.png', width: 36, height: 36, filterQuality: FilterQuality.high),
               title: const Text('Enviar mensagem pelo WhatsApp'),
               onTap: () async {
                 Navigator.pop(ctx);

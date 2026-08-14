@@ -46,6 +46,8 @@ class TelaDashboard extends StatelessWidget {
                 delegate: SliverChildListDelegate([
                   _CartaoMetaMes(resumo: resumo),
                   const SizedBox(height: 12),
+                  _PainelDesempenho(linhas: comMeta),
+                  const SizedBox(height: 12),
                   _LinhaKpis(resumo: resumo, onNavigate: onNavigate),
                   if (campanhas.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -208,6 +210,84 @@ class _MiniInfo extends StatelessWidget {
       ],
     );
   }
+}
+
+class _PainelDesempenho extends StatelessWidget {
+  final List<LinhaMeta> linhas;
+  const _PainelDesempenho({required this.linhas});
+
+  @override
+  Widget build(BuildContext context) {
+    if (linhas.isEmpty) return const SizedBox.shrink();
+    final meta = linhas.fold<double>(0, (s, l) => s + l.metaIndividual);
+    final realizado = linhas.fold<double>(0, (s, l) => s + l.realizadoMes);
+    final gap = linhas.fold<double>(0, (s, l) => s + (l.gap > 0 ? l.gap : 0));
+    final ritmoAtual = linhas.fold<double>(0, (s, l) => s + l.ritmoAtual);
+    final ritmoNecessario = linhas.fold<double>(0, (s, l) => s + l.metaDia);
+    final projecao = linhas.fold<double>(0, (s, l) => s + l.projecaoMes);
+    final eficiencia = meta > 0 ? (realizado / meta) : 0.0;
+    final tendencia = ritmoAtual >= ritmoNecessario;
+    final formato = linhas.first.formato;
+
+    return CartaoSecao(
+      titulo: 'Painel de desempenho',
+      subtitulo: 'GAP e ritmo diário até o fim do mês',
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _IndicadorDesempenho(rotulo: 'Realizado', valor: Fmt.valorPorFormato(realizado, formato), cor: AppColors.primary)),
+              Expanded(child: _IndicadorDesempenho(rotulo: 'GAP', valor: gap == 0 ? 'Meta batida' : Fmt.valorPorFormato(gap, formato), cor: gap == 0 ? AppColors.success : AppColors.danger)),
+            ],
+          ),
+          const Divider(height: 24),
+          Row(
+            children: [
+              Expanded(child: _IndicadorDesempenho(rotulo: 'Ritmo atual/dia', valor: Fmt.valorPorFormato(ritmoAtual, formato), cor: AppColors.primary)),
+              Expanded(child: _IndicadorDesempenho(rotulo: 'Necessário/dia', valor: Fmt.valorPorFormato(ritmoNecessario, formato), cor: AppColors.accent)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: (tendencia ? AppColors.success : AppColors.warning).withValues(alpha: 0.10), borderRadius: BorderRadius.circular(12)),
+            child: Row(
+              children: [
+                Icon(tendencia ? Icons.trending_up : Icons.warning_amber_outlined, color: tendencia ? AppColors.success : AppColors.warning, size: 22),
+                const SizedBox(width: 9),
+                Expanded(child: Text(tendencia ? 'O ritmo atual é suficiente para alcançar a meta.' : 'É necessário acelerar o ritmo diário para alcançar a meta.', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700))),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Text('Eficiência no período: ${(eficiencia * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
+              Text('Projeção: ${Fmt.valorPorFormato(projecao, formato)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IndicadorDesempenho extends StatelessWidget {
+  final String rotulo;
+  final String valor;
+  final Color cor;
+  const _IndicadorDesempenho({required this.rotulo, required this.valor, required this.cor});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(rotulo, style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+      const SizedBox(height: 3),
+      Text(valor, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: cor)),
+    ]),
+  );
 }
 
 class _LinhaKpis extends StatelessWidget {

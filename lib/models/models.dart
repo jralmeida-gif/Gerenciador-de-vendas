@@ -388,6 +388,10 @@ class LinhaMeta {
   final double percRealizado;
   final double gap;
   final double metaDia;
+  final double ritmoAtual;
+  final double projecaoMes;
+  final double eficiencia;
+  final int diasUteisDecorridos;
 
   LinhaMeta({
     required this.produto,
@@ -399,6 +403,10 @@ class LinhaMeta {
     required this.percRealizado,
     required this.gap,
     required this.metaDia,
+    required this.ritmoAtual,
+    required this.projecaoMes,
+    required this.eficiencia,
+    required this.diasUteisDecorridos,
   });
 
   bool get semMeta => metaIndividual <= 0;

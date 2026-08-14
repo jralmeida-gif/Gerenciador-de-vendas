@@ -297,6 +297,16 @@ class AppState extends ChangeNotifier {
         .fold<double>(0, (s, v) => s + v.valorRealizado);
   }
 
+  int _diasUteisDecorridos(DateTime hoje) {
+    final inicio = DateTime(hoje.year, hoje.month, 1);
+    final fim = DateTime(hoje.year, hoje.month, hoje.day);
+    var total = 0;
+    for (var d = inicio; !d.isAfter(fim); d = d.add(const Duration(days: 1))) {
+      if (d.weekday >= DateTime.monday && d.weekday <= DateTime.friday) total++;
+    }
+    return total;
+  }
+
   /// Calcula o realizado comparando diretamente com a meta individual cadastrada.
   /// A composição da equipe não altera mais o valor da meta.
   List<LinhaMeta> calcularMetas({DateTime? referencia}) {
@@ -304,6 +314,7 @@ class AppState extends ChangeNotifier {
     final inicioMes = DateTime(hoje.year, hoje.month, 1);
     final fimMes = DateTime(hoje.year, hoje.month + 1, 0);
     final diasUteis = diasUteisRestantes(hoje);
+    final diasDecorridos = _diasUteisDecorridos(hoje);
     final linhas = <LinhaMeta>[];
     for (final p in produtos) {
       final metaIndiv = metaDoProduto(p.nome);
@@ -313,8 +324,11 @@ class AppState extends ChangeNotifier {
       final perc = metaIndiv > 0 ? realMes / metaIndiv : 0.0;
       final gap = metaIndiv > 0 ? (metaIndiv - realMes) : 0.0;
       final gapPositivo = gap > 0 ? gap : 0.0;
-      final metaDia = (metaIndiv > 0 && diasUteis > 0)
-          ? gapPositivo / diasUteis
+      final metaDia = (metaIndiv > 0 && diasUteis > 0) ? gapPositivo / diasUteis : 0.0;
+      final ritmoAtual = diasDecorridos > 0 ? realMes / diasDecorridos : 0.0;
+      final projecaoMes = ritmoAtual * (diasDecorridos + diasUteis);
+      final eficiencia = metaIndiv > 0 && diasDecorridos > 0
+          ? realMes / (metaIndiv * (diasDecorridos / (diasDecorridos + diasUteis)))
           : 0.0;
 
       linhas.add(
@@ -328,6 +342,10 @@ class AppState extends ChangeNotifier {
           percRealizado: perc,
           gap: gap,
           metaDia: metaDia,
+          ritmoAtual: ritmoAtual,
+          projecaoMes: projecaoMes,
+          eficiencia: eficiencia,
+          diasUteisDecorridos: diasDecorridos,
         ),
       );
     }
