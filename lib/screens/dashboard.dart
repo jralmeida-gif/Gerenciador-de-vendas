@@ -224,7 +224,7 @@ class _PainelDesempenho extends StatelessWidget {
     if (linhas.isEmpty) return const SizedBox.shrink();
     final comMeta = linhas.where((l) => l.metaIndividual > 0).toList();
     if (comMeta.isEmpty) return const SizedBox.shrink();
-    final media = (Iterable<double> valores) => valores.isEmpty
+    double media(Iterable<double> valores) => valores.isEmpty
         ? 0.0
         : valores.fold<double>(0, (s, v) => s + v) / valores.length;
     final realizadoPerc = media(comMeta.map((l) => l.percRealizado));

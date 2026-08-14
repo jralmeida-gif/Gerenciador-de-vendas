@@ -335,7 +335,7 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
           }
           final atingimentoGeral = metaTotal > 0 ? realizadoTotal / metaTotal : 0.0;
           return _DadosRel(
-            periodo: 'Período ${_periodoHistorico}: ${Fmt.data(_inicio)} a ${Fmt.data(_fim)}',
+            periodo: 'Período $_periodoHistorico: ${Fmt.data(_inicio)} a ${Fmt.data(_fim)}',
             colunas: const ['Mês', 'Produto', 'Meta', 'Realizado', '% atingido', 'GAP %'],
             linhas: linhas,
             direita: const [2, 3, 4, 5],
