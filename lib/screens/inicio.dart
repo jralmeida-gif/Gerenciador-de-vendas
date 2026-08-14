@@ -74,6 +74,7 @@ class _TelaInicioState extends State<TelaInicio> {
       configuracoes: () => _abrirGlobal(TelaConfiguracoes(user: widget.user, onLogout: widget.onLogout)),
       ajuda: () => _abrirGlobal(const TelaAjuda()),
       voltar: _fecharGlobal,
+      relatorio: _abrirGlobal,
     );
     _paginas = [
       TelaDashboard(

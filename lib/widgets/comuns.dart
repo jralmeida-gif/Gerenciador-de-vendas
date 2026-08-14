@@ -16,18 +16,20 @@ class HeaderCurvo extends StatelessWidget {
   final String titulo;
   final String? subtitulo;
   final List<Widget> acoes;
-  final bool mostrarVoltar;
-  final Widget? rodape;
   final bool mostrarAcoesGlobais;
+  final bool voltarGlobal;
+  final Widget? rodape;
+  final bool mostrarVoltar;
 
   const HeaderCurvo({
     super.key,
     required this.titulo,
     this.subtitulo,
     this.acoes = const [],
-    this.mostrarVoltar = true,
-    this.rodape,
     this.mostrarAcoesGlobais = true,
+    this.voltarGlobal = false,
+    this.rodape,
+    this.mostrarVoltar = false,
   });
 
   Widget _avatar(AppState estado) {
@@ -78,7 +80,7 @@ class HeaderCurvo extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () {
-                        final voltar = estado.onVoltarGlobal;
+                        final voltar = voltarGlobal ? estado.onVoltarGlobal : null;
                         if (voltar != null) {
                           voltar();
                         } else {
@@ -129,7 +131,7 @@ class HeaderCurvo extends StatelessWidget {
                     ),
                   if (mostrarAcoesGlobais && usuario != null && titulo != 'Configurações')
                     _AtalhoCabecalho(
-                      rotulo: 'Configuração',
+                      rotulo: 'Configurações',
                       icone: Icons.settings_outlined,
                       onTap: () {
                         final abrir = estado.onAbrirConfiguracoes;
@@ -160,8 +162,8 @@ class _AtalhoCabecalho extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 58,
-      height: 54,
+      width: rotulo == 'Configurações' ? 78 : 62,
+      height: 56,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -172,7 +174,10 @@ class _AtalhoCabecalho extends StatelessWidget {
             children: [
               Icon(icone, color: Colors.white, size: 22),
               const SizedBox(height: 2),
-              Text(rotulo, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w700)),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(rotulo, textAlign: TextAlign.center, maxLines: 1, style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w700)),
+              ),
             ],
           ),
         ),

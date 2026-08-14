@@ -60,6 +60,7 @@ class TelaConfiguracoes extends StatelessWidget {
             titulo: 'Configurações',
             subtitulo: 'Ajustes gerais do aplicativo',
             mostrarVoltar: true,
+            voltarGlobal: true,
             mostrarAcoesGlobais: false,
           ),
           Expanded(

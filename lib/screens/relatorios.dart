@@ -92,12 +92,15 @@ class TelaRelatorios extends StatelessWidget {
               itemBuilder: (_, i) {
                 final t = _tipos[i];
                 return InkWell(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TelaRelatorioParametros(tipo: t),
-                    ),
-                  ),
+                  onTap: () {
+                    final abrir = context.read<AppState>().onAbrirRelatorio;
+                    final pagina = TelaRelatorioParametros(tipo: t);
+                    if (abrir != null) {
+                      abrir(pagina);
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => pagina));
+                    }
+                  },
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
                     padding: const EdgeInsets.all(14),
@@ -615,6 +618,7 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
             titulo: widget.tipo.titulo,
             subtitulo: 'Defina os parâmetros e gere o PDF',
             mostrarVoltar: true,
+            voltarGlobal: true,
           ),
           Expanded(
             child: ListView(

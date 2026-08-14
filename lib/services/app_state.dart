@@ -22,15 +22,17 @@ class AppState extends ChangeNotifier {
   VoidCallback? onAbrirConfiguracoes;
   VoidCallback? onAbrirAjuda;
   VoidCallback? onVoltarGlobal;
+  ValueChanged<Widget>? onAbrirRelatorio;
 
   AppState(this.repo);
 
   AuthUser? get authUser => _authUser;
-  void configurarNavegacaoGlobal({VoidCallback? agenda, VoidCallback? configuracoes, VoidCallback? ajuda, VoidCallback? voltar}) {
+  void configurarNavegacaoGlobal({VoidCallback? agenda, VoidCallback? configuracoes, VoidCallback? ajuda, VoidCallback? voltar, ValueChanged<Widget>? relatorio}) {
     onAbrirAgenda = agenda;
     onAbrirConfiguracoes = configuracoes;
     onAbrirAjuda = ajuda;
     onVoltarGlobal = voltar;
+    onAbrirRelatorio = relatorio;
   }
   void definirUsuarioAutenticado(AuthUser? user) {
     _authUser = user;
@@ -70,13 +72,13 @@ class AppState extends ChangeNotifier {
   Future<void> salvarAvatarData(String value) async {
     await repo.salvarAvatarData(value);
     notifyListeners();
-    unawaited(sincronizarNuvem());
+    await sincronizarNuvem();
   }
 
   Future<void> salvarAvatarEnquadramento({required double escala, required double deslocamentoX, required double deslocamentoY}) async {
     await repo.salvarAvatarEnquadramento(escala: escala, deslocamentoX: deslocamentoX, deslocamentoY: deslocamentoY);
     notifyListeners();
-    unawaited(sincronizarNuvem());
+    await sincronizarNuvem();
   }
 
   Future<void> salvarIdleTimeoutMinutes(int value) async {

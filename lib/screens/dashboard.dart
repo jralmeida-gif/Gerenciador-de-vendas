@@ -38,13 +38,12 @@ class TelaDashboard extends StatelessWidget {
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
-                child: _Cabecalho(
-                  nome: estado.nomeUsuario,
-                  avatarData: estado.avatarData,
-                  data: hoje,
-                  onAgenda: onAgenda ?? () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAgenda())),
-                  onConfig: onConfig ?? () => Navigator.push(context, MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: user, onLogout: onLogout))),
-              ),
+                child: HeaderCurvo(
+                  titulo: 'Início',
+                  usuario: user,
+                  mostrarVoltar: false,
+                  mostrarAcoesGlobais: true,
+                ),
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
