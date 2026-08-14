@@ -164,5 +164,6 @@ class _TelaUsuariosAdminState extends State<TelaUsuariosAdmin> {
               );
             }),
           ],
+        ),
   );
 }
