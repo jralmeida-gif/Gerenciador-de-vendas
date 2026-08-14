@@ -68,6 +68,10 @@ class _TelaVendasListaState extends State<TelaVendasLista> {
             titulo: 'Vendas',
             subtitulo: '${lista.length} registro(s)',
             mostrarVoltar: false,
+            ajudaContextualTitulo: 'Lista de vendas',
+            ajudaContextualTexto: 'As vendas são agrupadas por cliente dentro do período escolhido.',
+            ajudaContextualComoUsar: 'Use a busca e os filtros. Toque no cliente para ver os produtos e as ações disponíveis.',
+            ajudaContextualAtencao: 'O aviso de possível duplicidade é uma conferência; revise antes de confirmar.',
             rodape: Column(
               children: [
                 TextField(

@@ -20,6 +20,10 @@ class HeaderCurvo extends StatelessWidget {
   final bool voltarGlobal;
   final Widget? rodape;
   final bool mostrarVoltar;
+  final String? ajudaContextualTitulo;
+  final String? ajudaContextualTexto;
+  final String? ajudaContextualComoUsar;
+  final String? ajudaContextualAtencao;
 
   const HeaderCurvo({
     super.key,
@@ -30,6 +34,10 @@ class HeaderCurvo extends StatelessWidget {
     this.voltarGlobal = false,
     this.rodape,
     this.mostrarVoltar = false,
+    this.ajudaContextualTitulo,
+    this.ajudaContextualTexto,
+    this.ajudaContextualComoUsar,
+    this.ajudaContextualAtencao,
   });
 
   Widget _avatar(AppState estado) {
@@ -116,6 +124,12 @@ class HeaderCurvo extends StatelessWidget {
                     ),
                   ),
                   ...acoes,
+                  if (ajudaContextualTitulo != null)
+                    IconButton(
+                      tooltip: 'Ajuda desta tela',
+                      icon: const Icon(Icons.help_outline, color: Colors.white),
+                      onPressed: () => _mostrarAjudaContextual(context),
+                    ),
                   if (mostrarAcoesGlobais && usuario != null && titulo != 'Agenda')
                     _AtalhoCabecalho(
                       rotulo: 'Agenda',
@@ -147,6 +161,34 @@ class HeaderCurvo extends StatelessWidget {
               if (rodape != null) ...[const SizedBox(height: 14), rodape!],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _mostrarAjudaContextual(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [const Icon(Icons.help_outline, color: AppColors.primary), const SizedBox(width: 9), Expanded(child: Text(ajudaContextualTitulo ?? 'Ajuda', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)))]),
+            const SizedBox(height: 14),
+            const Text('O que esta tela faz', style: TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(ajudaContextualTexto ?? '', style: const TextStyle(color: AppColors.textSecondary, height: 1.4)),
+            const SizedBox(height: 12),
+            const Text('Como usar', style: TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(ajudaContextualComoUsar ?? '', style: const TextStyle(color: AppColors.textSecondary, height: 1.4)),
+            if (ajudaContextualAtencao != null) ...[
+              const SizedBox(height: 12),
+              Container(width: double.infinity, padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(10)), child: Text('Atenção: ${ajudaContextualAtencao}', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600))),
+            ],
+          ]),
         ),
       ),
     );

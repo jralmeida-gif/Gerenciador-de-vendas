@@ -37,7 +37,7 @@ class TelaAgenda extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: [
-          const HeaderCurvo(titulo: 'Agenda', subtitulo: 'Pendências, retornos e aniversários', mostrarVoltar: true, voltarGlobal: true, mostrarAcoesGlobais: false),
+          const HeaderCurvo(titulo: 'Agenda', subtitulo: 'Pendências, retornos e aniversários', mostrarVoltar: true, voltarGlobal: true, mostrarAcoesGlobais: false, ajudaContextualTitulo: 'Agenda de pendências', ajudaContextualTexto: 'Reúne o que exige atenção hoje, nos próximos dias e os aniversários próximos.', ajudaContextualComoUsar: 'Use cada seção para abrir o registro correspondente e agir sobre a pendência.'),
           Expanded(child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [

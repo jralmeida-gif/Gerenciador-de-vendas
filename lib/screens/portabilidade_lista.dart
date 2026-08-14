@@ -50,6 +50,9 @@ class _TelaPortabilidadeListaState extends State<TelaPortabilidadeLista>
             titulo: 'Portabilidade',
             subtitulo: 'Consignado · pedidos e confirmações',
             mostrarVoltar: false,
+            ajudaContextualTitulo: 'Acompanhamento de portabilidade',
+            ajudaContextualTexto: 'Separa pedidos pendentes de operações confirmadas.',
+            ajudaContextualComoUsar: 'Abra o pedido para editar, confirmar, enviar WhatsApp ou acompanhar o prazo.',
             rodape: Container(
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.15),

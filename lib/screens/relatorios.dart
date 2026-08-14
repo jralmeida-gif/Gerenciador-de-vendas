@@ -83,6 +83,9 @@ class TelaRelatorios extends StatelessWidget {
             titulo: 'Relatórios',
             subtitulo: 'Gere e compartilhe em PDF',
             mostrarVoltar: false,
+            ajudaContextualTitulo: 'Relatórios',
+            ajudaContextualTexto: 'Consulta e organiza os dados sem alterar os lançamentos.',
+            ajudaContextualComoUsar: 'Escolha o relatório, período, foco e filtros. Use a ficha consolidada para pesquisar clientes.',
           ),
           Expanded(
             child: ListView.separated(

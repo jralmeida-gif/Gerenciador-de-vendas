@@ -38,6 +38,9 @@ class TelaDashboard extends StatelessWidget {
                   titulo: 'Início',
                   mostrarVoltar: false,
                   mostrarAcoesGlobais: true,
+                  ajudaContextualTitulo: 'Painel inicial',
+                  ajudaContextualTexto: 'Mostra metas, desempenho e pendências do período atual.',
+                  ajudaContextualComoUsar: 'Toque nos cartões para abrir os detalhes. O painel compara realizado, GAP, ritmo necessário e projeção.',
                 ),
             ),
             SliverPadding(

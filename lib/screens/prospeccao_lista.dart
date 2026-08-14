@@ -73,6 +73,9 @@ class _TelaProspeccaoListaState extends State<TelaProspeccaoLista>
             titulo: 'Prospecção',
             subtitulo: '${todas.length} registro(s) na base',
             mostrarVoltar: false,
+            ajudaContextualTitulo: 'Follow-up',
+            ajudaContextualTexto: 'Registra o interesse do cliente e organiza o próximo contato.',
+            ajudaContextualComoUsar: 'Cadastre a data de retorno para que o registro seja acompanhado na Agenda.',
             rodape: Column(
               children: [
                 TextField(

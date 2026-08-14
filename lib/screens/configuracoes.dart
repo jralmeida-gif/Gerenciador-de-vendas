@@ -62,6 +62,9 @@ class TelaConfiguracoes extends StatelessWidget {
             mostrarVoltar: true,
             voltarGlobal: true,
             mostrarAcoesGlobais: false,
+            ajudaContextualTitulo: 'Configurações',
+            ajudaContextualTexto: 'Administra perfil, foto, notificações, usuários, backup e ajuda.',
+            ajudaContextualComoUsar: 'Escolha uma opção e salve as alterações. Administradores possuem ações adicionais de gerenciamento.',
           ),
           Expanded(
             child: ListView(
