@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -452,16 +451,28 @@ class TelaConfiguracoes extends StatelessWidget {
             ListTile(leading: const Icon(Icons.person_outline), title: const Text('Alias'), subtitle: Text(estado.nomeUsuario), onTap: () => Navigator.pop(ctx, 'alias')),
             ListTile(leading: const Icon(Icons.account_circle_outlined), title: const Text('Foto de perfil'), subtitle: Text(estado.avatarData.isEmpty ? 'Adicionar foto' : 'Alterar foto'), onTap: () => Navigator.pop(ctx, 'foto')),
             ListTile(leading: const Icon(Icons.email_outlined), title: const Text('E-mail de acesso'), subtitle: Text(email)),
-            ListTile(leading: const Icon(Icons.phone_outlined), title: const Text('Telefone'), subtitle: Text(estado.telefoneUsuario.isEmpty ? 'Opcional — adicionar' : Fmt.telefone(estado.telefoneUsuario), onTap: () => Navigator.pop(ctx, 'telefone')),
+            ListTile(
+              leading: const Icon(Icons.phone_outlined),
+              title: const Text('Telefone'),
+              subtitle: Text(estado.telefoneUsuario.isEmpty ? 'Opcional — adicionar' : Fmt.telefone(estado.telefoneUsuario)),
+              onTap: () => Navigator.pop(ctx, 'telefone'),
+            ),
             const SizedBox(height: 8),
           ],
         ),
       ),
     );
     if (!context.mounted || escolha == null) return;
-    if (escolha == 'alias') await _editarNome(context);
-    if (escolha == 'foto') await _editarAvatar(context);
-    if (escolha == 'telefone') await _editarTelefone(context);
+    if (escolha == 'alias') {
+      if (!context.mounted) return;
+      await _editarNome(context);
+    } else if (escolha == 'foto') {
+      if (!context.mounted) return;
+      await _editarAvatar(context);
+    } else if (escolha == 'telefone') {
+      if (!context.mounted) return;
+      await _editarTelefone(context);
+    }
   }
 
   static Future<void> _editarTelefone(BuildContext context) async {
