@@ -49,11 +49,11 @@ class TelaDashboard extends StatelessWidget {
                 delegate: SliverChildListDelegate([
                   _CartaoMetaMes(resumo: resumo),
                   const SizedBox(height: 12),
+                  _CartaoCampanhas(campanhas: campanhas),
+                  const SizedBox(height: 12),
                   _PainelDesempenho(linhas: comMeta),
                   const SizedBox(height: 12),
                   _LinhaKpis(resumo: resumo, onNavigate: onNavigate),
-                  const SizedBox(height: 12),
-                  _CartaoCampanhas(campanhas: campanhas),
                   const SizedBox(height: 12),
                   _ListaProdutos(linhas: comMeta, todas: resumo.linhas),
                 ]),
@@ -360,7 +360,7 @@ class _CartaoCampanhas extends StatelessWidget {
       child: campanhas.isEmpty
           ? const SizedBox.shrink()
           : Column(
-        children: campanhas.take(2).map((c) {
+        children: campanhas.map((c) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Column(
@@ -388,12 +388,21 @@ class _CartaoCampanhas extends StatelessWidget {
                 BarraProgresso(valor: c.percGeral),
                 const SizedBox(height: 4),
                 Text(
-                  '${(c.percGeral * 100).toStringAsFixed(0)}% · ${c.itens.length} produtos',
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    color: AppColors.textSecondary,
-                  ),
+                  '${Fmt.percentual(c.percGeral)} · ${c.itens.length} produtos',
+                  style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
                 ),
+                const SizedBox(height: 8),
+                ...c.itens.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 5),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(item.produto, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+                      Text('${Fmt.valorPorFormato(item.realizado, item.formato)} / ${Fmt.valorPorFormato(item.meta, item.formato)}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      const SizedBox(width: 6),
+                      Text(Fmt.percentual(item.perc), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.semaforo(item.perc))),
+                    ],
+                  ),
+                )),
               ],
             ),
           );

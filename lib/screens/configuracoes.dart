@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -21,26 +22,21 @@ import 'ajuda.dart';
 
 /// Configurações: equipe, produtos, convênios, campanhas, backup e limpeza.
 class _AvatarEnquadrado extends StatelessWidget {
-  final String avatarData;
+  final Uint8List imageBytes;
   final double escala;
   final double deslocamentoX;
   final double deslocamentoY;
-  const _AvatarEnquadrado({required this.avatarData, required this.escala, required this.deslocamentoX, required this.deslocamentoY});
+  const _AvatarEnquadrado({required this.imageBytes, required this.escala, required this.deslocamentoX, required this.deslocamentoY});
 
   @override
   Widget build(BuildContext context) {
-    try {
-      final encoded = avatarData.contains(',') ? avatarData.split(',').last : avatarData;
-      return Transform.translate(
-        offset: Offset(deslocamentoX * 70, deslocamentoY * 70),
-        child: Transform.scale(
-          scale: escala,
-          child: Image.memory(base64Decode(encoded), width: 190, height: 190, fit: BoxFit.cover),
-        ),
-      );
-    } catch (_) {
-      return const Icon(Icons.person, color: Colors.white, size: 64);
-    }
+    return Transform.translate(
+      offset: Offset(deslocamentoX * 70, deslocamentoY * 70),
+      child: Transform.scale(
+        scale: escala,
+        child: Image.memory(imageBytes, width: 190, height: 190, fit: BoxFit.cover, gaplessPlayback: true, filterQuality: FilterQuality.low),
+      ),
+    );
   }
 }
 
@@ -75,28 +71,10 @@ class TelaConfiguracoes extends StatelessWidget {
                   child: Column(
                     children: [
                       _Item(
-                        icone: Icons.person_outline,
-                        titulo: 'Nome ou alias exibido',
-                        valor: estado.nomeUsuario,
-                        onTap: () => _editarNome(context),
-                      ),
-                      _Item(
-                        icone: Icons.account_circle_outlined,
-                        titulo: 'Foto do perfil',
-                        valor: estado.avatarData.isEmpty ? 'Adicionar uma foto' : 'Foto cadastrada',
-                        onTap: () => _editarAvatar(context),
-                      ),
-                      _Item(
-                        icone: Icons.email_outlined,
-                        titulo: 'E-mail de acesso',
-                        valor: user.username,
-                        onTap: () {},
-                      ),
-                      _Item(
-                        icone: Icons.phone_outlined,
-                        titulo: 'Telefone',
-                        valor: estado.telefoneUsuario.isEmpty ? 'Opcional — adicionar' : Fmt.telefone(estado.telefoneUsuario),
-                        onTap: () => _editarTelefone(context),
+                        icone: Icons.manage_accounts_outlined,
+                        titulo: 'Editar perfil',
+                        valor: 'Alias, foto, e-mail e telefone',
+                        onTap: () => _editarPerfil(context, user.username),
                       ),
                       _Item(
                         icone: Icons.timer_outlined,
@@ -421,7 +399,7 @@ class TelaConfiguracoes extends StatelessWidget {
                       height: 190,
                       color: AppColors.primary.withValues(alpha: 0.08),
                       child: _AvatarEnquadrado(
-                        avatarData: encoded,
+                        imageBytes: bytes,
                         escala: escala,
                         deslocamentoX: deslocamentoX,
                         deslocamentoY: deslocamentoY,
@@ -460,6 +438,30 @@ class TelaConfiguracoes extends StatelessWidget {
       ),
     );
     if (escolha != null) await estado.salvarIdleTimeoutMinutes(escolha);
+  }
+
+  static Future<void> _editarPerfil(BuildContext context, String email) async {
+    final estado = context.read<AppState>();
+    final escolha = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('Editar meu perfil')),
+            ListTile(leading: const Icon(Icons.person_outline), title: const Text('Alias'), subtitle: Text(estado.nomeUsuario), onTap: () => Navigator.pop(ctx, 'alias')),
+            ListTile(leading: const Icon(Icons.account_circle_outlined), title: const Text('Foto de perfil'), subtitle: Text(estado.avatarData.isEmpty ? 'Adicionar foto' : 'Alterar foto'), onTap: () => Navigator.pop(ctx, 'foto')),
+            ListTile(leading: const Icon(Icons.email_outlined), title: const Text('E-mail de acesso'), subtitle: Text(email)),
+            ListTile(leading: const Icon(Icons.phone_outlined), title: const Text('Telefone'), subtitle: Text(estado.telefoneUsuario.isEmpty ? 'Opcional — adicionar' : Fmt.telefone(estado.telefoneUsuario), onTap: () => Navigator.pop(ctx, 'telefone')),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || escolha == null) return;
+    if (escolha == 'alias') await _editarNome(context);
+    if (escolha == 'foto') await _editarAvatar(context);
+    if (escolha == 'telefone') await _editarTelefone(context);
   }
 
   static Future<void> _editarTelefone(BuildContext context) async {

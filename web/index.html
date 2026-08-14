@@ -198,6 +198,17 @@
         var blob = new Blob([bytes], { type: 'application/json;charset=utf-8' });
         var file = new File([blob], filename, { type: 'application/json' });
 
+        const ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        // O Safari/iOS não oferece showSaveFilePicker. O caminho nativo para
+        // salvar em Arquivos é o compartilhamento de um arquivo, onde o
+        // usuário escolhe "Salvar em Arquivos".
+        if (ehIOS && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'Backup do Gestor de Vendas' });
+          return true;
+        }
+
         if (window.showSaveFilePicker) {
           const handle = await window.showSaveFilePicker({
             suggestedName: filename,
