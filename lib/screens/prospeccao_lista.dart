@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
@@ -261,7 +260,7 @@ class _TelaProspeccaoListaState extends State<TelaProspeccaoLista>
             ),
             const SizedBox(height: 8),
             ListTile(
-              leading: const Icon(FontAwesomeIcons.whatsapp, color: Color(0xFF25D366)),
+              leading: Image.asset('assets/icon/whatsapp_logo.png', width: 22, height: 22),
               title: const Text('Enviar mensagem pelo WhatsApp'),
               onTap: () async {
                 Navigator.pop(ctx);
