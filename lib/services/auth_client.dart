@@ -41,7 +41,10 @@ class AuthClient {
 
   Future<AuthUser?> session() async {
     try {
-      final response = await _client.get(Uri.parse('$_origin/api/auth/session'));
+      final response = await _client.get(
+        Uri.parse('$_origin/api/auth/session?t=${DateTime.now().millisecondsSinceEpoch}'),
+        headers: {'Cache-Control': 'no-cache'},
+      );
       if (response.statusCode != 200) return null;
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       if (body['authenticated'] != true) return null;
@@ -89,7 +92,12 @@ class AuthClient {
   }
 
   Future<void> logout() async {
-    try { await _client.post(Uri.parse('$_origin/api/auth/logout')); } catch (_) {}
+    try {
+      await _client.post(
+        Uri.parse('$_origin/api/auth/logout?t=${DateTime.now().millisecondsSinceEpoch}'),
+        headers: {'Cache-Control': 'no-cache'},
+      );
+    } catch (_) {}
   }
 
   Future<AuthResult> _postUser(String path, Map<String, String> body) async {

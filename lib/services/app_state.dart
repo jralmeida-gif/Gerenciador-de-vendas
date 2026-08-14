@@ -30,6 +30,11 @@ class AppState extends ChangeNotifier {
   int get idleTimeoutMinutes => repo.idleTimeoutMinutes;
   DateTime? get ultimoBackup => repo.ultimoBackup;
 
+  Future<void> mudarPerfilLocal(String profile) async {
+    await repo.switchProfile(profile);
+    notifyListeners();
+  }
+
   Future<void> salvarEquipe(int g, int a) async {
     await repo.salvarEquipe(gerentes: g, assistentes: a);
     notifyListeners();
@@ -65,6 +70,20 @@ class AppState extends ChangeNotifier {
 
   String formatoDoProduto(String p) => repo.formatoDoProduto(p);
   double metaDoProduto(String p) => repo.metaDoProduto(p);
+
+  Venda? encontrarVendaDuplicada(Venda candidata) {
+    for (final existente in vendas) {
+      if (existente.id == candidata.id) continue;
+      final mesmaData = existente.data.year == candidata.data.year &&
+          existente.data.month == candidata.data.month &&
+          existente.data.day == candidata.data.day;
+      final mesmoCpf = existente.cpf == candidata.cpf;
+      final mesmoProduto = existente.produto.trim().toLowerCase() == candidata.produto.trim().toLowerCase();
+      final mesmoValor = (existente.valorRealizado - candidata.valorRealizado).abs() < 0.005;
+      if (mesmaData && mesmoCpf && mesmoProduto && mesmoValor) return existente;
+    }
+    return null;
+  }
 
   // ------------------- CRUD -------------------
   Future<void> salvarVenda(Venda v) async {

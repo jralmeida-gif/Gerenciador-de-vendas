@@ -121,7 +121,8 @@ export async function createSession(request: Request, env: AuthEnv, userId: stri
 
 export function clearSessionHeaders(request: Request): Headers {
   const headers = corsHeaders(request);
-  headers.append('Set-Cookie', 'gv_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax');
+  headers.append('Set-Cookie', 'gv_session=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax');
+  headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   return headers;
 }
 

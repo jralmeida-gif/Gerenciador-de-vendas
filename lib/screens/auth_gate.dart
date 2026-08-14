@@ -79,14 +79,18 @@ class _AuthGateState extends State<AuthGate> {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     if (_user == null) return LoginView(auth: _auth, setup: _setup, onLoggedIn: _loggedIn);
     if (_user!.mustChangePassword) return ChangePasswordView(auth: _auth, onDone: _senhaDefinitivaSalva);
-    void sair() {
-      unawaited(_auth.logout());
-      if (mounted) setState(() => _user = null);
+    Future<void> sair() async {
+      // Primeiro invalida a sessão remota; depois limpa o perfil local e a árvore autenticada.
+      await _auth.logout();
+      if (!mounted) return;
+      await context.read<AppState>().mudarPerfilLocal('guest');
+      if (!mounted) return;
+      setState(() => _user = null);
     }
     return SessionGuard(
       timeout: Duration(minutes: context.read<AppState>().idleTimeoutMinutes),
-      onTimeout: sair,
-      child: TelaInicio(user: _user!, onLogout: sair),
+      onTimeout: () => unawaited(sair()),
+      child: TelaInicio(user: _user!, onLogout: () => unawaited(sair())),
     );
   }
 }
