@@ -11,6 +11,7 @@ import '../utils/formatters.dart';
 import '../widgets/comuns.dart';
 import 'campanhas.dart';
 import 'configuracoes.dart';
+import 'agenda.dart';
 import 'metas_editar.dart';
 import 'venda_form.dart';
 
@@ -35,11 +36,15 @@ class TelaDashboard extends StatelessWidget {
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
-              child: _Cabecalho(
-                nome: estado.nomeUsuario,
-                avatarData: estado.avatarData,
-                data: hoje,
-                onConfig: () => Navigator.push(
+                child: _Cabecalho(
+                  nome: estado.nomeUsuario,
+                  avatarData: estado.avatarData,
+                  data: hoje,
+                  onAgenda: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TelaAgenda()),
+                  ),
+                  onConfig: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: user, onLogout: onLogout)),
                 ),
@@ -83,11 +88,13 @@ class _Cabecalho extends StatelessWidget {
   final String nome;
   final String avatarData;
   final DateTime data;
+  final VoidCallback onAgenda;
   final VoidCallback onConfig;
   const _Cabecalho({
     required this.nome,
     required this.avatarData,
     required this.data,
+    required this.onAgenda,
     required this.onConfig,
   });
 
@@ -95,7 +102,7 @@ class _Cabecalho extends StatelessWidget {
     if (avatarData.isEmpty) return const Icon(Icons.person, color: Colors.white);
     try {
       final encoded = avatarData.contains(',') ? avatarData.split(',').last : avatarData;
-      return ClipOval(child: Image.memory(base64Decode(encoded), width: 44, height: 44, fit: BoxFit.cover));
+      return ClipOval(child: Image.memory(base64Decode(encoded), width: 58, height: 58, fit: BoxFit.cover));
     } catch (_) {
       return const Icon(Icons.person, color: Colors.white);
     }
@@ -122,8 +129,8 @@ class _Cabecalho extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 58,
+                height: 58,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
@@ -153,6 +160,11 @@ class _Cabecalho extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                onPressed: onAgenda,
+                icon: const Icon(Icons.event_note_outlined, color: Colors.white),
+                tooltip: 'Agenda',
               ),
               IconButton(
                 onPressed: onConfig,

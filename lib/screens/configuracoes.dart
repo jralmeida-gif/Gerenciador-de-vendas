@@ -363,8 +363,10 @@ class TelaConfiguracoes extends StatelessWidget {
     final estado = context.read<AppState>();
     final conteudo = estado.exportarBackup();
     final bytes = Uint8List.fromList(utf8.encode(conteudo));
+    final agora = DateTime.now();
+    String dois(int valor) => valor.toString().padLeft(2, '0');
     final nome =
-        'backup-gestor-vendas-${DateTime.now().toIso8601String().substring(0, 10)}.json';
+        'backup-gestor-vendas-${agora.year}-${dois(agora.month)}-${dois(agora.day)}-${dois(agora.hour)}h${dois(agora.minute)}m${dois(agora.second)}s.json';
 
     final iniciar = await showDialog<bool>(
       context: context,
