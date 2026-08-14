@@ -10,8 +10,6 @@ import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/comuns.dart';
 import 'campanhas.dart';
-import 'configuracoes.dart';
-import 'agenda.dart';
 import 'metas_editar.dart';
 import 'venda_form.dart';
 
@@ -27,7 +25,6 @@ class TelaDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<AppState>();
-    final hoje = DateTime.now();
     final resumo = estado.resumo();
     final campanhas = estado.progressoCampanhas();
     final comMeta = resumo.linhas.where((l) => !l.semMeta).toList();
@@ -40,7 +37,6 @@ class TelaDashboard extends StatelessWidget {
             SliverToBoxAdapter(
                 child: HeaderCurvo(
                   titulo: 'Início',
-                  usuario: user,
                   mostrarVoltar: false,
                   mostrarAcoesGlobais: true,
                 ),
@@ -73,128 +69,6 @@ class TelaDashboard extends StatelessWidget {
         label: const Text(
           'Nova venda',
           style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-  }
-}
-
-class _Cabecalho extends StatelessWidget {
-  final String nome;
-  final String avatarData;
-  final DateTime data;
-  final VoidCallback onAgenda;
-  final VoidCallback onConfig;
-  const _Cabecalho({
-    required this.nome,
-    required this.avatarData,
-    required this.data,
-    required this.onAgenda,
-    required this.onConfig,
-  });
-
-  Widget _avatar() {
-    if (avatarData.isEmpty) return const Icon(Icons.person, color: Colors.white);
-    try {
-      final encoded = avatarData.contains(',') ? avatarData.split(',').last : avatarData;
-      return ClipOval(child: Image.memory(base64Decode(encoded), width: 58, height: 58, fit: BoxFit.cover));
-    } catch (_) {
-      return const Icon(Icons.person, color: Colors.white);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primaryLight],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(26),
-          bottomRight: Radius.circular(26),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 12, 20),
-          child: Row(
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                ),
-                child: _avatar(),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Gestor de Vendas',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${Fmt.data(data)}  ·  $nome',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 12.5,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Início',
-                      style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-              ),
-              _CabecalhoAcao(icone: Icons.event_note_outlined, rotulo: 'Agenda', onTap: onAgenda),
-              _CabecalhoAcao(icone: Icons.settings_outlined, rotulo: 'Configuração', onTap: onConfig),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CabecalhoAcao extends StatelessWidget {
-  final IconData icone;
-  final String rotulo;
-  final VoidCallback onTap;
-  const _CabecalhoAcao({required this.icone, required this.rotulo, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 58,
-      height: 54,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icone, color: Colors.white, size: 22),
-              const SizedBox(height: 2),
-              Text(rotulo, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w700)),
-            ],
-          ),
         ),
       ),
     );
