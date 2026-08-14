@@ -229,13 +229,13 @@ class _PainelDesempenho extends StatelessWidget {
         : valores.fold<double>(0, (s, v) => s + v) / valores.length;
     final realizadoPerc = media(comMeta.map((l) => l.percRealizado.clamp(0.0, 1.0).toDouble()));
     final gapPerc = media(comMeta.map((l) => (1 - l.percRealizado).clamp(0.0, 1.0).toDouble()));
-    final ritmoPerc = media(comMeta.map((l) => l.metaDia > 0 ? l.ritmoAtual / l.metaDia : 0.0));
-    final projecaoPerc = media(comMeta.map((l) => l.metaIndividual > 0 ? l.projecaoMes / l.metaIndividual : 0.0));
-    final tendencia = ritmoPerc >= 1.0;
+    final esperadoPerc = media(comMeta.map((l) => l.percentualEsperado));
+    final projecaoPerc = media(comMeta.map((l) => l.percentualProjecao));
+    final dentroDoEsperado = realizadoPerc >= esperadoPerc;
     String percentual(double valor) => '${(valor * 100).toStringAsFixed(0)}%';
 
     return CartaoSecao(
-      titulo: 'Painel de desempenho · GAP e ritmo diário',
+      titulo: 'Painel de desempenho · GAP e projeção',
       child: Column(
         children: [
           Row(
@@ -247,27 +247,27 @@ class _PainelDesempenho extends StatelessWidget {
           const Divider(height: 24),
           Row(
             children: [
-              Expanded(child: _IndicadorDesempenho(rotulo: 'Ritmo atual', valor: percentual(ritmoPerc), cor: AppColors.primary)),
-              Expanded(child: _IndicadorDesempenho(rotulo: 'Projeção', valor: percentual(projecaoPerc), cor: AppColors.accent)),
+              Expanded(child: _IndicadorDesempenho(rotulo: 'Esperado até hoje', valor: percentual(esperadoPerc), cor: AppColors.primary)),
+              Expanded(child: _IndicadorDesempenho(rotulo: 'Projeção no fim do mês', valor: percentual(projecaoPerc), cor: AppColors.accent)),
             ],
           ),
           const SizedBox(height: 14),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: (tendencia ? AppColors.success : AppColors.warning).withValues(alpha: 0.10), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: (dentroDoEsperado ? AppColors.success : AppColors.warning).withValues(alpha: 0.10), borderRadius: BorderRadius.circular(12)),
             child: Row(
               children: [
-                Icon(tendencia ? Icons.trending_up : Icons.warning_amber_outlined, color: tendencia ? AppColors.success : AppColors.warning, size: 22),
+                Icon(dentroDoEsperado ? Icons.check_circle_outline : Icons.warning_amber_outlined, color: dentroDoEsperado ? AppColors.success : AppColors.warning, size: 22),
                 const SizedBox(width: 9),
-                Expanded(child: Text(tendencia ? 'O ritmo atual é suficiente para alcançar a meta.' : 'É necessário acelerar o ritmo diário para alcançar a meta.', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700))),
+                Expanded(child: Text(dentroDoEsperado ? 'O realizado está dentro ou acima do esperado para a data.' : 'O realizado está abaixo do esperado para a data. É necessário acelerar.', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700))),
               ],
             ),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: Text('Média percentual dos produtos com meta', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
+              Expanded(child: Text('Esperado para a data: ${percentual(esperadoPerc)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
               Text('Projeção média: ${percentual(projecaoPerc)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w700)),
             ],
           ),

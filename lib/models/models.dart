@@ -390,6 +390,8 @@ class LinhaMeta {
   final double metaDia;
   final double ritmoAtual;
   final double projecaoMes;
+  final double percentualEsperado;
+  final double percentualProjecao;
   final double eficiencia;
   final int diasUteisDecorridos;
 
@@ -405,6 +407,8 @@ class LinhaMeta {
     required this.metaDia,
     required this.ritmoAtual,
     required this.projecaoMes,
+    required this.percentualEsperado,
+    required this.percentualProjecao,
     required this.eficiencia,
     required this.diasUteisDecorridos,
   });

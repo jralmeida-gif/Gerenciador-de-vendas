@@ -331,6 +331,16 @@ class AppState extends ChangeNotifier {
     return total;
   }
 
+  int _diasUteisNoMes(DateTime hoje) {
+    final inicio = DateTime(hoje.year, hoje.month, 1);
+    final fim = DateTime(hoje.year, hoje.month + 1, 0);
+    var total = 0;
+    for (var d = inicio; !d.isAfter(fim); d = d.add(const Duration(days: 1))) {
+      if (d.weekday >= DateTime.monday && d.weekday <= DateTime.friday) total++;
+    }
+    return total;
+  }
+
   /// Calcula o realizado comparando diretamente com a meta individual cadastrada.
   /// A composição da equipe não altera mais o valor da meta.
   List<LinhaMeta> calcularMetas({DateTime? referencia}) {
@@ -339,6 +349,8 @@ class AppState extends ChangeNotifier {
     final fimMes = DateTime(hoje.year, hoje.month + 1, 0);
     final diasUteis = diasUteisRestantes(hoje);
     final diasDecorridos = _diasUteisDecorridos(hoje);
+    final diasTotais = _diasUteisNoMes(hoje);
+    final percentualEsperado = diasTotais > 0 ? diasDecorridos / diasTotais : 0.0;
     final linhas = <LinhaMeta>[];
     for (final p in produtos) {
       final metaIndiv = metaDoProduto(p.nome);
@@ -350,10 +362,9 @@ class AppState extends ChangeNotifier {
       final gapPositivo = gap > 0 ? gap : 0.0;
       final metaDia = (metaIndiv > 0 && diasUteis > 0) ? gapPositivo / diasUteis : 0.0;
       final ritmoAtual = diasDecorridos > 0 ? realMes / diasDecorridos : 0.0;
-      final projecaoMes = ritmoAtual * (diasDecorridos + diasUteis);
-      final eficiencia = metaIndiv > 0 && diasDecorridos > 0
-          ? realMes / (metaIndiv * (diasDecorridos / (diasDecorridos + diasUteis)))
-          : 0.0;
+      final percentualProjecao = percentualEsperado > 0 ? perc / percentualEsperado : 0.0;
+      final projecaoMes = percentualProjecao * metaIndiv;
+      final eficiencia = percentualEsperado > 0 ? perc / percentualEsperado : 0.0;
 
       linhas.add(
         LinhaMeta(
@@ -368,6 +379,8 @@ class AppState extends ChangeNotifier {
           metaDia: metaDia,
           ritmoAtual: ritmoAtual,
           projecaoMes: projecaoMes,
+          percentualEsperado: percentualEsperado,
+          percentualProjecao: percentualProjecao,
           eficiencia: eficiencia,
           diasUteisDecorridos: diasDecorridos,
         ),
