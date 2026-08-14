@@ -144,6 +144,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
       );
       if (!mounted || continuar != true) return;
       await estado.salvarCliente(clienteAtual.copyWith(nome: venda.nome, telefone: venda.telefone));
+      if (!mounted) return;
     } else if (clienteAtual == null) {
       await estado.salvarCliente(Cliente(cpf: venda.cpf, nome: venda.nome, telefone: venda.telefone));
     }

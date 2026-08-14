@@ -531,7 +531,9 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
           var itens = estado.vendas.where((v) => _noPeriodo(v.data)).toList();
           if (_produto != null) itens = itens.where((v) => v.produto == _produto).toList();
           final mapa = <String, Venda>{};
-          for (final v in itens) mapa.putIfAbsent(v.cpf, () => v);
+          for (final v in itens) {
+            mapa.putIfAbsent(v.cpf, () => v);
+          }
           final linhas = mapa.values.map((v) => [v.nome, Fmt.cpf(v.cpf), Fmt.telefone(v.telefone), v.produto]).toList();
           return _DadosRel(
             periodo: 'Período: ${Fmt.data(_inicio)} a ${Fmt.data(_fim)}',
