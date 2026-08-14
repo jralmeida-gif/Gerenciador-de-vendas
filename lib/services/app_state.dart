@@ -67,6 +67,9 @@ class AppState extends ChangeNotifier {
   List<Portabilidade> get portConfirmadas => repo.portabilidadesConfirmadas;
   List<Prospeccao> get prospeccoes => repo.prospeccoes;
   List<Campanha> get campanhas => repo.campanhas;
+  List<Cliente> get clientes => repo.clientes;
+
+  Cliente? clientePorCpf(String cpf) => repo.clientePorCpf(cpf);
 
   String formatoDoProduto(String p) => repo.formatoDoProduto(p);
   double metaDoProduto(String p) => repo.metaDoProduto(p);
@@ -86,6 +89,12 @@ class AppState extends ChangeNotifier {
   }
 
   // ------------------- CRUD -------------------
+  Future<void> salvarCliente(Cliente c) async {
+    await repo.salvarCliente(c);
+    notifyListeners();
+    unawaited(sincronizarNuvem());
+  }
+
   Future<void> salvarVenda(Venda v) async {
     await repo.salvarVenda(v);
     notifyListeners();

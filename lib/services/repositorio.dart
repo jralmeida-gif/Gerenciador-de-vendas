@@ -16,6 +16,7 @@ class Repositorio {
   static const _bConvenios = 'convenios';
   static const _bMetas = 'metas';
   static const _bCampanhas = 'campanhas';
+  static const _bClientes = 'clientes';
   static const _bConfig = 'config';
 
   late Box _vendas;
@@ -25,6 +26,7 @@ class Repositorio {
   late Box _convenios;
   late Box _metas;
   late Box _campanhas;
+  late Box _clientes;
   late Box _config;
 
   String _profile = 'guest';
@@ -45,6 +47,7 @@ class Repositorio {
     _convenios = await Hive.openBox(_name(_bConvenios));
     _metas = await Hive.openBox(_name(_bMetas));
     _campanhas = await Hive.openBox(_name(_bCampanhas));
+    _clientes = await Hive.openBox(_name(_bClientes));
     _config = await Hive.openBox(_name(_bConfig));
     await _semearSePreciso();
     if (_profile != 'guest') await _migrarLegadoSeNecessario();
@@ -59,6 +62,7 @@ class Repositorio {
     await _convenios.close();
     await _metas.close();
     await _campanhas.close();
+    await _clientes.close();
     await _config.close();
     await _openProfile(profile);
   }
@@ -73,6 +77,7 @@ class Repositorio {
       _bConvenios: await Hive.openBox(_bConvenios),
       _bMetas: await Hive.openBox(_bMetas),
       _bCampanhas: await Hive.openBox(_bCampanhas),
+      _bClientes: await Hive.openBox(_bClientes),
       _bConfig: await Hive.openBox(_bConfig),
     };
     final destinos = <String, Box>{
@@ -83,6 +88,7 @@ class Repositorio {
       _bConvenios: _convenios,
       _bMetas: _metas,
       _bCampanhas: _campanhas,
+      _bClientes: _clientes,
     };
     for (final entry in destinos.entries) {
       for (final key in antigos[entry.key]!.keys) {
@@ -224,6 +230,23 @@ class Repositorio {
   Future<void> salvarProspeccao(Prospeccao p) => _prosp.put(p.id, p.toJson());
   Future<void> excluirProspeccao(String id) => _prosp.delete(id);
 
+  // ---------------- Clientes ----------------
+  List<Cliente> get clientes {
+    final l = _clientes.values
+        .map((e) => Cliente.fromJson(Map<dynamic, dynamic>.from(e as Map)))
+        .toList();
+    l.sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
+    return l;
+  }
+
+  Cliente? clientePorCpf(String cpf) {
+    final e = _clientes.get(cpf);
+    return e == null ? null : Cliente.fromJson(Map<dynamic, dynamic>.from(e as Map));
+  }
+
+  Future<void> salvarCliente(Cliente c) => _clientes.put(c.cpf, c.toJson());
+  Future<void> excluirCliente(String cpf) => _clientes.delete(cpf);
+
   // ---------------- Metas ----------------
   List<MetaProduto> get metas => _metas.values
       .map((e) => MetaProduto.fromJson(Map<dynamic, dynamic>.from(e as Map)))
@@ -272,6 +295,7 @@ class Repositorio {
       'portabilidades': portabilidades.map((e) => e.toJson()).toList(),
       'prospeccoes': prospeccoes.map((e) => e.toJson()).toList(),
       'campanhas': campanhas.map((e) => e.toJson()).toList(),
+      'clientes': clientes.map((e) => e.toJson()).toList(),
     };
     return const JsonEncoder.withIndent('  ').convert(mapa);
   }
@@ -287,6 +311,7 @@ class Repositorio {
       await _convenios.clear();
       await _metas.clear();
       await _campanhas.clear();
+      await _clientes.clear();
     }
     final cfg = mapa['config'] as Map<String, dynamic>?;
     if (cfg != null) {
@@ -323,6 +348,10 @@ class Repositorio {
     for (final e in (mapa['campanhas'] as List? ?? [])) {
       final c = Campanha.fromJson(e as Map);
       await _campanhas.put(c.id, c.toJson());
+    }
+    for (final e in (mapa['clientes'] as List? ?? [])) {
+      final c = Cliente.fromJson(e as Map);
+      if (c.cpf.isNotEmpty) await _clientes.put(c.cpf, c.toJson());
     }
     await _config.put('semeado', true);
   }

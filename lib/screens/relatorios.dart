@@ -65,6 +65,13 @@ class TelaRelatorios extends StatelessWidget {
       icone: Icons.contacts_outlined,
       cor: AppColors.textSecondary,
     ),
+    TipoRel(
+      id: 'clientes',
+      titulo: 'Ficha Consolidada de Clientes',
+      descricao: 'Clientes, produtos contratados e histórico comercial',
+      icone: Icons.badge_outlined,
+      cor: AppColors.primaryLight,
+    ),
   ];
 
   @override
@@ -200,10 +207,10 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
   String get _tipoId => widget.tipo.id;
 
   bool get _precisaData => _tipoId == 'venda_dia';
-  bool get _precisaPeriodo => !_precisaData && _tipoId != 'contatos';
+  bool get _precisaPeriodo => !_precisaData && _tipoId != 'contatos' && _tipoId != 'clientes';
   bool get _precisaProduto =>
       _tipoId == 'contatos' || _tipoId == 'venda_produto';
-  bool get _precisaCliente => _tipoId == 'venda_cliente';
+  bool get _precisaCliente => _tipoId == 'venda_cliente' || _tipoId == 'clientes';
   bool get _precisaFoco => _tipoId == 'venda_foco';
 
   @override
@@ -520,6 +527,40 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
         }
 
       case 'contatos':
+        {
+          var itens = estado.vendas.where((v) => _noPeriodo(v.data)).toList();
+          if (_produto != null) itens = itens.where((v) => v.produto == _produto).toList();
+          final mapa = <String, Venda>{};
+          for (final v in itens) mapa.putIfAbsent(v.cpf, () => v);
+          final linhas = mapa.values.map((v) => [v.nome, Fmt.cpf(v.cpf), Fmt.telefone(v.telefone), v.produto]).toList();
+          return _DadosRel(
+            periodo: 'Período: ${Fmt.data(_inicio)} a ${Fmt.data(_fim)}',
+            colunas: const ['Cliente', 'CPF', 'Telefone', 'Produto'],
+            linhas: linhas,
+            direita: const [],
+            resumo: '${linhas.length} contato(s)',
+          );
+        }
+      case 'clientes':
+        {
+          final q = _cliente.text.trim().toLowerCase();
+          final digitos = Fmt.somenteDigitos(q);
+          var lista = estado.clientes;
+          if (q.isNotEmpty) {
+            lista = lista.where((c) => c.nome.toLowerCase().contains(q) || (digitos.isNotEmpty && c.cpf.contains(digitos))).toList();
+          }
+          final linhas = lista.map((c) {
+            final produtos = estado.vendas.where((v) => v.cpf == c.cpf).map((v) => v.produto).toSet().join(', ');
+            return [c.nome, Fmt.cpf(c.cpf), Fmt.telefone(c.telefone), produtos.isEmpty ? '—' : produtos];
+          }).toList();
+          return _DadosRel(
+            periodo: 'Clientes do usuário${q.isEmpty ? '' : ' · Filtro: ${_cliente.text.trim()}'}',
+            colunas: const ['Cliente', 'CPF', 'Telefone', 'Produtos contratados'],
+            linhas: linhas,
+            direita: const [],
+            resumo: '${linhas.length} cliente(s) consolidado(s)',
+          );
+        }
       default:
         {
           final itens = estado.vendas

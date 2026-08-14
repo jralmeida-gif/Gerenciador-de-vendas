@@ -262,6 +262,47 @@ class Convenio {
       Convenio(nome: _s(j['nome']), codigo: _s(j['codigo']));
 }
 
+/// Cadastro consolidado do cliente, compartilhado pelos três processos do usuário.
+class Cliente {
+  final String cpf;
+  final String nome;
+  final String telefone;
+  final DateTime? dataNascimento;
+  final String observacoes;
+
+  const Cliente({
+    required this.cpf,
+    required this.nome,
+    required this.telefone,
+    this.dataNascimento,
+    this.observacoes = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+        'cpf': cpf,
+        'nome': nome,
+        'telefone': telefone,
+        'dataNascimento': dataNascimento?.toIso8601String(),
+        'observacoes': observacoes,
+      };
+
+  factory Cliente.fromJson(Map<dynamic, dynamic> j) => Cliente(
+        cpf: _s(j['cpf']),
+        nome: _s(j['nome']),
+        telefone: _s(j['telefone']),
+        dataNascimento: _dtNull(j['dataNascimento']),
+        observacoes: _s(j['observacoes']),
+      );
+
+  Cliente copyWith({String? nome, String? telefone, DateTime? dataNascimento, String? observacoes}) => Cliente(
+        cpf: cpf,
+        nome: nome ?? this.nome,
+        telefone: telefone ?? this.telefone,
+        dataNascimento: dataNascimento ?? this.dataNascimento,
+        observacoes: observacoes ?? this.observacoes,
+      );
+}
+
 /// Meta mensal da agência por produto (coluna C da aba RealizadoxMetas).
 class MetaProduto {
   final String produto;

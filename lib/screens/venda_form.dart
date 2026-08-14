@@ -120,6 +120,54 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
       valorRealizado: valorNum,
       observacoes: _obs.text.trim(),
     );
+
+    final clienteAtual = estado.clientePorCpf(venda.cpf);
+    final nomeDiferente = clienteAtual != null &&
+        clienteAtual.nome.trim().toLowerCase() != venda.nome.trim().toLowerCase();
+    final telefoneDiferente = clienteAtual != null && clienteAtual.telefone != venda.telefone;
+    if (clienteAtual != null && (nomeDiferente || telefoneDiferente)) {
+      final continuar = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Divergência no cadastro'),
+          content: Text(
+            'Já existe um cliente com este CPF.\n\n'
+            'Cadastro: ${clienteAtual.nome} / ${Fmt.telefone(clienteAtual.telefone)}\n'
+            'Informado: ${venda.nome} / ${Fmt.telefone(venda.telefone)}\n\n'
+            'Deseja atualizar o cadastro com os dados informados?',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Corrigir')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Atualizar')),
+          ],
+        ),
+      );
+      if (!mounted || continuar != true) return;
+      await estado.salvarCliente(clienteAtual.copyWith(nome: venda.nome, telefone: venda.telefone));
+    } else if (clienteAtual == null) {
+      await estado.salvarCliente(Cliente(cpf: venda.cpf, nome: venda.nome, telefone: venda.telefone));
+    }
+
+    final duplicada = estado.encontrarVendaDuplicada(venda);
+    if (duplicada != null) {
+      final continuar = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Possível duplicidade'),
+          content: Text(
+            'Já existe uma venda do mesmo CPF, produto e valor na data ${Fmt.data(duplicada.data)}.\n\n'
+            'Produto: ${duplicada.produto}\nValor: ${Fmt.decimal(duplicada.valorRealizado)}\n\n'
+            'Deseja registrar mesmo assim?',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Registrar mesmo assim')),
+          ],
+        ),
+      );
+      if (!mounted || continuar != true) return;
+    }
+
     await estado.salvarVenda(venda);
     if (!mounted) return;
 

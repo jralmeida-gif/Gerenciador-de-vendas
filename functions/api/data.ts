@@ -9,6 +9,7 @@ type DataBody = {
   vendas?: Array<{ id?: string; data?: string; cpf?: string; nome?: string; telefone?: string; produto?: string; valorRealizado?: number; observacoes?: string }>;
   portabilidades?: Array<{ id?: string; data?: string; cpf?: string; nome?: string; telefone?: string; convenio?: string; saldoDevedor?: number; valorPrestacao?: number; qtdPrestacoes?: number; confirmado?: boolean; numeroContrato?: string; dataConfirmacao?: string | null; observacoes?: string }>;
   prospeccoes?: Array<{ id?: string; data?: string; cpf?: string; nome?: string; telefone?: string; produto?: string; dataRetorno?: string | null; observacao?: string; concluida?: boolean }>;
+  clientes?: Array<{ cpf?: string; nome?: string; telefone?: string; dataNascimento?: string | null; observacoes?: string }>;
 };
 
 const text = (value: unknown) => value == null ? '' : String(value);
@@ -29,8 +30,9 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
     env.DB.prepare('SELECT id, data, cpf, name, phone, product, realized, notes FROM user_sales WHERE user_id = ? ORDER BY data DESC').bind(user.id),
     env.DB.prepare('SELECT id, data, cpf, name, phone, convenio, saldo_devedor, valor_prestacao, qtd_prestacoes, confirmado, numero_contrato, data_confirmacao, observacoes FROM user_portabilidades WHERE user_id = ? ORDER BY data DESC').bind(user.id),
     env.DB.prepare('SELECT id, data, cpf, name, phone, product, data_retorno, observacao, concluida FROM user_prospeccoes WHERE user_id = ? ORDER BY data DESC').bind(user.id),
+    env.DB.prepare('SELECT cpf, name, phone, birth_date, notes FROM user_clients WHERE user_id = ? ORDER BY name').bind(user.id),
   ]);
-  const [settings, products, convenios, metas, campaigns, sales, ports, prospects] = result;
+  const [settings, products, convenios, metas, campaigns, sales, ports, prospects, clients] = result;
   return json(request, {
     ok: true,
     config: {
@@ -46,6 +48,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
     vendas: sales.results.map((r: any) => ({ id: r.id, data: r.data, cpf: r.cpf, nome: r.name, telefone: r.phone, produto: r.product, valorRealizado: r.realized, observacoes: r.notes })),
     portabilidades: ports.results.map((r: any) => ({ id: r.id, data: r.data, cpf: r.cpf, nome: r.name, telefone: r.phone, convenio: r.convenio, saldoDevedor: r.saldo_devedor, valorPrestacao: r.valor_prestacao, qtdPrestacoes: r.qtd_prestacoes, confirmado: !!r.confirmado, numeroContrato: r.numero_contrato, dataConfirmacao: r.data_confirmacao, observacoes: r.observacoes })),
     prospeccoes: prospects.results.map((r: any) => ({ id: r.id, data: r.data, cpf: r.cpf, nome: r.name, telefone: r.phone, produto: r.product, dataRetorno: r.data_retorno, observacao: r.observacao, concluida: !!r.concluida })),
+    clientes: clients.results.map((r: any) => ({ cpf: r.cpf, nome: r.name, telefone: r.phone, dataNascimento: r.birth_date, observacoes: r.notes })),
   });
 };
 
@@ -65,6 +68,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     env.DB.prepare('DELETE FROM user_sales WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_portabilidades WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_prospeccoes WHERE user_id = ?').bind(user.id),
+    env.DB.prepare('DELETE FROM user_clients WHERE user_id = ?').bind(user.id),
     env.DB.prepare(`INSERT INTO user_settings (user_id, display_name, avatar_data, idle_timeout_minutes, updated_at) VALUES (?, ?, ?, ?, datetime('now'))
       ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, avatar_data = excluded.avatar_data, idle_timeout_minutes = excluded.idle_timeout_minutes, updated_at = datetime('now')`).bind(user.id, displayName, avatarData, idleTimeoutMinutes),
     env.DB.prepare(`UPDATE users SET display_name = ?, updated_at = datetime('now') WHERE id = ?`).bind(displayName, user.id),
@@ -76,6 +80,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   for (const v of body.vendas ?? []) if (text(v.id) && text(v.data)) batch.push(env.DB.prepare('INSERT INTO user_sales (user_id, id, data, cpf, name, phone, product, realized, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(user.id, text(v.id), text(v.data), text(v.cpf), text(v.nome), text(v.telefone), text(v.produto), num(v.valorRealizado), text(v.observacoes)));
   for (const p of body.portabilidades ?? []) if (text(p.id) && text(p.data)) batch.push(env.DB.prepare('INSERT INTO user_portabilidades (user_id, id, data, cpf, name, phone, convenio, saldo_devedor, valor_prestacao, qtd_prestacoes, confirmado, numero_contrato, data_confirmacao, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(user.id, text(p.id), text(p.data), text(p.cpf), text(p.nome), text(p.telefone), text(p.convenio), num(p.saldoDevedor), num(p.valorPrestacao), Math.trunc(num(p.qtdPrestacoes)), bool(p.confirmado) ? 1 : 0, text(p.numeroContrato), p.dataConfirmacao == null ? null : text(p.dataConfirmacao), text(p.observacoes)));
   for (const p of body.prospeccoes ?? []) if (text(p.id) && text(p.data)) batch.push(env.DB.prepare('INSERT INTO user_prospeccoes (user_id, id, data, cpf, name, phone, product, data_retorno, observacao, concluida) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(user.id, text(p.id), text(p.data), text(p.cpf), text(p.nome), text(p.telefone), text(p.produto), p.dataRetorno == null ? null : text(p.dataRetorno), text(p.observacao), bool(p.concluida) ? 1 : 0));
+  for (const c of body.clientes ?? []) if (text(c.cpf)) batch.push(env.DB.prepare('INSERT INTO user_clients (user_id, cpf, name, phone, birth_date, notes) VALUES (?, ?, ?, ?, ?, ?)').bind(user.id, text(c.cpf), text(c.nome), text(c.telefone), c.dataNascimento == null ? null : text(c.dataNascimento), text(c.observacoes)));
   await env.DB.batch(batch);
   return json(request, { ok: true, userId: user.id });
 };
