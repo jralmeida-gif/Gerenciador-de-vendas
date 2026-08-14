@@ -265,6 +265,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
           HeaderCurvo(
             titulo: _editando ? 'Editar Venda' : 'Lançamento de Venda',
             subtitulo: Fmt.data(DateTime.now()),
+            mostrarVoltar: true,
             acoes: [
               if (!_editando)
                 Container(

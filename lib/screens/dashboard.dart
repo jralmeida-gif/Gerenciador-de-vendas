@@ -230,7 +230,11 @@ class _PainelDesempenho extends StatelessWidget {
     final realizadoPerc = media(comMeta.map((l) => l.percRealizado.clamp(0.0, 1.0).toDouble()));
     final gapPerc = media(comMeta.map((l) => (1 - l.percRealizado).clamp(0.0, 1.0).toDouble()));
     final esperadoPerc = media(comMeta.map((l) => l.percentualEsperado));
-    final projecaoPerc = media(comMeta.map((l) => l.percentualProjecao));
+    // A projeção consolidada parte do realizado limitado por produto, evitando que
+    // produtos acima de 100% compensem os que ainda estão abaixo do esperado.
+    final projecaoPerc = media(comMeta.map((l) => l.percentualEsperado > 0
+        ? l.percRealizado.clamp(0.0, 1.0).toDouble() / l.percentualEsperado
+        : 0.0));
     final dentroDoEsperado = realizadoPerc >= esperadoPerc;
     String percentual(double valor) => '${(valor * 100).toStringAsFixed(0)}%';
 
