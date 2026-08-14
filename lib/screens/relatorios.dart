@@ -82,6 +82,7 @@ class TelaRelatorios extends StatelessWidget {
           const HeaderCurvo(
             titulo: 'Relatórios',
             subtitulo: 'Gere e compartilhe em PDF',
+            mostrarVoltar: false,
           ),
           Expanded(
             child: ListView.separated(
@@ -761,6 +762,16 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
                     ],
                   ),
                 ),
+                if (_tipoId == 'clientes') ...[
+                  const SizedBox(height: 14),
+                  _EditorDatasNascimento(
+                    clientes: estado.clientes.where((c) {
+                      final q = _cliente.text.trim().toLowerCase();
+                      final digitos = Fmt.somenteDigitos(q);
+                      return q.isEmpty || c.nome.toLowerCase().contains(q) || (digitos.isNotEmpty && c.cpf.contains(digitos));
+                    }).toList(),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 _Previa(dados: _montar(estado)),
               ],
@@ -800,6 +811,44 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
     side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
     visualDensity: VisualDensity.compact,
   );
+}
+
+class _EditorDatasNascimento extends StatelessWidget {
+  final List<Cliente> clientes;
+  const _EditorDatasNascimento({required this.clientes});
+
+  Future<void> _editar(BuildContext context, Cliente cliente) async {
+    final data = await showDatePicker(
+      context: context,
+      initialDate: cliente.dataNascimento ?? DateTime(1980, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      locale: const Locale('pt', 'BR'),
+      helpText: 'Selecione a data de nascimento',
+    );
+    if (data == null || !context.mounted) return;
+    await context.read<AppState>().salvarCliente(cliente.copyWith(dataNascimento: data));
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data de nascimento atualizada.')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CartaoSecao(
+      titulo: 'Editar datas de nascimento',
+      child: clientes.isEmpty
+          ? const Text('Nenhum cliente encontrado para editar.', style: TextStyle(color: AppColors.textSecondary))
+          : Column(
+              children: clientes.map((cliente) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                title: Text(cliente.nome, style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(cliente.dataNascimento == null ? 'Nascimento não informado' : 'Nascimento: ${Fmt.data(cliente.dataNascimento!)}'),
+                trailing: const Icon(Icons.edit_calendar_outlined, color: AppColors.primary),
+                onTap: () => _editar(context, cliente),
+              )).toList(),
+            ),
+    );
+  }
 }
 
 class _DadosRel {

@@ -36,6 +36,7 @@ class _AuthGateState extends State<AuthGate> {
       setup = await _auth.setupRequired();
     }
     if (!mounted) return;
+    if (user != null) context.read<AppState>().definirUsuarioAutenticado(user);
     setState(() {
       _user = user;
       _setup = setup;
@@ -48,6 +49,7 @@ class _AuthGateState extends State<AuthGate> {
     await widget.repo.switchProfile(result.user!.username);
     if (mounted) await context.read<AppState>().carregarDaNuvem();
     if (!mounted) return;
+    context.read<AppState>().definirUsuarioAutenticado(result.user);
     setState(() => _user = result.user);
   }
 
@@ -85,6 +87,7 @@ class _AuthGateState extends State<AuthGate> {
       await _auth.logout();
       if (!mounted) return;
       await appState.mudarPerfilLocal('guest');
+      appState.definirUsuarioAutenticado(null);
       if (!mounted) return;
       setState(() => _user = null);
     }
@@ -115,6 +118,19 @@ class _LoginViewState extends State<LoginView> {
     if (mounted) setState(() => _busy = false);
     await widget.onLoggedIn(result);
   }
+
+  Future<void> _esqueciSenha() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Esqueci minha senha'),
+        content: const Text('Por segurança, a redefinição é feita pelo administrador do sistema. Informe seu usuário ao administrador para que ele gere uma nova senha temporária. No próximo acesso, você deverá criar uma senha definitiva.'),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendi')),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) => _AuthScaffold(
         title: widget.setup ? 'Configuração inicial' : 'Entrar no Gestor de Vendas',
@@ -125,6 +141,10 @@ class _LoginViewState extends State<LoginView> {
           TextField(controller: _password, obscureText: true, decoration: InputDecoration(labelText: widget.setup ? 'Senha inicial' : 'Senha', prefixIcon: const Icon(Icons.lock_outline))),
           const SizedBox(height: 22),
           SizedBox(width: double.infinity, child: FilledButton(onPressed: _busy ? null : _submit, child: _busy ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(widget.setup ? 'Criar administrador' : 'Entrar'))),
+          if (!widget.setup) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(onPressed: _busy ? null : _esqueciSenha, icon: const Icon(Icons.help_outline, size: 18), label: const Text('Esqueci minha senha')),
+          ],
         ],
       );
 }

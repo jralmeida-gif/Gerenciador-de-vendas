@@ -72,6 +72,7 @@ class _TelaProspeccaoListaState extends State<TelaProspeccaoLista>
           HeaderCurvo(
             titulo: 'Prospecção',
             subtitulo: '${todas.length} registro(s) na base',
+            mostrarVoltar: false,
             rodape: Column(
               children: [
                 TextField(
@@ -260,7 +261,7 @@ class _TelaProspeccaoListaState extends State<TelaProspeccaoLista>
             ),
             const SizedBox(height: 8),
             ListTile(
-              leading: Image.asset('assets/icon/whatsapp_logo.png', width: 22, height: 22),
+              leading: Image.asset('assets/icon/whatsapp_logo.png', width: 28, height: 28),
               title: const Text('Enviar mensagem pelo WhatsApp'),
               onTap: () async {
                 Navigator.pop(ctx);

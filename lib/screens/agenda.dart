@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/app_state.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
+import '../widgets/comuns.dart';
 
 class TelaAgenda extends StatelessWidget {
   const TelaAgenda({super.key});
@@ -34,8 +35,10 @@ class TelaAgenda extends StatelessWidget {
       ..sort((a, b) => a.data.compareTo(b.data));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Agenda')),
-      body: ListView(
+      body: Column(
+        children: [
+          const HeaderCurvo(titulo: 'Agenda', subtitulo: 'Pendências, retornos e aniversários', mostrarVoltar: false),
+          Expanded(child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           _SecaoAgenda(
@@ -61,6 +64,7 @@ class TelaAgenda extends StatelessWidget {
             itens: aniversarios,
             vazio: 'Nenhum aniversário informado para os próximos 30 dias.',
           ),
+          )),
         ],
       ),
     );

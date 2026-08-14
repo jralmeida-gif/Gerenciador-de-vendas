@@ -9,6 +9,7 @@ import '../utils/formatters.dart';
 import 'repositorio.dart';
 import 'push_client.dart';
 import 'cloud_data_client.dart';
+import 'auth_client.dart';
 
 /// Estado global do app + motor de cálculo de metas
 /// (equivalente ao módulo VBA modmetas da planilha original).
@@ -16,8 +17,15 @@ class AppState extends ChangeNotifier {
   final Repositorio repo;
   final _uuid = const Uuid();
   final _cloud = CloudDataClient();
+  AuthUser? _authUser;
 
   AppState(this.repo);
+
+  AuthUser? get authUser => _authUser;
+  void definirUsuarioAutenticado(AuthUser? user) {
+    _authUser = user;
+    notifyListeners();
+  }
 
   String novoId() => _uuid.v4();
 
@@ -27,6 +35,9 @@ class AppState extends ChangeNotifier {
   int get numFuncionarios => repo.numFuncionarios;
   String get nomeUsuario => repo.nomeUsuario;
   String get avatarData => repo.avatarData;
+  double get avatarScale => repo.avatarScale;
+  double get avatarOffsetX => repo.avatarOffsetX;
+  double get avatarOffsetY => repo.avatarOffsetY;
   int get idleTimeoutMinutes => repo.idleTimeoutMinutes;
   DateTime? get ultimoBackup => repo.ultimoBackup;
 
@@ -48,6 +59,12 @@ class AppState extends ChangeNotifier {
 
   Future<void> salvarAvatarData(String value) async {
     await repo.salvarAvatarData(value);
+    notifyListeners();
+    unawaited(sincronizarNuvem());
+  }
+
+  Future<void> salvarAvatarEnquadramento({required double escala, required double deslocamentoX, required double deslocamentoY}) async {
+    await repo.salvarAvatarEnquadramento(escala: escala, deslocamentoX: deslocamentoX, deslocamentoY: deslocamentoY);
     notifyListeners();
     unawaited(sincronizarNuvem());
   }

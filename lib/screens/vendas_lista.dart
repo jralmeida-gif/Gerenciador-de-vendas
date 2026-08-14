@@ -365,7 +365,7 @@ class _CartaoGrupoVenda extends StatelessWidget {
           ListTile(title: Text(grupo.nome, style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('${Fmt.cpf(grupo.cpf)}\n${Fmt.telefone(grupo.telefone)}\n${grupo.vendas.length} produto(s)/lançamento(s) no período')),
           const Divider(),
           ListTile(
-            leading: Image.asset('assets/icon/whatsapp_logo.png', width: 22, height: 22),
+            leading: Image.asset('assets/icon/whatsapp_logo.png', width: 28, height: 28),
             title: const Text('Enviar mensagem pelo WhatsApp'),
             onTap: () async {
               Navigator.pop(ctx);

@@ -309,7 +309,7 @@ class _CartaoPort extends StatelessWidget {
             ),
             const Divider(),
             ListTile(
-              leading: Image.asset('assets/icon/whatsapp_logo.png', width: 22, height: 22),
+              leading: Image.asset('assets/icon/whatsapp_logo.png', width: 28, height: 28),
               title: const Text('Enviar mensagem pelo WhatsApp'),
               onTap: () async {
                 Navigator.pop(ctx);

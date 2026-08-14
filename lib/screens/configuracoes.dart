@@ -17,8 +17,33 @@ import '../utils/formatters.dart';
 import '../widgets/comuns.dart';
 import 'campanhas.dart';
 import 'metas_editar.dart';
+import 'ajuda.dart';
 
 /// Configurações: equipe, produtos, convênios, campanhas, backup e limpeza.
+class _AvatarEnquadrado extends StatelessWidget {
+  final String avatarData;
+  final double escala;
+  final double deslocamentoX;
+  final double deslocamentoY;
+  const _AvatarEnquadrado({required this.avatarData, required this.escala, required this.deslocamentoX, required this.deslocamentoY});
+
+  @override
+  Widget build(BuildContext context) {
+    try {
+      final encoded = avatarData.contains(',') ? avatarData.split(',').last : avatarData;
+      return Transform.translate(
+        offset: Offset(deslocamentoX * 70, deslocamentoY * 70),
+        child: Transform.scale(
+          scale: escala,
+          child: Image.memory(base64Decode(encoded), width: 190, height: 190, fit: BoxFit.cover),
+        ),
+      );
+    } catch (_) {
+      return const Icon(Icons.person, color: Colors.white, size: 64);
+    }
+  }
+}
+
 class TelaConfiguracoes extends StatelessWidget {
   final AuthUser user;
   final VoidCallback? onLogout;
@@ -34,7 +59,7 @@ class TelaConfiguracoes extends StatelessWidget {
           const HeaderCurvo(
             titulo: 'Configurações',
             subtitulo: 'Ajustes gerais do aplicativo',
-            mostrarVoltar: true,
+            mostrarVoltar: false,
           ),
           Expanded(
             child: ListView(
@@ -66,11 +91,21 @@ class TelaConfiguracoes extends StatelessWidget {
                         _ItemPerigo(
                           titulo: 'Sair do aplicativo',
                           subtitulo: 'Encerrar a sessão neste dispositivo',
-                          onTap: () => onLogout!(),
+                          onTap: () => _confirmarSaida(context),
                         ),
                     ],
                   ),
                 ),
+                CartaoSecao(
+                  titulo: 'Orientação',
+                  child: _Item(
+                    icone: Icons.help_outline,
+                    titulo: 'Ajuda e dicas',
+                    valor: 'Como usar os principais recursos',
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAjuda())),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 if (user.isAdmin) ...[
                   CartaoSecao(
                     titulo: 'Administração',
@@ -302,7 +337,23 @@ class TelaConfiguracoes extends StatelessWidget {
 
   // ------------------- Ações -------------------
 
+  Future<void> _confirmarSaida(BuildContext context) async {
+    final sair = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sair do aplicativo?'),
+        content: const Text('A sessão será encerrada neste dispositivo. Seus dados sincronizados permanecerão separados na sua conta.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Continuar no app')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sair')),
+        ],
+      ),
+    );
+    if (sair == true && context.mounted) onLogout?.call();
+  }
+
   static Future<void> _editarAvatar(BuildContext context) async {
+    final estado = context.read<AppState>();
     final res = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
     if (res == null || res.files.isEmpty || !context.mounted) return;
     final bytes = res.files.first.bytes;
@@ -311,7 +362,61 @@ class TelaConfiguracoes extends StatelessWidget {
       return;
     }
     final encoded = 'data:image/${res.files.first.extension ?? 'jpeg'};base64,${base64Encode(bytes)}';
-    await context.read<AppState>().salvarAvatarData(encoded);
+    var escala = estado.avatarScale;
+    var deslocamentoX = estado.avatarOffsetX;
+    var deslocamentoY = estado.avatarOffsetY;
+    final salvo = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => AlertDialog(
+          title: const Text('Ajustar enquadramento da foto'),
+          content: SizedBox(
+            width: 300,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onPanUpdate: (details) => setDialog(() {
+                    deslocamentoX = (deslocamentoX + details.delta.dx / 150).clamp(-1.0, 1.0);
+                    deslocamentoY = (deslocamentoY + details.delta.dy / 150).clamp(-1.0, 1.0);
+                  }),
+                  child: ClipOval(
+                    child: Container(
+                      width: 190,
+                      height: 190,
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      child: _AvatarEnquadrado(
+                        avatarData: encoded,
+                        escala: escala,
+                        deslocamentoX: deslocamentoX,
+                        deslocamentoY: deslocamentoY,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('Arraste a foto e use o controle para aproximar ou afastar.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Slider(
+                  min: 1,
+                  max: 3,
+                  value: escala,
+                  label: escala.toStringAsFixed(1),
+                  onChanged: (value) => setDialog(() => escala = value),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Salvar')),
+          ],
+        ),
+      ),
+    );
+    if (salvo == true && context.mounted) {
+      await estado.salvarAvatarData(encoded);
+      await estado.salvarAvatarEnquadramento(escala: escala, deslocamentoX: deslocamentoX, deslocamentoY: deslocamentoY);
+    }
   }
 
   static Future<void> _editarTimeout(BuildContext context) async {

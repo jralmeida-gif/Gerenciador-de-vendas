@@ -102,7 +102,7 @@ class Repositorio {
       }
     }
     final configAntiga = antigos[_bConfig]!;
-    for (final key in ['gerentes', 'assistentes', 'nomeUsuario', 'ultimoBackup', 'avatarData', 'idleTimeoutMinutes']) {
+    for (final key in ['gerentes', 'assistentes', 'nomeUsuario', 'ultimoBackup', 'avatarData', 'avatarScale', 'avatarOffsetX', 'avatarOffsetY', 'idleTimeoutMinutes']) {
       final value = configAntiga.get(key);
       if (value != null) await _config.put(key, value);
     }
@@ -135,6 +135,9 @@ class Repositorio {
   String get nomeUsuario => (_config.get('nomeUsuario') ?? 'Usuário') as String;
   String get avatarData => (_config.get('avatarData') ?? '') as String;
   int get idleTimeoutMinutes => (_config.get('idleTimeoutMinutes') ?? 30) as int;
+  double get avatarScale => ((_config.get('avatarScale') as num?) ?? 1.0).toDouble();
+  double get avatarOffsetX => ((_config.get('avatarOffsetX') as num?) ?? 0.0).toDouble();
+  double get avatarOffsetY => ((_config.get('avatarOffsetY') as num?) ?? 0.0).toDouble();
   DateTime? get ultimoBackup {
     final s = _config.get('ultimoBackup');
     return s == null ? null : DateTime.tryParse(s as String);
@@ -152,6 +155,11 @@ class Repositorio {
       _config.put('nomeUsuario', nome);
 
   Future<void> salvarAvatarData(String value) => _config.put('avatarData', value);
+  Future<void> salvarAvatarEnquadramento({required double escala, required double deslocamentoX, required double deslocamentoY}) async {
+    await _config.put('avatarScale', escala.clamp(1.0, 3.0));
+    await _config.put('avatarOffsetX', deslocamentoX.clamp(-1.0, 1.0));
+    await _config.put('avatarOffsetY', deslocamentoY.clamp(-1.0, 1.0));
+  }
 
   Future<void> salvarIdleTimeoutMinutes(int value) =>
       _config.put('idleTimeoutMinutes', value.clamp(15, 120));
@@ -307,6 +315,9 @@ class Repositorio {
         'nomeUsuario': nomeUsuario,
         'modeloMeta': 'individual',
         'avatarData': avatarData,
+        'avatarScale': avatarScale,
+        'avatarOffsetX': avatarOffsetX,
+        'avatarOffsetY': avatarOffsetY,
         'idleTimeoutMinutes': idleTimeoutMinutes,
       },
       'produtos': produtos.map((e) => e.toJson()).toList(),
@@ -342,6 +353,9 @@ class Repositorio {
       await _config.put('assistentes', cfg['assistentes'] ?? 0);
       await _config.put('nomeUsuario', cfg['nomeUsuario'] ?? 'Usuário');
       await _config.put('avatarData', cfg['avatarData'] ?? '');
+      await _config.put('avatarScale', cfg['avatarScale'] ?? 1.0);
+      await _config.put('avatarOffsetX', cfg['avatarOffsetX'] ?? 0.0);
+      await _config.put('avatarOffsetY', cfg['avatarOffsetY'] ?? 0.0);
       await _config.put('idleTimeoutMinutes', cfg['idleTimeoutMinutes'] ?? 30);
     }
     for (final e in (mapa['produtos'] as List? ?? [])) {

@@ -1,7 +1,13 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../screens/agenda.dart';
+import '../screens/configuracoes.dart';
+import '../services/app_state.dart';
 import '../theme/app_theme.dart';
 
 /// Cabeçalho azul curvo usado no topo das telas de formulário.
@@ -11,6 +17,7 @@ class HeaderCurvo extends StatelessWidget {
   final List<Widget> acoes;
   final bool mostrarVoltar;
   final Widget? rodape;
+  final bool mostrarAcoesGlobais;
 
   const HeaderCurvo({
     super.key,
@@ -19,10 +26,31 @@ class HeaderCurvo extends StatelessWidget {
     this.acoes = const [],
     this.mostrarVoltar = true,
     this.rodape,
+    this.mostrarAcoesGlobais = true,
   });
+
+  Widget _avatar(AppState estado) {
+    if (estado.avatarData.isEmpty) return const Icon(Icons.person, color: Colors.white, size: 28);
+    try {
+      final encoded = estado.avatarData.contains(',') ? estado.avatarData.split(',').last : estado.avatarData;
+      return ClipOval(
+        child: Transform.translate(
+          offset: Offset(estado.avatarOffsetX * 28, estado.avatarOffsetY * 28),
+          child: Transform.scale(
+            scale: estado.avatarScale,
+            child: Image.memory(base64Decode(encoded), width: 48, height: 48, fit: BoxFit.cover),
+          ),
+        ),
+      );
+    } catch (_) {
+      return const Icon(Icons.person, color: Colors.white, size: 28);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final estado = context.watch<AppState>();
+    final usuario = estado.authUser;
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -39,7 +67,7 @@ class HeaderCurvo extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 16, 18),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -51,39 +79,75 @@ class HeaderCurvo extends StatelessWidget {
                       onPressed: () => Navigator.of(context).maybePop(),
                     )
                   else
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 8),
+                  if (mostrarAcoesGlobais && usuario != null) ...[
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle),
+                      child: _avatar(estado),
+                    ),
+                    const SizedBox(width: 9),
+                  ],
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          titulo,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        Text(titulo, style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                        if (usuario != null)
+                          Text('${estado.nomeUsuario} · ${usuario.username}', style: TextStyle(color: Colors.white.withValues(alpha: 0.82), fontSize: 11.5), overflow: TextOverflow.ellipsis),
                         if (subtitulo != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              subtitulo!,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 13,
-                              ),
-                            ),
+                            child: Text(subtitulo!, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5), overflow: TextOverflow.ellipsis),
                           ),
                       ],
                     ),
                   ),
                   ...acoes,
+                  if (mostrarAcoesGlobais && usuario != null && titulo != 'Agenda')
+                    _AtalhoCabecalho(
+                      rotulo: 'Agenda',
+                      icone: Icons.event_note_outlined,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAgenda())),
+                    ),
+                  if (mostrarAcoesGlobais && usuario != null && titulo != 'Configurações')
+                    _AtalhoCabecalho(
+                      rotulo: 'Configuração',
+                      icone: Icons.settings_outlined,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: usuario))),
+                    ),
                 ],
               ),
               if (rodape != null) ...[const SizedBox(height: 14), rodape!],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AtalhoCabecalho extends StatelessWidget {
+  final String rotulo;
+  final IconData icone;
+  final VoidCallback onTap;
+  const _AtalhoCabecalho({required this.rotulo, required this.icone, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icone, color: Colors.white, size: 22),
+            const SizedBox(height: 1),
+            Text(rotulo, style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w700)),
+          ],
         ),
       ),
     );

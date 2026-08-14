@@ -9,6 +9,7 @@ interface Env {
 interface SubscriptionRow { endpoint: string; user_id: string; p256dh: string; auth: string; expiration_time: number | null; }
 interface DeadlineRow { id: string; user_id: string; data: string; nome: string; convenio: string; }
 interface ProspectRow { id: string; user_id: string; data_retorno: string; nome: string; produto: string; }
+interface BirthdayRow { cpf: string; user_id: string; name: string; birth_date: string; }
 const timeZone = 'America/Sao_Paulo';
 
 function localParts(date: Date) {
@@ -46,6 +47,18 @@ async function scheduleAlerts(env: Env, now: Date) {
     if (await alreadySent(env, `${key}|${p.user_id}`)) continue;
     await sendToUser(env, p.user_id, { title: 'Portabilidade pendente', body: `${p.nome} — pedido de ${p.convenio || 'portabilidade'} está pendente há ${elapsed} dias.`, tag: `portabilidade-${p.id}`, url: '/#/portabilidades' });
     await markSent(env, key, p.user_id);
+  }
+  const clientes = await env.DB.prepare('SELECT cpf, user_id, name, birth_date FROM user_clients WHERE birth_date IS NOT NULL AND birth_date != \'\' AND user_id IS NOT NULL AND user_id != \'unassigned\'').all<BirthdayRow>();
+  if (parts.hour === 9) {
+    for (const c of clientes.results ?? []) {
+      const birth = String(c.birth_date ?? '').slice(0, 10);
+      const [, month, day] = birth.split('-').map(Number);
+      if (!month || !day || month !== parts.month || day !== parts.day) continue;
+      const key = `aniversario:${c.cpf}:${dateKey}:09`;
+      if (await alreadySent(env, `${key}|${c.user_id}`)) continue;
+      await sendToUser(env, c.user_id, { title: 'Aniversário de cliente', body: `${c.name} faz aniversário hoje.`, tag: `aniversario-${c.cpf}`, url: '/#/agenda' });
+      await markSent(env, key, c.user_id);
+    }
   }
   const prospeccoes = await env.DB.prepare('SELECT id, user_id, data_retorno, nome, produto FROM prospeccoes WHERE concluida = 0 AND data_retorno IS NOT NULL AND user_id IS NOT NULL AND user_id != \'unassigned\'').all<ProspectRow>();
   for (const p of prospeccoes.results ?? []) {
