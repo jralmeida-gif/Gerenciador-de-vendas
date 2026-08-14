@@ -147,6 +147,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
       if (!mounted) return;
     } else if (clienteAtual == null) {
       await estado.salvarCliente(Cliente(cpf: venda.cpf, nome: venda.nome, telefone: venda.telefone));
+      if (!mounted) return;
     }
 
     final duplicada = estado.encontrarVendaDuplicada(venda);
