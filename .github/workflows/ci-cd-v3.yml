@@ -60,6 +60,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+
+      - name: Dependências Flutter
+        run: flutter pub get
+
+      - name: Build web para publicação
+        run: flutter build web --release
+
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
