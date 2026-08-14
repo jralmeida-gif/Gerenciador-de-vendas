@@ -26,6 +26,8 @@ class AppState extends ChangeNotifier {
   int get assistentes => repo.assistentes;
   int get numFuncionarios => repo.numFuncionarios;
   String get nomeUsuario => repo.nomeUsuario;
+  String get avatarData => repo.avatarData;
+  int get idleTimeoutMinutes => repo.idleTimeoutMinutes;
   DateTime? get ultimoBackup => repo.ultimoBackup;
 
   Future<void> salvarEquipe(int g, int a) async {
@@ -35,6 +37,18 @@ class AppState extends ChangeNotifier {
 
   Future<void> salvarNomeUsuario(String nome) async {
     await repo.salvarNomeUsuario(nome);
+    notifyListeners();
+    unawaited(sincronizarNuvem());
+  }
+
+  Future<void> salvarAvatarData(String value) async {
+    await repo.salvarAvatarData(value);
+    notifyListeners();
+    unawaited(sincronizarNuvem());
+  }
+
+  Future<void> salvarIdleTimeoutMinutes(int value) async {
+    await repo.salvarIdleTimeoutMinutes(value);
     notifyListeners();
     unawaited(sincronizarNuvem());
   }

@@ -15,8 +15,9 @@ import 'venda_form.dart';
 class TelaDashboard extends StatelessWidget {
   final AuthUser user;
   final ValueChanged<int>? onNavigate;
+  final VoidCallback? onLogout;
 
-  const TelaDashboard({super.key, required this.user, this.onNavigate});
+  const TelaDashboard({super.key, required this.user, this.onNavigate, this.onLogout});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +38,7 @@ class TelaDashboard extends StatelessWidget {
                 data: hoje,
                 onConfig: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: user)),
+                  MaterialPageRoute(builder: (_) => TelaConfiguracoes(user: user, onLogout: onLogout)),
                 ),
               ),
             ),

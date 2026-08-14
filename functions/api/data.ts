@@ -1,7 +1,7 @@
 import { getSession, type AuthEnv, json, optionsResponse } from '../_auth';
 
 type DataBody = {
-  config?: { nomeUsuario?: string; modeloMeta?: string };
+  config?: { nomeUsuario?: string; modeloMeta?: string; avatarData?: string; idleTimeoutMinutes?: number };
   produtos?: Array<{ nome?: string; formato?: string }>;
   convenios?: Array<{ nome?: string; codigo?: string }>;
   metas?: Array<{ produto?: string; metaMes?: number }>;
@@ -21,7 +21,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
   const user = await getSession(request, env);
   if (!user) return json(request, { error: 'Sessão expirada.' }, 401);
   const result = await env.DB.batch([
-    env.DB.prepare('SELECT display_name FROM user_settings WHERE user_id = ?').bind(user.id),
+    env.DB.prepare('SELECT display_name, avatar_data, idle_timeout_minutes FROM user_settings WHERE user_id = ?').bind(user.id),
     env.DB.prepare('SELECT name, format FROM user_products WHERE user_id = ? ORDER BY name').bind(user.id),
     env.DB.prepare('SELECT name, code FROM user_convenios WHERE user_id = ? ORDER BY name').bind(user.id),
     env.DB.prepare('SELECT product, target_month FROM user_metas WHERE user_id = ? ORDER BY product').bind(user.id),
@@ -33,7 +33,12 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
   const [settings, products, convenios, metas, campaigns, sales, ports, prospects] = result;
   return json(request, {
     ok: true,
-    config: { nomeUsuario: settings?.results?.[0]?.display_name ?? user.username, modeloMeta: 'individual' },
+    config: {
+      nomeUsuario: settings?.results?.[0]?.display_name ?? user.username,
+      modeloMeta: 'individual',
+      avatarData: settings?.results?.[0]?.avatar_data ?? '',
+      idleTimeoutMinutes: Number(settings?.results?.[0]?.idle_timeout_minutes ?? 30),
+    },
     produtos: products.results.map((r: any) => ({ nome: r.name, formato: r.format })),
     convenios: convenios.results.map((r: any) => ({ nome: r.name, codigo: r.code })),
     metas: metas.results.map((r: any) => ({ produto: r.product, metaMes: r.target_month })),
@@ -50,6 +55,8 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   const body = await request.json().catch(() => ({})) as DataBody;
   const cfg = body.config ?? {};
   const displayName = text(cfg.nomeUsuario).trim() || user.username;
+  const avatarData = text(cfg.avatarData);
+  const idleTimeoutMinutes = Math.min(120, Math.max(15, Math.trunc(num(cfg.idleTimeoutMinutes || 30))));
   const batch: D1PreparedStatement[] = [
     env.DB.prepare('DELETE FROM user_products WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_convenios WHERE user_id = ?').bind(user.id),
@@ -58,8 +65,8 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     env.DB.prepare('DELETE FROM user_sales WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_portabilidades WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_prospeccoes WHERE user_id = ?').bind(user.id),
-    env.DB.prepare(`INSERT INTO user_settings (user_id, display_name, updated_at) VALUES (?, ?, datetime('now'))
-      ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, updated_at = datetime('now')`).bind(user.id, displayName),
+    env.DB.prepare(`INSERT INTO user_settings (user_id, display_name, avatar_data, idle_timeout_minutes, updated_at) VALUES (?, ?, ?, ?, datetime('now'))
+      ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, avatar_data = excluded.avatar_data, idle_timeout_minutes = excluded.idle_timeout_minutes, updated_at = datetime('now')`).bind(user.id, displayName, avatarData, idleTimeoutMinutes),
     env.DB.prepare(`UPDATE users SET display_name = ?, updated_at = datetime('now') WHERE id = ?`).bind(displayName, user.id),
   ];
   for (const p of body.produtos ?? []) if (text(p.nome)) batch.push(env.DB.prepare('INSERT INTO user_products (user_id, name, format) VALUES (?, ?, ?)').bind(user.id, text(p.nome), text(p.formato) || 'Valor'));

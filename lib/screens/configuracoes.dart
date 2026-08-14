@@ -21,7 +21,8 @@ import 'metas_editar.dart';
 /// Configurações: equipe, produtos, convênios, campanhas, backup e limpeza.
 class TelaConfiguracoes extends StatelessWidget {
   final AuthUser user;
-  const TelaConfiguracoes({super.key, required this.user});
+  final VoidCallback? onLogout;
+  const TelaConfiguracoes({super.key, required this.user, this.onLogout});
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +50,24 @@ class TelaConfiguracoes extends StatelessWidget {
                         valor: estado.nomeUsuario,
                         onTap: () => _editarNome(context),
                       ),
+                      _Item(
+                        icone: Icons.account_circle_outlined,
+                        titulo: 'Foto do perfil',
+                        valor: estado.avatarData.isEmpty ? 'Adicionar uma foto' : 'Foto cadastrada',
+                        onTap: () => _editarAvatar(context),
+                      ),
+                      _Item(
+                        icone: Icons.timer_outlined,
+                        titulo: 'Bloqueio por inatividade',
+                        valor: '${estado.idleTimeoutMinutes} minutos sem uso',
+                        onTap: () => _editarTimeout(context),
+                      ),
+                      if (onLogout != null)
+                        _ItemPerigo(
+                          titulo: 'Sair do aplicativo',
+                          subtitulo: 'Encerrar a sessão neste dispositivo',
+                          onTap: () => onLogout!(),
+                        ),
                     ],
                   ),
                 ),
@@ -146,7 +165,7 @@ class TelaConfiguracoes extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'Seus dados ficam salvos apenas neste aparelho. Ao exportar, '
+                                'Os dados são mantidos neste aparelho e sincronizados com segurança no Cloudflare D1, sempre separados por usuário. Ao exportar, '
                                 'uma janela de compartilhamento será aberta para você escolher '
                                 'Downloads, Arquivos, e-mail ou outro local seguro.'
                                 '${estado.ultimoBackup != null ? '\n\nÚltimo backup: ${Fmt.data(estado.ultimoBackup!)}' : ''}',
@@ -265,7 +284,7 @@ class TelaConfiguracoes extends StatelessWidget {
                 const SizedBox(height: 20),
                 const Center(
                   child: Text(
-                    'Gestor de Vendas · versão 1.0',
+                    'Gestor de Vendas · v3.1.0',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
@@ -282,6 +301,33 @@ class TelaConfiguracoes extends StatelessWidget {
   }
 
   // ------------------- Ações -------------------
+
+  static Future<void> _editarAvatar(BuildContext context) async {
+    final res = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    if (res == null || res.files.isEmpty || !context.mounted) return;
+    final bytes = res.files.first.bytes;
+    if (bytes == null || bytes.length > 2 * 1024 * 1024) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Escolha uma imagem de até 2 MB.')));
+      return;
+    }
+    final encoded = 'data:image/${res.files.first.extension ?? 'jpeg'};base64,${base64Encode(bytes)}';
+    await context.read<AppState>().salvarAvatarData(encoded);
+  }
+
+  static Future<void> _editarTimeout(BuildContext context) async {
+    final estado = context.read<AppState>();
+    final escolha = await showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Bloqueio por inatividade'),
+        children: [15, 30, 60].map((minutos) => SimpleDialogOption(
+          onPressed: () => Navigator.pop(ctx, minutos),
+          child: Text('$minutos minutos'),
+        )).toList(),
+      ),
+    );
+    if (escolha != null) await estado.salvarIdleTimeoutMinutes(escolha);
+  }
 
   static Future<void> _editarNome(BuildContext context) async {
     final estado = context.read<AppState>();

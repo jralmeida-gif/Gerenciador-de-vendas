@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_client.dart';
 import '../services/repositorio.dart';
 import '../services/app_state.dart';
+import '../services/session_guard.dart';
 import '../theme/app_theme.dart';
 import 'inicio.dart';
 
@@ -50,12 +53,41 @@ class _AuthGateState extends State<AuthGate> {
 
   void _showError(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
+  Future<void> _senhaDefinitivaSalva() async {
+    final atual = _user;
+    if (atual == null || !mounted) return;
+    setState(() => _user = AuthUser(id: atual.id, username: atual.username, role: atual.role, mustChangePassword: false));
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+    final ctrl = TextEditingController(text: context.read<AppState>().nomeUsuario == 'Usuário' ? '' : context.read<AppState>().nomeUsuario);
+    final alias = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Como você gostaria de ser chamado?'),
+        content: TextField(controller: ctrl, autofocus: true, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Nome ou alias')),
+        actions: [
+          ElevatedButton(onPressed: () { if (ctrl.text.trim().isNotEmpty) Navigator.pop(ctx, ctrl.text.trim()); }, child: const Text('Salvar')),
+        ],
+      ),
+    );
+    if (alias != null && alias.isNotEmpty && mounted) await context.read<AppState>().salvarNomeUsuario(alias);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     if (_user == null) return LoginView(auth: _auth, setup: _setup, onLoggedIn: _loggedIn);
-    if (_user!.mustChangePassword) return ChangePasswordView(auth: _auth, onDone: () => setState(() => _user = AuthUser(id: _user!.id, username: _user!.username, role: _user!.role, mustChangePassword: false)));
-    return TelaInicio(user: _user!, onLogout: () async { await _auth.logout(); if (mounted) setState(() => _user = null); });
+    if (_user!.mustChangePassword) return ChangePasswordView(auth: _auth, onDone: _senhaDefinitivaSalva);
+    void sair() {
+      unawaited(_auth.logout());
+      if (mounted) setState(() => _user = null);
+    }
+    return SessionGuard(
+      timeout: Duration(minutes: context.read<AppState>().idleTimeoutMinutes),
+      onTimeout: sair,
+      child: TelaInicio(user: _user!, onLogout: sair),
+    );
   }
 }
 

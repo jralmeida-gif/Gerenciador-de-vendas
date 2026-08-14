@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
@@ -309,11 +310,11 @@ class _CartaoPort extends StatelessWidget {
             ),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.chat_outlined, color: Color(0xFF25D366)),
+              leading: const Icon(FontAwesomeIcons.whatsapp, color: Color(0xFF25D366)),
               title: const Text('Enviar mensagem pelo WhatsApp'),
               onTap: () async {
                 Navigator.pop(ctx);
-                final ok = await WhatsApp.abrir(telefone: port.telefone, mensagem: 'Olá, ${port.nome.split(' ').first}! Estou acompanhando sua portabilidade.');
+                final ok = await WhatsApp.abrir(telefone: port.telefone, mensagem: WhatsApp.saudacao(port.nome, complemento: 'Estou acompanhando sua portabilidade.'));
                 if (!ok && context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Telefone inválido para abrir o WhatsApp.')));
               },
             ),

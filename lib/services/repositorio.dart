@@ -90,7 +90,7 @@ class Repositorio {
       }
     }
     final configAntiga = antigos[_bConfig]!;
-    for (final key in ['gerentes', 'assistentes', 'nomeUsuario', 'ultimoBackup']) {
+    for (final key in ['gerentes', 'assistentes', 'nomeUsuario', 'ultimoBackup', 'avatarData', 'idleTimeoutMinutes']) {
       final value = configAntiga.get(key);
       if (value != null) await _config.put(key, value);
     }
@@ -121,6 +121,8 @@ class Repositorio {
   }
 
   String get nomeUsuario => (_config.get('nomeUsuario') ?? 'Usuário') as String;
+  String get avatarData => (_config.get('avatarData') ?? '') as String;
+  int get idleTimeoutMinutes => (_config.get('idleTimeoutMinutes') ?? 30) as int;
   DateTime? get ultimoBackup {
     final s = _config.get('ultimoBackup');
     return s == null ? null : DateTime.tryParse(s as String);
@@ -136,6 +138,11 @@ class Repositorio {
 
   Future<void> salvarNomeUsuario(String nome) =>
       _config.put('nomeUsuario', nome);
+
+  Future<void> salvarAvatarData(String value) => _config.put('avatarData', value);
+
+  Future<void> salvarIdleTimeoutMinutes(int value) =>
+      _config.put('idleTimeoutMinutes', value.clamp(15, 120));
 
   Future<void> marcarBackup() =>
       _config.put('ultimoBackup', DateTime.now().toIso8601String());
@@ -255,6 +262,8 @@ class Repositorio {
         'assistentes': assistentes,
         'nomeUsuario': nomeUsuario,
         'modeloMeta': 'individual',
+        'avatarData': avatarData,
+        'idleTimeoutMinutes': idleTimeoutMinutes,
       },
       'produtos': produtos.map((e) => e.toJson()).toList(),
       'convenios': convenios.map((e) => e.toJson()).toList(),
@@ -284,6 +293,8 @@ class Repositorio {
       await _config.put('gerentes', cfg['gerentes'] ?? 1);
       await _config.put('assistentes', cfg['assistentes'] ?? 0);
       await _config.put('nomeUsuario', cfg['nomeUsuario'] ?? 'Usuário');
+      await _config.put('avatarData', cfg['avatarData'] ?? '');
+      await _config.put('idleTimeoutMinutes', cfg['idleTimeoutMinutes'] ?? 30);
     }
     for (final e in (mapa['produtos'] as List? ?? [])) {
       final p = Produto.fromJson(e as Map);

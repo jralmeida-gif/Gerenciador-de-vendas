@@ -26,7 +26,7 @@ class _TelaInicioState extends State<TelaInicio> {
   void initState() {
     super.initState();
     _paginas = [
-      TelaDashboard(user: widget.user, onNavigate: _selecionarAba),
+      TelaDashboard(user: widget.user, onNavigate: _selecionarAba, onLogout: widget.onLogout),
       const TelaVendasLista(),
       const TelaPortabilidadeLista(),
       const TelaProspeccaoLista(),
