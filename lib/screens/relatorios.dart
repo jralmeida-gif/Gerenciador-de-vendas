@@ -552,12 +552,22 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
             lista = lista.where((c) => c.nome.toLowerCase().contains(q) || (digitos.isNotEmpty && c.cpf.contains(digitos))).toList();
           }
           final linhas = lista.map((c) {
-            final produtos = estado.vendas.where((v) => v.cpf == c.cpf).map((v) => v.produto).toSet().join(', ');
-            return [c.nome, Fmt.cpf(c.cpf), Fmt.telefone(c.telefone), produtos.isEmpty ? '—' : produtos];
+            final produtos = <String>{
+              ...estado.vendas.where((v) => v.cpf == c.cpf).map((v) => v.produto),
+              ...estado.prospeccoes.where((p) => p.cpf == c.cpf).map((p) => 'Prospecção: ${p.produto}'),
+              ...estado.portabilidades.where((p) => p.cpf == c.cpf).map((_) => 'Portabilidade'),
+            };
+            return [
+              c.nome,
+              Fmt.cpf(c.cpf),
+              Fmt.telefone(c.telefone),
+              c.dataNascimento == null ? '—' : Fmt.data(c.dataNascimento!),
+              produtos.isEmpty ? '—' : produtos.join(', '),
+            ];
           }).toList();
           return _DadosRel(
             periodo: 'Clientes do usuário${q.isEmpty ? '' : ' · Filtro: ${_cliente.text.trim()}'}',
-            colunas: const ['Cliente', 'CPF', 'Telefone', 'Produtos contratados'],
+            colunas: const ['Cliente', 'CPF', 'Telefone', 'Nascimento', 'Produtos / processos'],
             linhas: linhas,
             direita: const [],
             resumo: '${linhas.length} cliente(s) consolidado(s)',
