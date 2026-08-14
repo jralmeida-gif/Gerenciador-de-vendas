@@ -1,0 +1,10 @@
+name = "gestor-vendas-agencia-v3"
+compatibility_date = "2026-08-13"
+pages_build_output_dir = "build/web"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gestor-vendas-push-v3"
+database_id = "7a8edd3c-2660-47e0-a47a-b1549dfd3851"
+
+# VAPID_PUBLIC_KEY is stored as a Pages secret by the deployment workflow.

@@ -1,0 +1,17 @@
+name = "gestor-vendas-push-v3"
+main = "src/index.ts"
+compatibility_date = "2026-08-13"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gestor-vendas-push-v3"
+database_id = "7a8edd3c-2660-47e0-a47a-b1549dfd3851"
+
+[vars]
+VAPID_SUBJECT = "mailto:administrador@gestor-vendas.local"
+VAPID_PUBLIC_KEY = "__VAPID_PUBLIC_KEY_FROM_GITHUB_SECRET__"
+# VAPID_PRIVATE_KEY deve ser incluída como secret, nunca neste arquivo:
+# wrangler secret put VAPID_PRIVATE_KEY --config wrangler-v3.toml
