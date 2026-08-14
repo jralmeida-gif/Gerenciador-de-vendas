@@ -19,6 +19,7 @@ class Fmt {
   static String decimal(num v) => _decimal.format(v);
   static String inteiro(num v) => _numero.format(v);
   static String data(DateTime d) => _data.format(d);
+  static String dataHora(DateTime d) => DateFormat('dd/MM/yyyy HH:mm', 'pt_BR').format(d);
   static String dataCurta(DateTime d) => _dataCurta.format(d);
   static String mesAno(DateTime d) => _mesAno.format(d);
   static String percentual(double v) =>

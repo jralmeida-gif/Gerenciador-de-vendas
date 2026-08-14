@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../services/app_state.dart';
 import '../services/relatorios_pdf.dart';
+import '../services/whatsapp.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/comuns.dart';
@@ -311,8 +312,8 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
       case 'historico_desempenho':
         {
           final linhas = <List<String>>[];
-          var metaTotal = 0.0;
-          var realizadoTotal = 0.0;
+          var somaAtingimentos = 0.0;
+          var quantidadeComMeta = 0;
           for (var cursor = DateTime(_inicio.year, _inicio.month); !cursor.isAfter(DateTime(_fim.year, _fim.month)); cursor = DateTime(cursor.year, cursor.month + 1)) {
             final mesRef = '${cursor.year}-${cursor.month.toString().padLeft(2, '0')}';
             for (final produto in estado.produtos) {
@@ -320,9 +321,12 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
               final realizado = estado.realizadoProduto(produto.nome, DateTime(cursor.year, cursor.month, 1), DateTime(cursor.year, cursor.month + 1, 0));
               if (meta <= 0 && realizado <= 0) continue;
               final atingido = meta > 0 ? realizado / meta : 0.0;
-              final gap = (1 - atingido).clamp(0.0, 1.0).toDouble();
-              metaTotal += meta;
-              realizadoTotal += realizado;
+              final atingidoConsolidado = atingido.clamp(0.0, 1.0).toDouble();
+              final gap = (1 - atingidoConsolidado).clamp(0.0, 1.0).toDouble();
+              if (meta > 0) {
+                somaAtingimentos += atingidoConsolidado;
+                quantidadeComMeta++;
+              }
               linhas.add([
                 '${cursor.month.toString().padLeft(2, '0')}/${cursor.year}',
                 produto.nome,
@@ -333,13 +337,14 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
               ]);
             }
           }
-          final atingimentoGeral = metaTotal > 0 ? realizadoTotal / metaTotal : 0.0;
+          final atingimentoGeral = quantidadeComMeta > 0 ? somaAtingimentos / quantidadeComMeta : 0.0;
+          final gapGeral = (1 - atingimentoGeral).clamp(0.0, 1.0).toDouble();
           return _DadosRel(
             periodo: 'Período $_periodoHistorico: ${Fmt.data(_inicio)} a ${Fmt.data(_fim)}',
             colunas: const ['Mês', 'Produto', 'Meta', 'Realizado', '% atingido', 'GAP %'],
             linhas: linhas,
             direita: const [2, 3, 4, 5],
-            resumo: '${linhas.length} linha(s) · Atingimento geral ponderado: ${(atingimentoGeral * 100).toStringAsFixed(0)}%',
+            resumo: '${linhas.length} linha(s) · Realizado médio: ${(atingimentoGeral * 100).toStringAsFixed(0)}% · GAP médio: ${(gapGeral * 100).toStringAsFixed(0)}%',
           );
         }
 
@@ -900,6 +905,62 @@ class _EditorDatasNascimento extends StatelessWidget {
   const _EditorDatasNascimento({required this.clientes});
 
   Future<void> _editar(BuildContext context, Cliente cliente) async {
+    final nome = TextEditingController(text: cliente.nome);
+    final telefone = TextEditingController(text: cliente.telefone);
+    final observacoes = TextEditingController(text: cliente.observacoes);
+    final salvo = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar cliente'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nome, decoration: const InputDecoration(labelText: 'Nome')),
+              TextField(controller: telefone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Telefone')),
+              TextField(controller: observacoes, maxLines: 2, decoration: const InputDecoration(labelText: 'Observações')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Salvar')),
+        ],
+      ),
+    );
+    if (salvo != true || !context.mounted) return;
+    await context.read<AppState>().salvarCliente(cliente.copyWith(nome: nome.text.trim(), telefone: Fmt.somenteDigitos(telefone.text), observacoes: observacoes.text.trim()));
+  }
+
+  Future<void> _produtos(BuildContext context, Cliente cliente) async {
+    final estado = context.read<AppState>();
+    final vendas = estado.vendas.where((v) => v.cpf == cliente.cpf).toList();
+    final portabilidades = estado.portabilidades.where((p) => p.cpf == cliente.cpf).toList();
+    final prospeccoes = estado.prospeccoes.where((p) => p.cpf == cliente.cpf).toList();
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ListTile(title: Text('Produtos comprados por ${cliente.nome}')),
+            if (vendas.isEmpty && portabilidades.isEmpty && prospeccoes.isEmpty)
+              const ListTile(title: Text('Nenhum produto ou processo encontrado.')),
+            ...vendas.map((v) => ListTile(leading: const Icon(Icons.shopping_bag_outlined), title: Text(v.produto), subtitle: Text('Venda em ${Fmt.data(v.data)}'))),
+            ...portabilidades.map((p) => const ListTile(leading: Icon(Icons.swap_horiz), title: Text('Portabilidade'))),
+            ...prospeccoes.map((p) => ListTile(leading: const Icon(Icons.phone_in_talk_outlined), title: Text('Prospecção: ${p.produto}'))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _whatsapp(BuildContext context, Cliente cliente) async {
+    final ok = await WhatsApp.abrir(telefone: cliente.telefone, mensagem: WhatsApp.saudacao(cliente.nome));
+    if (!ok && context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Telefone inválido para abrir o WhatsApp.')));
+  }
+
+  Future<void> _nascimento(BuildContext context, Cliente cliente) async {
     final data = await showDatePicker(
       context: context,
       initialDate: cliente.dataNascimento ?? DateTime(1980, 1, 1),
@@ -910,23 +971,41 @@ class _EditorDatasNascimento extends StatelessWidget {
     );
     if (data == null || !context.mounted) return;
     await context.read<AppState>().salvarCliente(cliente.copyWith(dataNascimento: data));
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data de nascimento atualizada.')));
   }
 
   @override
   Widget build(BuildContext context) {
     return CartaoSecao(
-      titulo: 'Editar datas de nascimento',
+      titulo: 'Clientes',
       child: clientes.isEmpty
-          ? const Text('Nenhum cliente encontrado para editar.', style: TextStyle(color: AppColors.textSecondary))
+          ? const Text('Nenhum cliente encontrado.', style: TextStyle(color: AppColors.textSecondary))
           : Column(
-              children: clientes.map((cliente) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-                title: Text(cliente.nome, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text(cliente.dataNascimento == null ? 'Nascimento não informado' : 'Nascimento: ${Fmt.data(cliente.dataNascimento!)}'),
-                trailing: const Icon(Icons.edit_calendar_outlined, color: AppColors.primary),
-                onTap: () => _editar(context, cliente),
+              children: clientes.map((cliente) => Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                elevation: 0,
+                color: AppColors.background,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(cliente.nome, style: const TextStyle(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 3),
+                      Text('${Fmt.cpf(cliente.cpf)} · ${Fmt.telefone(cliente.telefone)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      Text(cliente.dataNascimento == null ? 'Nascimento não informado' : 'Nascimento: ${Fmt.data(cliente.dataNascimento!)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        children: [
+                          TextButton.icon(onPressed: () => _produtos(context, cliente), icon: const Icon(Icons.shopping_bag_outlined, size: 16), label: const Text('Produtos comprados')),
+                          TextButton.icon(onPressed: () => _whatsapp(context, cliente), icon: const Icon(Icons.chat_outlined, size: 16), label: const Text('WhatsApp')),
+                          TextButton.icon(onPressed: () => _editar(context, cliente), icon: const Icon(Icons.edit_outlined, size: 16), label: const Text('Editar')),
+                          TextButton.icon(onPressed: () => _nascimento(context, cliente), icon: const Icon(Icons.cake_outlined, size: 16), label: const Text('Nascimento')),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               )).toList(),
             ),
     );

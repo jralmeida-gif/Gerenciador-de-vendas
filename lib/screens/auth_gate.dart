@@ -31,7 +31,10 @@ class _AuthGateState extends State<AuthGate> {
     var setup = false;
     if (user != null) {
       await widget.repo.switchProfile(user.username);
-      if (mounted) await context.read<AppState>().carregarDaNuvem();
+      if (mounted) {
+        await context.read<AppState>().carregarDaNuvem();
+        unawaited(context.read<AppState>().criarBackupInterno());
+      }
     } else {
       setup = await _auth.setupRequired();
     }
@@ -47,7 +50,10 @@ class _AuthGateState extends State<AuthGate> {
   Future<void> _loggedIn(AuthResult result) async {
     if (!result.ok || result.user == null) { _showError(result.error ?? 'Não foi possível entrar.'); return; }
     await widget.repo.switchProfile(result.user!.username);
-    if (mounted) await context.read<AppState>().carregarDaNuvem();
+    if (mounted) {
+      await context.read<AppState>().carregarDaNuvem();
+      unawaited(context.read<AppState>().criarBackupInterno());
+    }
     if (!mounted) return;
     context.read<AppState>().definirUsuarioAutenticado(result.user);
     setState(() => _user = result.user);

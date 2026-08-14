@@ -52,10 +52,8 @@ class TelaDashboard extends StatelessWidget {
                   _PainelDesempenho(linhas: comMeta),
                   const SizedBox(height: 12),
                   _LinhaKpis(resumo: resumo, onNavigate: onNavigate),
-                  if (campanhas.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    _CartaoCampanhas(campanhas: campanhas),
-                  ],
+                  const SizedBox(height: 12),
+                  _CartaoCampanhas(campanhas: campanhas),
                   const SizedBox(height: 12),
                   _ListaProdutos(linhas: comMeta, todas: resumo.linhas),
                 ]),
@@ -351,7 +349,7 @@ class _CartaoCampanhas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CartaoSecao(
-      titulo: 'Campanhas ativas',
+      titulo: campanhas.isEmpty ? 'Campanhas' : 'Campanhas ativas',
       acao: TextButton(
         onPressed: () => Navigator.push(
           context,
@@ -359,7 +357,9 @@ class _CartaoCampanhas extends StatelessWidget {
         ),
         child: const Text('Ver todas'),
       ),
-      child: Column(
+      child: campanhas.isEmpty
+          ? const SizedBox.shrink()
+          : Column(
         children: campanhas.take(2).map((c) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),

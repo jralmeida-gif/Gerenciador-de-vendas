@@ -46,12 +46,14 @@ class AppState extends ChangeNotifier {
   int get assistentes => repo.assistentes;
   int get numFuncionarios => repo.numFuncionarios;
   String get nomeUsuario => repo.nomeUsuario;
+  String get telefoneUsuario => repo.telefoneUsuario;
   String get avatarData => repo.avatarData;
   double get avatarScale => repo.avatarScale;
   double get avatarOffsetX => repo.avatarOffsetX;
   double get avatarOffsetY => repo.avatarOffsetY;
   int get idleTimeoutMinutes => repo.idleTimeoutMinutes;
   DateTime? get ultimoBackup => repo.ultimoBackup;
+  List<Map<String, dynamic>> get backupsInternos => repo.backupsInternos;
 
   Future<void> mudarPerfilLocal(String profile) async {
     await repo.switchProfile(profile);
@@ -65,6 +67,12 @@ class AppState extends ChangeNotifier {
 
   Future<void> salvarNomeUsuario(String nome) async {
     await repo.salvarNomeUsuario(nome);
+    notifyListeners();
+    unawaited(sincronizarNuvem());
+  }
+
+  Future<void> salvarTelefoneUsuario(String telefone) async {
+    await repo.salvarTelefoneUsuario(telefone);
     notifyListeners();
     unawaited(sincronizarNuvem());
   }
@@ -296,12 +304,33 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> sincronizarNuvem() => _cloud.save(exportarBackup());
+  Future<void> sincronizarNuvem() async {
+    final backup = exportarBackup();
+    await repo.salvarBackupInterno(backup);
+    await _cloud.save(backup);
+  }
 
   String exportarBackup() => repo.exportarJson();
 
   Future<void> marcarBackup() async {
     await repo.marcarBackup();
+    notifyListeners();
+  }
+
+  Future<void> criarBackupInterno() async {
+    await repo.salvarBackupInterno(exportarBackup());
+    await repo.marcarBackup();
+    notifyListeners();
+  }
+
+  Future<void> restaurarBackupInterno(String id) async {
+    final conteudo = repo.conteudoBackupInterno(id);
+    if (conteudo == null) throw StateError('Backup interno não encontrado.');
+    await importarBackup(conteudo);
+  }
+
+  Future<void> excluirBackupInterno(String id) async {
+    await repo.excluirBackupInterno(id);
     notifyListeners();
   }
 

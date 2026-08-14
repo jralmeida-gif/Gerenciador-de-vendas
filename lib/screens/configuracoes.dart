@@ -71,7 +71,7 @@ class TelaConfiguracoes extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
                 CartaoSecao(
-                  titulo: 'Usuário e equipe',
+                  titulo: 'Meu perfil e sessão',
                   child: Column(
                     children: [
                       _Item(
@@ -85,6 +85,18 @@ class TelaConfiguracoes extends StatelessWidget {
                         titulo: 'Foto do perfil',
                         valor: estado.avatarData.isEmpty ? 'Adicionar uma foto' : 'Foto cadastrada',
                         onTap: () => _editarAvatar(context),
+                      ),
+                      _Item(
+                        icone: Icons.email_outlined,
+                        titulo: 'E-mail de acesso',
+                        valor: user.username,
+                        onTap: () {},
+                      ),
+                      _Item(
+                        icone: Icons.phone_outlined,
+                        titulo: 'Telefone',
+                        valor: estado.telefoneUsuario.isEmpty ? 'Opcional — adicionar' : Fmt.telefone(estado.telefoneUsuario),
+                        onTap: () => _editarTelefone(context),
                       ),
                       _Item(
                         icone: Icons.timer_outlined,
@@ -212,9 +224,7 @@ class TelaConfiguracoes extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'Os dados são mantidos neste aparelho e sincronizados com segurança no Cloudflare D1, sempre separados por usuário. Ao exportar, '
-                                'uma janela de compartilhamento será aberta para você escolher '
-                                'Downloads, Arquivos, e-mail ou outro local seguro.'
+                                'O backup automático fica dentro do aplicativo e pode ser restaurado pela lista interna. Ele pode ser perdido se os dados do PWA forem apagados. Para proteção adicional, use também Exportar para Arquivos e guarde uma cópia externa.'
                                 '${estado.ultimoBackup != null ? '\n\nÚltimo backup: ${Fmt.data(estado.ultimoBackup!)}' : ''}',
                                 style: const TextStyle(
                                   fontSize: 12.5,
@@ -227,25 +237,35 @@ class TelaConfiguracoes extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
+                      Column(
                         children: [
-                          Expanded(
+                          SizedBox(
+                            width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: () => _exportar(context),
-                              icon: const Icon(
-                                Icons.download_outlined,
-                                size: 19,
-                              ),
-                              label: const RotuloBotao('EXPORTAR'),
+                              onPressed: () => _criarBackupInterno(context),
+                              icon: const Icon(Icons.cloud_done_outlined, size: 19),
+                              label: const RotuloBotao('CRIAR BACKUP AUTOMÁTICO DO APP'),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _importar(context),
-                              icon: const Icon(Icons.upload_outlined, size: 19),
-                              label: const RotuloBotao('IMPORTAR'),
-                            ),
+                          const SizedBox(height: 9),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _exportar(context),
+                                  icon: const Icon(Icons.folder_outlined, size: 19),
+                                  label: const RotuloBotao('EXPORTAR PARA ARQUIVOS'),
+                                ),
+                              ),
+                              const SizedBox(width: 9),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _importar(context),
+                                  icon: const Icon(Icons.restore_outlined, size: 19),
+                                  label: const RotuloBotao('IMPORTAR'),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -375,6 +395,7 @@ class TelaConfiguracoes extends StatelessWidget {
     }
     final encoded = 'data:image/${res.files.first.extension ?? 'jpeg'};base64,${base64Encode(bytes)}';
     var escala = estado.avatarScale;
+    var escalaInicial = escala;
     var deslocamentoX = estado.avatarOffsetX;
     var deslocamentoY = estado.avatarOffsetY;
     final salvo = await showDialog<bool>(
@@ -388,9 +409,11 @@ class TelaConfiguracoes extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
-                  onPanUpdate: (details) => setDialog(() {
-                    deslocamentoX = (deslocamentoX + details.delta.dx / 150).clamp(-1.0, 1.0);
-                    deslocamentoY = (deslocamentoY + details.delta.dy / 150).clamp(-1.0, 1.0);
+                  onScaleStart: (_) => escalaInicial = escala,
+                  onScaleUpdate: (details) => setDialog(() {
+                    escala = (escalaInicial * details.scale).clamp(1.0, 3.0);
+                    deslocamentoX = (deslocamentoX + details.focalPointDelta.dx / 150).clamp(-1.0, 1.0);
+                    deslocamentoY = (deslocamentoY + details.focalPointDelta.dy / 150).clamp(-1.0, 1.0);
                   }),
                   child: ClipOval(
                     child: Container(
@@ -407,14 +430,7 @@ class TelaConfiguracoes extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text('Arraste a foto e use o controle para aproximar ou afastar.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                Slider(
-                  min: 1,
-                  max: 3,
-                  value: escala,
-                  label: escala.toStringAsFixed(1),
-                  onChanged: (value) => setDialog(() => escala = value),
-                ),
+                const Text('Mova a foto e use dois dedos para aproximar ou afastar.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -444,6 +460,23 @@ class TelaConfiguracoes extends StatelessWidget {
       ),
     );
     if (escolha != null) await estado.salvarIdleTimeoutMinutes(escolha);
+  }
+
+  static Future<void> _editarTelefone(BuildContext context) async {
+    final estado = context.read<AppState>();
+    final ctrl = TextEditingController(text: estado.telefoneUsuario);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Telefone do perfil'),
+        content: TextField(controller: ctrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Telefone opcional')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Salvar')),
+        ],
+      ),
+    );
+    if (ok == true) await estado.salvarTelefoneUsuario(Fmt.somenteDigitos(ctrl.text));
   }
 
   static Future<void> _editarNome(BuildContext context) async {
@@ -496,9 +529,9 @@ class TelaConfiguracoes extends StatelessWidget {
           ],
         ),
         content: Text(
-          'Vamos abrir o compartilhamento nativo do iPhone para você escolher onde salvar o arquivo.\n\n'
+          'Vamos abrir o salvamento de arquivos do aparelho para você escolher onde guardar a cópia externa.\n\n'
           'Nome do arquivo:\n$nome\n\n'
-          'Escolha Downloads, Arquivos, iCloud, Google Drive ou envie para o seu e-mail.',
+          'Escolha Arquivos, Downloads, iCloud Drive, Google Drive ou outra pasta segura.',
           style: const TextStyle(height: 1.45),
         ),
         actions: [
@@ -521,7 +554,7 @@ class TelaConfiguracoes extends StatelessWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Não foi possível abrir o compartilhamento. Tente novamente no Safari.'),
+          content: Text('Não foi possível abrir o salvamento automático. Escolha novamente o local ou tente pelo Safari.'),
           backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
         ),
@@ -535,9 +568,8 @@ class TelaConfiguracoes extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Backup preparado'),
         content: Text(
-          'O arquivo "$nome" foi enviado para a janela de compartilhamento. '
-          'Confirme o local escolhido para concluir o salvamento. Depois, você poderá '
-          'restaurá-lo pela opção IMPORTAR.',
+          'O arquivo "$nome" foi salvo ou encaminhado ao seletor de arquivos do aparelho. '
+          'Guarde-o em um local seguro. Depois, você poderá restaurá-lo pela opção IMPORTAR.',
           style: const TextStyle(height: 1.45),
         ),
         actions: [
@@ -550,7 +582,105 @@ class TelaConfiguracoes extends StatelessWidget {
     );
   }
 
+  static Future<void> _criarBackupInterno(BuildContext context) async {
+    final estado = context.read<AppState>();
+    await estado.criarBackupInterno();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Backup automático criado e armazenado no app.'),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   static Future<void> _importar(BuildContext context) async {
+    final escolha = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('Restaurar backup'), subtitle: Text('Escolha a origem do arquivo')),
+            ListTile(
+              leading: const Icon(Icons.cloud_done_outlined),
+              title: const Text('Restaurar backup do app'),
+              subtitle: const Text('Escolher uma cópia automática interna'),
+              onTap: () => Navigator.pop(ctx, 'interno'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.folder_open_outlined),
+              title: const Text('Restaurar de outro local'),
+              subtitle: const Text('Abrir Arquivos, Downloads ou outra pasta'),
+              onTap: () => Navigator.pop(ctx, 'externo'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || escolha == null) return;
+    if (escolha == 'interno') {
+      await _importarInterno(context);
+    } else {
+      await _importarExterno(context);
+    }
+  }
+
+  static Future<void> _importarInterno(BuildContext context) async {
+    final estado = context.read<AppState>();
+    final backups = estado.backupsInternos;
+    if (backups.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ainda não existe backup automático interno.')));
+      return;
+    }
+    final id = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const ListTile(title: Text('Backups automáticos do app')),
+            ...backups.map((backup) {
+              final data = DateTime.tryParse(backup['geradoEm'] as String? ?? '');
+              final tamanho = (((backup['tamanho'] as num?)?.toDouble() ?? 0) / 1024).toStringAsFixed(0);
+              return ListTile(
+                leading: const Icon(Icons.history),
+                title: Text(data == null ? 'Backup automático' : Fmt.dataHora(data)),
+                subtitle: Text('$tamanho KB'),
+                trailing: const Icon(Icons.restore),
+                onTap: () => Navigator.pop(ctx, backup['id'] as String),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || id == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Restaurar backup interno?'),
+        content: const Text('Os dados atuais serão substituídos. Recomendamos criar um backup atual antes de continuar.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Restaurar')),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      await estado.restaurarBackupInterno(id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backup interno restaurado com sucesso.'), backgroundColor: AppColors.success));
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível restaurar este backup.'), backgroundColor: AppColors.danger));
+    }
+  }
+
+  static Future<void> _importarExterno(BuildContext context) async {
     final confirma = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

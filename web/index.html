@@ -198,12 +198,14 @@
         var blob = new Blob([bytes], { type: 'application/json;charset=utf-8' });
         var file = new File([blob], filename, { type: 'application/json' });
 
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: 'Backup do Gestor de Vendas',
-            text: 'Escolha Salvar em Arquivos, iCloud Drive, e-mail ou outro destino seguro.'
+        if (window.showSaveFilePicker) {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: 'Backup do Gestor de Vendas', accept: { 'application/json': ['.json'] } }]
           });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
           return true;
         }
 

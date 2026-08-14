@@ -13,12 +13,15 @@ class SessionGuard extends StatefulWidget {
   State<SessionGuard> createState() => _SessionGuardState();
 }
 
-class _SessionGuardState extends State<SessionGuard> {
+class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver {
   Timer? _timer;
+  DateTime _ultimaAtividade = DateTime.now();
+  bool _encerrando = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _reiniciar();
   }
 
@@ -29,12 +32,33 @@ class _SessionGuardState extends State<SessionGuard> {
   }
 
   void _reiniciar() {
+    _ultimaAtividade = DateTime.now();
     _timer?.cancel();
-    _timer = Timer(widget.timeout, widget.onTimeout);
+    _timer = Timer(widget.timeout, _expirar);
+  }
+
+  void _expirar() {
+    if (_encerrando) return;
+    _encerrando = true;
+    widget.onTimeout();
+  }
+
+  void _verificarAoRetornar() {
+    if (DateTime.now().difference(_ultimaAtividade) >= widget.timeout) {
+      _expirar();
+    } else {
+      _reiniciar();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _verificarAoRetornar();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }

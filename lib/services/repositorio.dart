@@ -19,6 +19,7 @@ class Repositorio {
   static const _bCampanhas = 'campanhas';
   static const _bClientes = 'clientes';
   static const _bConfig = 'config';
+  static const _bBackupsInternos = 'backups_internos';
 
   late Box _vendas;
   late Box _port;
@@ -30,6 +31,7 @@ class Repositorio {
   late Box _campanhas;
   late Box _clientes;
   late Box _config;
+  late Box _backupsInternos;
 
   String _profile = 'guest';
 
@@ -52,6 +54,7 @@ class Repositorio {
     _campanhas = await Hive.openBox(_name(_bCampanhas));
     _clientes = await Hive.openBox(_name(_bClientes));
     _config = await Hive.openBox(_name(_bConfig));
+    _backupsInternos = await Hive.openBox(_name(_bBackupsInternos));
     await _semearSePreciso();
     if (_profile != 'guest') await _migrarLegadoSeNecessario();
   }
@@ -68,6 +71,7 @@ class Repositorio {
     await _campanhas.close();
     await _clientes.close();
     await _config.close();
+    await _backupsInternos.close();
     await _openProfile(profile);
   }
 
@@ -102,7 +106,7 @@ class Repositorio {
       }
     }
     final configAntiga = antigos[_bConfig]!;
-    for (final key in ['gerentes', 'assistentes', 'nomeUsuario', 'ultimoBackup', 'avatarData', 'avatarScale', 'avatarOffsetX', 'avatarOffsetY', 'idleTimeoutMinutes']) {
+    for (final key in ['gerentes', 'assistentes', 'nomeUsuario', 'telefoneUsuario', 'ultimoBackup', 'avatarData', 'avatarScale', 'avatarOffsetX', 'avatarOffsetY', 'idleTimeoutMinutes']) {
       final value = configAntiga.get(key);
       if (value != null) await _config.put(key, value);
     }
@@ -133,6 +137,7 @@ class Repositorio {
   }
 
   String get nomeUsuario => (_config.get('nomeUsuario') ?? 'Usuário') as String;
+  String get telefoneUsuario => (_config.get('telefoneUsuario') ?? '') as String;
   String get avatarData => (_config.get('avatarData') ?? '') as String;
   int get idleTimeoutMinutes => (_config.get('idleTimeoutMinutes') ?? 30) as int;
   double get avatarScale => ((_config.get('avatarScale') as num?) ?? 1.0).toDouble();
@@ -153,6 +158,8 @@ class Repositorio {
 
   Future<void> salvarNomeUsuario(String nome) =>
       _config.put('nomeUsuario', nome);
+  Future<void> salvarTelefoneUsuario(String telefone) =>
+      _config.put('telefoneUsuario', telefone);
 
   Future<void> salvarAvatarData(String value) => _config.put('avatarData', value);
   Future<void> salvarAvatarEnquadramento({required double escala, required double deslocamentoX, required double deslocamentoY}) async {
@@ -166,6 +173,45 @@ class Repositorio {
 
   Future<void> marcarBackup() =>
       _config.put('ultimoBackup', DateTime.now().toIso8601String());
+
+  List<Map<String, dynamic>> get backupsInternos {
+    final lista = _backupsInternos.values
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+    lista.sort((a, b) => (b['geradoEm'] as String).compareTo(a['geradoEm'] as String));
+    return lista;
+  }
+
+  Future<void> salvarBackupInterno(String conteudo) async {
+    final agora = DateTime.now();
+    final id = agora.microsecondsSinceEpoch.toString();
+    await _backupsInternos.put(id, {
+      'id': id,
+      'geradoEm': agora.toIso8601String(),
+      'tamanho': utf8.encode(conteudo).length,
+      'conteudo': conteudo,
+    });
+    final todos = backupsInternos;
+    var total = todos.fold<int>(0, (s, b) => s + ((b['tamanho'] as num?)?.toInt() ?? 0));
+    for (final backup in todos.skip(10).toList()) {
+      await _backupsInternos.delete(backup['id']);
+    }
+    total = backupsInternos.fold<int>(0, (s, b) => s + ((b['tamanho'] as num?)?.toInt() ?? 0));
+    for (final backup in backupsInternos.reversed.toList()) {
+      if (total <= 50 * 1024 * 1024) break;
+      await _backupsInternos.delete(backup['id']);
+      total -= ((backup['tamanho'] as num?)?.toInt() ?? 0);
+    }
+  }
+
+  String? conteudoBackupInterno(String id) {
+    final item = _backupsInternos.get(id);
+    if (item is! Map) return null;
+    return item['conteudo'] as String?;
+  }
+
+  Future<void> excluirBackupInterno(String id) => _backupsInternos.delete(id);
 
   // ---------------- Produtos ----------------
   List<Produto> get produtos {
@@ -313,6 +359,7 @@ class Repositorio {
         'gerentes': gerentes,
         'assistentes': assistentes,
         'nomeUsuario': nomeUsuario,
+        'telefoneUsuario': telefoneUsuario,
         'modeloMeta': 'individual',
         'avatarData': avatarData,
         'avatarScale': avatarScale,
@@ -352,6 +399,7 @@ class Repositorio {
       await _config.put('gerentes', cfg['gerentes'] ?? 1);
       await _config.put('assistentes', cfg['assistentes'] ?? 0);
       await _config.put('nomeUsuario', cfg['nomeUsuario'] ?? 'Usuário');
+      await _config.put('telefoneUsuario', cfg['telefoneUsuario'] ?? '');
       await _config.put('avatarData', cfg['avatarData'] ?? '');
       await _config.put('avatarScale', cfg['avatarScale'] ?? 1.0);
       await _config.put('avatarOffsetX', cfg['avatarOffsetX'] ?? 0.0);
