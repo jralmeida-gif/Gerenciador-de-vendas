@@ -181,10 +181,19 @@ class _LoginViewState extends State<LoginView> {
     username.dispose();
     if (resultado == null || resultado.isEmpty || !mounted) return;
     setState(() => _busy = true);
-    final mensagem = await widget.auth.requestPasswordReset(resultado);
+    final resposta = await widget.auth.requestPasswordReset(resultado);
     if (!mounted) return;
     setState(() => _busy = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensagem ?? 'Se houver uma conta elegível, enviaremos as instruções para o e-mail cadastrado.')));
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(resposta.accepted ? 'Solicitação enviada' : 'Não foi possível solicitar'),
+        content: Text(resposta.message),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+        ],
+      ),
+    );
   }
   @override
   Widget build(BuildContext context) => _AuthScaffold(

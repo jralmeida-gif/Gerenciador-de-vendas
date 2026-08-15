@@ -26,6 +26,12 @@ class AuthResult {
   const AuthResult({required this.ok, this.error, this.user});
 }
 
+class PasswordResetResult {
+  final bool accepted;
+  final String message;
+  const PasswordResetResult({required this.accepted, required this.message});
+}
+
 class AuthClient {
   final BrowserClient _client = BrowserClient()..withCredentials = true;
   String get _origin => Uri.base.origin;
@@ -62,18 +68,21 @@ class AuthClient {
     return _postUser('/api/auth/register-first', {'username': username, 'password': password});
   }
 
-  Future<String?> requestPasswordReset(String username) async {
+  Future<PasswordResetResult> requestPasswordReset(String username) async {
     try {
       final response = await _client.post(
         Uri.parse('$_origin/api/auth/request-reset'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': username.trim()}),
       );
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode >= 200 && response.statusCode < 300) return body['message']?.toString() ?? 'Se houver uma conta elegível, enviaremos as instruções para o e-mail cadastrado.';
-      return body['error']?.toString() ?? 'Não foi possível solicitar a recuperação.';
+      final body = response.body.trim().isEmpty ? <String, dynamic>{} : jsonDecode(response.body) as Map<String, dynamic>;
+      final message = (body['message'] ?? body['error'])?.toString();
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return PasswordResetResult(accepted: true, message: message ?? 'Se houver uma conta elegível, enviaremos as instruções para o e-mail cadastrado.');
+      }
+      return PasswordResetResult(accepted: false, message: message ?? 'Não foi possível solicitar a recuperação.');
     } catch (_) {
-      return 'Não foi possível conectar ao servidor.';
+      return const PasswordResetResult(accepted: false, message: 'Não foi possível conectar ao servidor.');
     }
   }
 
