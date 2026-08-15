@@ -20,6 +20,25 @@ import 'metas_editar.dart';
 import 'ajuda.dart';
 
 /// Configurações: equipe, produtos, convênios, campanhas, backup e limpeza.
+class _AvatarPerfil extends StatelessWidget {
+  final String data;
+  final double raio;
+  const _AvatarPerfil({required this.data, required this.raio});
+
+  @override
+  Widget build(BuildContext context) {
+    if (data.isEmpty) {
+      return CircleAvatar(radius: raio, backgroundColor: AppColors.primary, child: Icon(Icons.person, color: Colors.white, size: raio));
+    }
+    try {
+      final encoded = data.contains(',') ? data.split(',').last : data;
+      return CircleAvatar(radius: raio, backgroundImage: MemoryImage(base64Decode(encoded)));
+    } catch (_) {
+      return CircleAvatar(radius: raio, backgroundColor: AppColors.primary, child: Icon(Icons.person, color: Colors.white, size: raio));
+    }
+  }
+}
+
 class _AvatarEnquadrado extends StatelessWidget {
   final Uint8List imageBytes;
   final double escala;
@@ -789,7 +808,7 @@ class TelaEditarPerfil extends StatelessWidget {
                         child: Stack(
                           alignment: Alignment.bottomRight,
                           children: [
-                            AvatarPerfil(data: estado.avatarData, raio: 48),
+                            _AvatarPerfil(data: estado.avatarData, raio: 48),
                             Container(
                               decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
                               child: IconButton(
