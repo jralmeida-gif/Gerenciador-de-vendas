@@ -8,6 +8,16 @@ interface SubscriptionBody {
 
 export const onRequestOptions: PagesFunction<AuthEnv> = ({ request }) => optionsResponse(request);
 
+export const onRequestDelete: PagesFunction<AuthEnv> = async ({ request, env }) => {
+  const user = await getSession(request, env);
+  if (!user) return json(request, { error: 'Sessão expirada.' }, 401);
+  const body = (await request.json().catch(() => ({}))) as SubscriptionBody;
+  const endpoint = body.endpoint?.trim();
+  if (!endpoint) return json(request, { error: 'Endpoint de push ausente.' }, 400);
+  await env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?').bind(endpoint, user.id).run();
+  return json(request, { ok: true });
+};
+
 export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) => {
   const user = await getSession(request, env);
   if (!user) return json(request, { error: 'Sessão expirada.' }, 401);

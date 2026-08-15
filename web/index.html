@@ -246,6 +246,44 @@
         return bytes;
       }
 
+      window.gestorPushStatus = async function () {
+        if (!window.isSecureContext || !('serviceWorker' in navigator) || !('PushManager' in window)) return 'unsupported';
+        var permission = Notification.permission;
+        if (permission === 'denied') return 'blocked';
+        var registration = await navigator.serviceWorker.getRegistration('/push/');
+        var subscription = registration ? await registration.pushManager.getSubscription() : null;
+        return subscription && permission === 'granted' ? 'enabled' : permission === 'granted' ? 'available' : 'disabled';
+      };
+
+      window.gestorPushDisable = async function () {
+        if (!('serviceWorker' in navigator)) return false;
+        var registration = await navigator.serviceWorker.getRegistration('/push/');
+        var subscription = registration ? await registration.pushManager.getSubscription() : null;
+        if (!subscription) return true;
+        var payload = subscription.toJSON();
+        var response = await fetch('/api/push/subscribe', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: payload.endpoint })
+        });
+        if (!response.ok) return false;
+        return await subscription.unsubscribe();
+      };
+
+      window.gestorPushOpenSettings = function () {
+        try {
+          if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openNotificationSettings) {
+            window.webkit.messageHandlers.openNotificationSettings.postMessage(null);
+            return true;
+          }
+          if (navigator.userAgent.includes('Android')) {
+            window.location.href = 'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;end';
+            return true;
+          }
+        } catch (_) {}
+        return false;
+      };
+
       window.gestorPushEnable = async function () {
         if (!window.isSecureContext || !('serviceWorker' in navigator) || !('PushManager' in window)) {
           return false;

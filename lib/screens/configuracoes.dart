@@ -32,7 +32,7 @@ class _AvatarPerfil extends StatelessWidget {
     }
     try {
       final encoded = data.contains(',') ? data.split(',').last : data;
-      return CircleAvatar(radius: raio, backgroundImage: MemoryImage(base64Decode(encoded)));
+      return CircleAvatar(key: ValueKey(data), radius: raio, backgroundImage: MemoryImage(base64Decode(encoded)));
     } catch (_) {
       return CircleAvatar(radius: raio, backgroundColor: AppColors.primary, child: Icon(Icons.person, color: Colors.white, size: raio));
     }
@@ -58,10 +58,28 @@ class _AvatarEnquadrado extends StatelessWidget {
   }
 }
 
-class TelaConfiguracoes extends StatelessWidget {
+class TelaConfiguracoes extends StatefulWidget {
   final AuthUser user;
   final VoidCallback? onLogout;
   const TelaConfiguracoes({super.key, required this.user, this.onLogout});
+
+  @override
+  State<TelaConfiguracoes> createState() => _TelaConfiguracoesState();
+}
+
+class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
+  String _statusNotificacoes = 'carregando';
+
+  @override
+  void initState() {
+    super.initState();
+    _atualizarStatusNotificacoes();
+  }
+
+  Future<void> _atualizarStatusNotificacoes() async {
+    final status = await PushClient.status();
+    if (mounted) setState(() => _statusNotificacoes = status);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +110,7 @@ class TelaConfiguracoes extends StatelessWidget {
                         icone: Icons.manage_accounts_outlined,
                         titulo: 'Editar perfil',
                         valor: 'Alias, foto, e-mail e telefone',
-                        onTap: () => _editarPerfil(context, user.username),
+                        onTap: () => _editarPerfil(context, widget.user.username),
                       ),
                       _Item(
                         icone: Icons.timer_outlined,
@@ -100,7 +118,7 @@ class TelaConfiguracoes extends StatelessWidget {
                         valor: '${estado.idleTimeoutMinutes} minutos sem uso',
                         onTap: () => _editarTimeout(context),
                       ),
-                      if (onLogout != null)
+                      if (widget.onLogout != null)
                         _ItemPerigo(
                           titulo: 'Sair do aplicativo',
                           subtitulo: 'Encerrar a sessão neste dispositivo',
@@ -126,7 +144,7 @@ class TelaConfiguracoes extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                if (user.isAdmin) ...[
+                if (widget.user.isAdmin) ...[
                   CartaoSecao(
                     titulo: 'Administração',
                     child: _Item(
@@ -275,41 +293,64 @@ class TelaConfiguracoes extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Receba avisos de portabilidades pendentes e retornos de prospecção, mesmo quando o app estiver fechado. O navegador solicitará sua autorização.',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: AppColors.textSecondary,
-                          height: 1.4,
-                        ),
+                        'Receba avisos de portabilidades pendentes e retornos de prospecção, mesmo quando o app estiver fechado.',
+                        style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.4),
                       ),
+                      const SizedBox(height: 10),
+                      _StatusNotificacoes(status: _statusNotificacoes),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            final ok = await PushClient.enable();
-                            if (ok) {
-                              await estado.sincronizarPrazosPush();
-                            }
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  ok
-                                      ? 'Notificações ativadas neste dispositivo.'
-                                      : 'A permissão está bloqueada. No iPhone, ative as notificações em Ajustes → Notificações → Gestor de Vendas ou Safari e tente novamente.',
-                                ),
-                                backgroundColor: ok
-                                    ? AppColors.success
-                                    : AppColors.warning,
+                      if (_statusNotificacoes == 'enabled')
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final ok = await PushClient.disable();
+                              await _atualizarStatusNotificacoes();
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(ok ? 'Notificações desativadas neste dispositivo.' : 'Não foi possível desativar as notificações.'),
+                                backgroundColor: ok ? AppColors.warning : AppColors.danger,
                                 behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.notifications_active_outlined),
-                          label: const RotuloBotao('ATIVAR NOTIFICAÇÕES'),
+                              ));
+                            },
+                            icon: const Icon(Icons.notifications_off_outlined),
+                            label: const RotuloBotao('DESATIVAR NOTIFICAÇÕES'),
+                          ),
+                        )
+                      else
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final ok = await PushClient.enable();
+                              if (ok) await estado.sincronizarPrazosPush();
+                              await _atualizarStatusNotificacoes();
+                              if (!context.mounted) return;
+                              if (!ok && (await PushClient.status()) == 'blocked') {
+                                final abrir = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Notificações bloqueadas'),
+                                    content: const Text('Ative as notificações nas configurações do telefone para receber avisos do Gestor de Vendas.'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Agora não')),
+                                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Abrir configurações')),
+                                    ],
+                                  ),
+                                );
+                                if (abrir == true) PushClient.openSettings();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: Text(ok ? 'Notificações ativadas neste dispositivo.' : 'Não foi possível ativar as notificações.'),
+                                  backgroundColor: ok ? AppColors.success : AppColors.warning,
+                                  behavior: SnackBarBehavior.floating,
+                                ));
+                              }
+                            },
+                            icon: const Icon(Icons.notifications_active_outlined),
+                            label: const RotuloBotao('ATIVAR NOTIFICAÇÕES'),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -377,7 +418,7 @@ class TelaConfiguracoes extends StatelessWidget {
         ],
       ),
     );
-    if (sair == true && context.mounted) onLogout?.call();
+    if (sair == true && context.mounted) widget.onLogout?.call();
   }
 
   static Future<void> _editarAvatar(BuildContext context) async {
@@ -806,15 +847,23 @@ class TelaEditarPerfil extends StatelessWidget {
                     children: [
                       Center(
                         child: Stack(
-                          alignment: Alignment.bottomRight,
                           children: [
                             _AvatarPerfil(data: estado.avatarData, raio: 48),
-                            Container(
-                              decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-                              child: IconButton(
-                                tooltip: 'Alterar foto',
-                                onPressed: () => TelaConfiguracoes._editarAvatar(context),
-                                icon: const Icon(Icons.edit, color: Colors.white, size: 17),
+                            Positioned(
+                              right: -5,
+                              bottom: -5,
+                              child: Material(
+                                color: AppColors.primary,
+                                shape: const CircleBorder(),
+                                elevation: 2,
+                                child: InkWell(
+                                  onTap: () => TelaConfiguracoes._editarAvatar(context),
+                                  customBorder: const CircleBorder(),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(6),
+                                    child: Icon(Icons.edit, color: Colors.white, size: 15),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -847,6 +896,36 @@ class TelaEditarPerfil extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatusNotificacoes extends StatelessWidget {
+  final String status;
+  const _StatusNotificacoes({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final ativo = status == 'enabled';
+    final bloqueado = status == 'blocked';
+    final indisponivel = status == 'unsupported';
+    final cor = ativo ? AppColors.success : bloqueado ? AppColors.warning : AppColors.textSecondary;
+    final texto = ativo
+        ? 'Notificações ativadas neste dispositivo.'
+        : bloqueado
+            ? 'Notificações bloqueadas pelo sistema. Use as configurações do telefone para liberar.'
+            : indisponivel
+                ? 'Este navegador não oferece notificações push.'
+                : status == 'carregando'
+                    ? 'Verificando o estado das notificações...'
+                    : 'Notificações ainda não ativadas.';
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(ativo ? Icons.check_circle_outline : bloqueado ? Icons.warning_amber_outlined : Icons.notifications_none, color: cor, size: 21),
+        const SizedBox(width: 9),
+        Expanded(child: Text(texto, style: TextStyle(color: cor, fontSize: 13, height: 1.35, fontWeight: FontWeight.w600))),
+      ],
     );
   }
 }

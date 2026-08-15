@@ -1066,7 +1066,6 @@ class _Previa extends StatelessWidget {
             )
           else
             ...dados.linhas
-                .take(5)
                 .map(
                   (l) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -1084,9 +1083,9 @@ class _Previa extends StatelessWidget {
                         ),
                         Expanded(
                           child: Text(
-                            l.take(3).join(' · '),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            l.join(' · '),
+                            maxLines: 3,
+                            overflow: TextOverflow.visible,
                             style: const TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,
@@ -1098,18 +1097,6 @@ class _Previa extends StatelessWidget {
                     ),
                   ),
                 ),
-          if (dados.linhas.length > 5)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                '+ ${dados.linhas.length - 5} registro(s) no PDF',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
         ],
       ),
     );

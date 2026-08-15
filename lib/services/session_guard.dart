@@ -16,6 +16,7 @@ class SessionGuard extends StatefulWidget {
 class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver {
   Timer? _timer;
   DateTime _ultimaAtividade = DateTime.now();
+  DateTime? _suspensaEm;
   bool _encerrando = false;
 
   @override
@@ -32,28 +33,45 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
   }
 
   void _reiniciar() {
+    if (_encerrando) return;
     _ultimaAtividade = DateTime.now();
+    _suspensaEm = null;
     _timer?.cancel();
-    _timer = Timer(widget.timeout, _expirar);
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _verificar());
+  }
+
+  void _verificar() {
+    if (_encerrando) return;
+    final agora = DateTime.now();
+    if (agora.difference(_ultimaAtividade) >= widget.timeout) {
+      _expirar();
+    }
   }
 
   void _expirar() {
     if (_encerrando) return;
     _encerrando = true;
+    _timer?.cancel();
     widget.onTimeout();
-  }
-
-  void _verificarAoRetornar() {
-    if (DateTime.now().difference(_ultimaAtividade) >= widget.timeout) {
-      _expirar();
-    } else {
-      _reiniciar();
-    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _verificarAoRetornar();
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _suspensaEm ??= DateTime.now();
+      return;
+    }
+    if (state == AppLifecycleState.resumed) {
+      final inicioSuspensao = _suspensaEm;
+      if (inicioSuspensao != null && DateTime.now().difference(inicioSuspensao) >= widget.timeout) {
+        _expirar();
+      } else {
+        _verificar();
+      }
+      _suspensaEm = null;
+    }
   }
 
   @override

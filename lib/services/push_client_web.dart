@@ -6,10 +6,45 @@ import 'package:http/http.dart' as http;
 @JS('gestorPushEnable')
 external JSPromise<JSBoolean> _gestorPushEnable();
 
+@JS('gestorPushStatus')
+external JSPromise<JSString> _gestorPushStatus();
+
+@JS('gestorPushDisable')
+external JSPromise<JSBoolean> _gestorPushDisable();
+
+@JS('gestorPushOpenSettings')
+external JSBoolean _gestorPushOpenSettings();
+
 class PushClient {
   static String get _baseUrl => Uri.base.origin;
 
   static Future<bool> isSupported() async => Uri.base.scheme == 'https';
+
+  static Future<String> status() async {
+    if (!await isSupported()) return 'unsupported';
+    try {
+      return (await _gestorPushStatus().toDart).toDart;
+    } catch (_) {
+      return 'unknown';
+    }
+  }
+
+  static Future<bool> disable() async {
+    if (!await isSupported()) return false;
+    try {
+      return (await _gestorPushDisable().toDart).toDart;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static bool openSettings() {
+    try {
+      return _gestorPushOpenSettings().toDart;
+    } catch (_) {
+      return false;
+    }
+  }
 
   static Future<bool> enable() async {
     if (!await isSupported()) return false;
