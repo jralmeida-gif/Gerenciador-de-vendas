@@ -86,7 +86,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     const detail = mailBody?.Messages?.[0]?.ErrorInfo;
     return json(request, { error: detail ? `A Mailjet recusou o envio: ${detail}` : 'Não foi possível enviar o e-mail de recuperação.' }, 502);
   }
-  let deliveryStatus = 'accepted';
+  let deliveryStatus = 'queued';
   let deliveryReason: string | undefined;
   const messageId = mailMessage?.To?.[0]?.MessageID;
   if (messageId) {
@@ -97,6 +97,16 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     const statusRecord = statusBody?.Data?.[0];
     deliveryStatus = statusRecord?.Status?.toLowerCase() ?? deliveryStatus;
     deliveryReason = mailjetStateReason(statusRecord?.StateID);
+
+    const historyResponse = await fetch(`https://api.mailjet.com/v3/REST/messagehistory/${messageId}`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    const historyBody = await historyResponse.json().catch(() => null) as { Data?: Array<{ EventType?: string; State?: string; Comment?: string }> } | null;
+    const latestEvent = historyBody?.Data?.[historyBody.Data.length - 1];
+    if (latestEvent?.EventType) {
+      deliveryStatus = latestEvent.EventType.toLowerCase();
+      deliveryReason = latestEvent.State || latestEvent.Comment || deliveryReason;
+    }
   }
   const statusText = deliveryStatus === 'queued'
     ? 'A Mailjet aceitou e colocou a mensagem na fila.'
@@ -111,7 +121,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     delivery: {
       recipient: maskEmail(user.recovery_email),
       status: deliveryStatus,
-      messageId: messageId ?? null,
+      messageId: messageId?.toString() ?? null,
       reason: deliveryReason ?? null,
     },
   });
