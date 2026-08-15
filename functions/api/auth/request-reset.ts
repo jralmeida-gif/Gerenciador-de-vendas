@@ -26,10 +26,14 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
      WHERE u.username = ? AND u.active = 1 AND s.recovery_email <> ''`,
   ).bind(username).first<{ id: string; username: string; recovery_email: string }>();
   if (!user || !validEmail(user.recovery_email)) return json(request, { ok: true, message: GENERIC_MESSAGE });
-  const apiKey = env.MAILJET_API_KEY ?? env.mailjetapikey ?? env.Mailjetapikey;
-  const secretKey = env.MAILJET_SECRET_KEY ?? env.mailjetsecretkey ?? env.Mailjetsecretkey;
-  if (!apiKey || !secretKey || !env.MAILJET_FROM_EMAIL) {
-    return json(request, { error: 'O serviço de recuperação ainda não está configurado.' }, 503);
+  const envRecord = env as unknown as Record<string, unknown>;
+  const readEnv = (...names: string[]) => names.map((name) => envRecord[name]).find((value) => typeof value === 'string' && value.trim() !== '') as string | undefined;
+  const apiKey = readEnv('MAILJET_API_KEY', 'mailjetapikey', 'Mailjetapikey', 'MJ_APIKEY_PUBLIC');
+  const secretKey = readEnv('MAILJET_SECRET_KEY', 'mailjetsecretkey', 'Mailjetsecretkey', 'MJ_APIKEY_PRIVATE');
+  const fromEmail = readEnv('MAILJET_FROM_EMAIL', 'mailjetfromemail');
+  if (!apiKey || !secretKey || !fromEmail) {
+    const missing = [!apiKey ? 'chave pública' : '', !secretKey ? 'chave privada' : '', !fromEmail ? 'remetente' : ''].filter(Boolean).join(', ');
+    return json(request, { error: `O serviço de recuperação está incompleto: falta configurar ${missing}.` }, 503);
   }
 
   const token = createRecoveryToken();
@@ -44,7 +48,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   const fromName = env.MAILJET_FROM_NAME || 'Gestor de Vendas';
   const payload = {
     Messages: [{
-      From: { Email: env.MAILJET_FROM_EMAIL, Name: fromName },
+      From: { Email: fromEmail, Name: fromName },
       To: [{ Email: user.recovery_email }],
       Subject: 'Redefinição de senha — Gestor de Vendas',
       TextPart: `Solicitação de redefinição de senha\n\nAbra este link em até 30 minutos para criar uma nova senha:\n${link}\n\nSe você não fez esta solicitação, ignore este e-mail.`,
