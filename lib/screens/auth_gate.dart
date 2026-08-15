@@ -184,11 +184,18 @@ class _LoginViewState extends State<LoginView> {
     final resposta = await widget.auth.requestPasswordReset(resultado);
     if (!mounted) return;
     setState(() => _busy = false);
+    final detalhes = <String>[
+      resposta.message,
+      if (resposta.recipient != null) 'Destino: ${resposta.recipient}',
+      if (resposta.deliveryStatus != null) 'Status Mailjet: ${resposta.deliveryStatus}',
+      if (resposta.deliveryReason != null) 'Motivo: ${resposta.deliveryReason}',
+      if (resposta.accepted) 'A aceitação pela Mailjet não garante que a mensagem já esteja na caixa de entrada. Verifique também o lixo eletrônico e aguarde alguns minutos.',
+    ].join('\n\n');
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(resposta.accepted ? 'Solicitação enviada' : 'Não foi possível solicitar'),
-        content: Text(resposta.message),
+        title: Text(resposta.accepted ? 'Status do e-mail' : 'Não foi possível solicitar'),
+        content: Text(detalhes),
         actions: [
           FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
         ],

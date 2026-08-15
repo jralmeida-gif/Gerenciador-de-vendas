@@ -12,6 +12,20 @@ const GENERIC_MESSAGE = 'Se houver uma conta elegível, enviaremos as instruçõ
 function validEmail(value: unknown): value is string {
   return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) && value.trim().length <= 254;
 }
+function maskEmail(value: string): string {
+  const [local, domain] = value.trim().toLowerCase().split('@');
+  const visible = local.slice(0, Math.min(2, local.length));
+  return `${visible}${'*'.repeat(Math.max(1, Math.min(4, local.length)))}@${domain}`;
+}
+function mailjetStateReason(stateId?: number): string | undefined {
+  const reasons: Record<number, string> = {
+    1: 'destinatário inexistente', 2: 'caixa postal inativa', 3: 'cota da caixa postal excedida', 4: 'domínio inválido',
+    6: 'servidor do destinatário recusou a entrega', 7: 'remetente bloqueado por spam', 8: 'conteúdo bloqueado',
+    9: 'problema de política do servidor destinatário', 14: 'destinatário pré-bloqueado pela Mailjet', 16: 'mensagem pré-bloqueada como spam',
+    20: 'destinatário em lista de bloqueio',
+  };
+  return stateId == null ? undefined : reasons[stateId] ?? `falha de entrega (código ${stateId})`;
+}
 
 export const onRequestOptions: PagesFunction<AuthEnv> = ({ request }) => optionsResponse(request);
 
@@ -62,12 +76,43 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  const mailBody = await mail.json().catch(() => null) as { Messages?: Array<{ Status?: string; ErrorInfo?: string }> } | null;
-  const mailStatus = mailBody?.Messages?.[0]?.Status?.toLowerCase();
+  const mailBody = await mail.json().catch(() => null) as {
+    Messages?: Array<{ Status?: string; ErrorInfo?: string; To?: Array<{ MessageID?: number; MessageUUID?: string }> }>
+  } | null;
+  const mailMessage = mailBody?.Messages?.[0];
+  const mailStatus = mailMessage?.Status?.toLowerCase();
   if (!mail.ok || mailStatus !== 'success') {
     await env.DB.prepare('DELETE FROM password_reset_tokens WHERE token_hash = ?').bind(tokenHash).run();
     const detail = mailBody?.Messages?.[0]?.ErrorInfo;
     return json(request, { error: detail ? `A Mailjet recusou o envio: ${detail}` : 'Não foi possível enviar o e-mail de recuperação.' }, 502);
   }
-  return json(request, { ok: true, message: GENERIC_MESSAGE });
+  let deliveryStatus = 'accepted';
+  let deliveryReason: string | undefined;
+  const messageId = mailMessage?.To?.[0]?.MessageID;
+  if (messageId) {
+    const statusResponse = await fetch(`https://api.mailjet.com/v3/REST/message/${messageId}`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    const statusBody = await statusResponse.json().catch(() => null) as { Data?: Array<{ Status?: string; StateID?: number }> } | null;
+    const statusRecord = statusBody?.Data?.[0];
+    deliveryStatus = statusRecord?.Status?.toLowerCase() ?? deliveryStatus;
+    deliveryReason = mailjetStateReason(statusRecord?.StateID);
+  }
+  const statusText = deliveryStatus === 'queued'
+    ? 'A Mailjet aceitou e colocou a mensagem na fila.'
+    : deliveryStatus === 'sent'
+      ? 'A mensagem foi enviada e aceita pelo servidor do destinatário.'
+      : deliveryStatus === 'bounce' || deliveryStatus === 'hardbounced' || deliveryStatus === 'softbounced' || deliveryStatus === 'blocked'
+        ? `A Mailjet registrou o status “${deliveryStatus}”.${deliveryReason ? ` Motivo: ${deliveryReason}.` : ''}`
+        : 'A Mailjet aceitou a mensagem; a entrega ainda está sendo processada.';
+  return json(request, {
+    ok: true,
+    message: statusText,
+    delivery: {
+      recipient: maskEmail(user.recovery_email),
+      status: deliveryStatus,
+      messageId: messageId ?? null,
+      reason: deliveryReason ?? null,
+    },
+  });
 };

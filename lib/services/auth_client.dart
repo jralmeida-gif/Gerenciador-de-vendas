@@ -29,7 +29,10 @@ class AuthResult {
 class PasswordResetResult {
   final bool accepted;
   final String message;
-  const PasswordResetResult({required this.accepted, required this.message});
+  final String? recipient;
+  final String? deliveryStatus;
+  final String? deliveryReason;
+  const PasswordResetResult({required this.accepted, required this.message, this.recipient, this.deliveryStatus, this.deliveryReason});
 }
 
 class AuthClient {
@@ -78,7 +81,14 @@ class AuthClient {
       final body = response.body.trim().isEmpty ? <String, dynamic>{} : jsonDecode(response.body) as Map<String, dynamic>;
       final message = (body['message'] ?? body['error'])?.toString();
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return PasswordResetResult(accepted: true, message: message ?? 'Se houver uma conta elegível, enviaremos as instruções para o e-mail cadastrado.');
+        final delivery = body['delivery'] is Map<String, dynamic> ? body['delivery'] as Map<String, dynamic> : const <String, dynamic>{};
+        return PasswordResetResult(
+          accepted: true,
+          message: message ?? 'A solicitação foi aceita pela Mailjet.',
+          recipient: delivery['recipient']?.toString(),
+          deliveryStatus: delivery['status']?.toString(),
+          deliveryReason: delivery['reason']?.toString(),
+        );
       }
       return PasswordResetResult(accepted: false, message: message ?? 'Não foi possível solicitar a recuperação.');
     } catch (_) {
