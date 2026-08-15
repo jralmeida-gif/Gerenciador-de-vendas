@@ -32,8 +32,9 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   const secretKey = readEnv('MAILJET_SECRET_KEY', 'mailjetsecretkey', 'Mailjetsecretkey', 'MJ_APIKEY_PRIVATE');
   const fromEmail = 'recuperarsenha.gestordevendas@gmail.com';
   if (!apiKey || !secretKey) {
-    const missing = [!apiKey ? 'chave pública (mailjetapikey)' : '', !secretKey ? 'chave privada (mailjetsecretkey)' : ''].filter(Boolean).join(', ');
-    return json(request, { error: `O serviço de recuperação está incompleto: falta configurar ${missing}.` }, 503);
+    const missing = [!apiKey ? 'chave pública (MAILJET_API_KEY)' : '', !secretKey ? 'chave privada (MAILJET_SECRET_KEY)' : ''].filter(Boolean).join(', ');
+    const detectedBindings = Object.keys(envRecord).filter((key) => key.toLowerCase().includes('mailjet'));
+    return json(request, { error: `O serviço de recuperação está incompleto: falta configurar ${missing}.`, detectedBindings }, 503);
   }
 
   const token = createRecoveryToken();
