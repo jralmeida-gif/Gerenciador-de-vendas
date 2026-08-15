@@ -26,6 +26,12 @@ class AuthResult {
   const AuthResult({required this.ok, this.error, this.user});
 }
 
+class SessionCheckResult {
+  final bool reachable;
+  final AuthUser? user;
+  const SessionCheckResult({required this.reachable, this.user});
+}
+
 class PasswordResetResult {
   final bool accepted;
   final String message;
@@ -48,20 +54,25 @@ class AuthClient {
     }
   }
 
-  Future<AuthUser?> session() async {
+  Future<SessionCheckResult> checkSession() async {
     try {
       final response = await _client.get(
         Uri.parse('$_origin/api/auth/session?t=${DateTime.now().millisecondsSinceEpoch}'),
         headers: {'Cache-Control': 'no-cache'},
       );
-      if (response.statusCode != 200) return null;
+      if (response.statusCode != 200) return const SessionCheckResult(reachable: false);
       final body = jsonDecode(response.body) as Map<String, dynamic>;
-      if (body['authenticated'] != true) return null;
-      return AuthUser.fromJson(body['user'] as Map<String, dynamic>);
+      if (body['authenticated'] != true) return const SessionCheckResult(reachable: true);
+      return SessionCheckResult(
+        reachable: true,
+        user: AuthUser.fromJson(body['user'] as Map<String, dynamic>),
+      );
     } catch (_) {
-      return null;
+      return const SessionCheckResult(reachable: false);
     }
   }
+
+  Future<AuthUser?> session() async => (await checkSession()).user;
 
   Future<AuthResult> login(String username, String password) async {
     return _postUser('/api/auth/login', {'username': username, 'password': password});

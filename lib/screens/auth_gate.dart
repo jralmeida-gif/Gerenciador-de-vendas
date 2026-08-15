@@ -17,15 +17,58 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<AuthGate> {
+class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   final _auth = AuthClient();
   AuthUser? _user;
   bool _loading = true;
   bool _setup = false;
   String? _resetToken;
+  bool _revalidandoSessao = false;
+  DateTime? _ultimaRevalidacao;
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_revalidarSessaoAoRetomar());
+  }
+
+  Future<void> _revalidarSessaoAoRetomar() async {
+    if (!mounted || _loading || _user == null || _revalidandoSessao) return;
+    final agora = DateTime.now();
+    if (_ultimaRevalidacao != null && agora.difference(_ultimaRevalidacao!) < const Duration(seconds: 3)) return;
+    _revalidandoSessao = true;
+    try {
+      final resultado = await _auth.checkSession();
+      if (!mounted || !resultado.reachable) return;
+      _ultimaRevalidacao = DateTime.now();
+      if (resultado.user != null) {
+        if (resultado.user!.id != _user!.id || resultado.user!.mustChangePassword != _user!.mustChangePassword) {
+          setState(() => _user = resultado.user);
+        }
+        return;
+      }
+      final appState = context.read<AppState>();
+      await appState.mudarPerfilLocal('guest');
+      appState.definirUsuarioAutenticado(null);
+      if (!mounted) return;
+      setState(() => _user = null);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sua sessão foi encerrada. Entre novamente com a senha atualizada.')));
+    } finally {
+      _revalidandoSessao = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   Future<void> _load() async {
     final resetToken = Uri.base.queryParameters['reset_token'];
