@@ -25,11 +25,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   String? _resetToken;
   bool _revalidandoSessao = false;
   DateTime? _ultimaRevalidacao;
+  Timer? _timerRevalidacaoSessao;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _timerRevalidacaoSessao = Timer.periodic(const Duration(seconds: 30), (_) => unawaited(_revalidarSessaoAoRetomar()));
     _load();
   }
 
@@ -41,7 +43,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Future<void> _revalidarSessaoAoRetomar() async {
     if (!mounted || _loading || _user == null || _revalidandoSessao) return;
     final agora = DateTime.now();
-    if (_ultimaRevalidacao != null && agora.difference(_ultimaRevalidacao!) < const Duration(seconds: 3)) return;
+    if (_ultimaRevalidacao != null && agora.difference(_ultimaRevalidacao!) < const Duration(seconds: 15)) return;
     _revalidandoSessao = true;
     try {
       final resultado = await _auth.checkSession();
@@ -67,6 +69,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _timerRevalidacaoSessao?.cancel();
     super.dispose();
   }
 
