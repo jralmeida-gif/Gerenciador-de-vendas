@@ -37,7 +37,7 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
     _ultimaAtividade = DateTime.now();
     _suspensaEm = null;
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _verificar());
+    _timer = Timer(widget.timeout, _expirar);
   }
 
   void _verificar() {
@@ -59,6 +59,7 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
       _suspensaEm ??= DateTime.now();
       return;
