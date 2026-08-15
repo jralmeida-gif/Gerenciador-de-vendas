@@ -57,9 +57,12 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!mail.ok) {
+  const mailBody = await mail.json().catch(() => null) as { Messages?: Array<{ Status?: string; ErrorInfo?: string }> } | null;
+  const mailStatus = mailBody?.Messages?.[0]?.Status?.toLowerCase();
+  if (!mail.ok || mailStatus !== 'success') {
     await env.DB.prepare('DELETE FROM password_reset_tokens WHERE token_hash = ?').bind(tokenHash).run();
-    return json(request, { error: 'Não foi possível enviar o e-mail de recuperação.' }, 502);
+    const detail = mailBody?.Messages?.[0]?.ErrorInfo;
+    return json(request, { error: detail ? `A Mailjet recusou o envio: ${detail}` : 'Não foi possível enviar o e-mail de recuperação.' }, 502);
   }
   return json(request, { ok: true, message: GENERIC_MESSAGE });
 };
