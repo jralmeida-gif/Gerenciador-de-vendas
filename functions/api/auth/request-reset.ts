@@ -26,8 +26,8 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
      WHERE u.username = ? AND u.active = 1 AND s.recovery_email <> ''`,
   ).bind(username).first<{ id: string; username: string; recovery_email: string }>();
   if (!user || !validEmail(user.recovery_email)) return json(request, { ok: true, message: GENERIC_MESSAGE });
-  const apiKey = env.MAILJET_API_KEY ?? env.mailjetapikey;
-  const secretKey = env.MAILJET_SECRET_KEY ?? env.mailjetsecretkey;
+  const apiKey = env.MAILJET_API_KEY ?? env.mailjetapikey ?? env.Mailjetapikey;
+  const secretKey = env.MAILJET_SECRET_KEY ?? env.mailjetsecretkey ?? env.Mailjetsecretkey;
   if (!apiKey || !secretKey || !env.MAILJET_FROM_EMAIL) {
     return json(request, { error: 'O serviço de recuperação ainda não está configurado.' }, 503);
   }

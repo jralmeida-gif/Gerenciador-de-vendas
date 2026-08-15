@@ -6,6 +6,8 @@ export interface AuthEnv {
   MAILJET_FROM_NAME?: string;
   mailjetapikey?: string;
   mailjetsecretkey?: string;
+  Mailjetapikey?: string;
+  Mailjetsecretkey?: string;
 }
 
 export interface AuthUser {
