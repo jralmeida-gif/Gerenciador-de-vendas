@@ -327,7 +327,7 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                               await _atualizarStatusNotificacoes();
                               if (!context.mounted) return;
                               if (!ok && (await PushClient.status()) == 'blocked') {
-                                if (!mounted) return;
+                                if (!context.mounted) return;
                                 final abrir = await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
@@ -339,10 +339,10 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                                     ],
                                   ),
                                 );
-                                if (!mounted) return;
+                                if (!context.mounted) return;
                                 if (abrir == true) PushClient.openSettings();
                               } else {
-                                if (!mounted) return;
+                                if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                                   content: Text(ok ? 'Notificações ativadas neste dispositivo.' : 'Não foi possível ativar as notificações.'),
                                   backgroundColor: ok ? AppColors.success : AppColors.warning,
