@@ -102,9 +102,5 @@ jobs:
         shell: bash
         run: printf '%s' "$VAPID_PUBLIC_KEY" | npx wrangler pages secret put VAPID_PUBLIC_KEY --project-name gestor-vendas-agencia-v3
 
-      - name: Configurar remetente Mailjet do Pages
-        shell: bash
-        run: printf '%s' 'recuperarsenha.gestordevendas@gmail.com' | npx wrangler pages secret put MAILJET_FROM_EMAIL --project-name gestor-vendas-agencia-v3
-
       - name: Publicar Pages v3
         run: npx wrangler pages deploy build/web --project-name gestor-vendas-agencia-v3 --branch production
