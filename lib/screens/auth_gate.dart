@@ -88,6 +88,35 @@ class _AuthGateState extends State<AuthGate> {
       ),
     );
     if (alias != null && alias.isNotEmpty && mounted) await context.read<AppState>().salvarNomeUsuario(alias);
+    if (!mounted) return;
+    final recovery = TextEditingController(text: context.read<AppState>().recoveryEmail);
+    final recoveryEmail = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('E-mail de recuperação'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Cadastre um e-mail pessoal ou corporativo para receber o link caso você esqueça sua senha. Pode ser Gmail, Outlook ou outro provedor.'),
+            const SizedBox(height: 16),
+            TextField(controller: recovery, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'E-mail de recuperação')),
+          ],
+        ),
+        actions: [
+          FilledButton(onPressed: () {
+            final value = recovery.text.trim();
+            if (RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value)) Navigator.pop(ctx, value);
+          }, child: const Text('Salvar')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cadastrar depois')),
+        ],
+      ),
+    );
+    recovery.dispose();
+    if (recoveryEmail != null && recoveryEmail.isNotEmpty && mounted) {
+      await context.read<AppState>().salvarRecoveryEmail(recoveryEmail);
+    }
   }
 
   @override
