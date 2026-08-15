@@ -327,6 +327,7 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                               await _atualizarStatusNotificacoes();
                               if (!context.mounted) return;
                               if (!ok && (await PushClient.status()) == 'blocked') {
+                                if (!mounted) return;
                                 final abrir = await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
@@ -338,8 +339,10 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                                     ],
                                   ),
                                 );
+                                if (!mounted) return;
                                 if (abrir == true) PushClient.openSettings();
                               } else {
+                                if (!mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                                   content: Text(ok ? 'Notificações ativadas neste dispositivo.' : 'Não foi possível ativar as notificações.'),
                                   backgroundColor: ok ? AppColors.success : AppColors.warning,
@@ -857,7 +860,7 @@ class TelaEditarPerfil extends StatelessWidget {
                                 shape: const CircleBorder(),
                                 elevation: 2,
                                 child: InkWell(
-                                  onTap: () => TelaConfiguracoes._editarAvatar(context),
+                                  onTap: () => _TelaConfiguracoesState._editarAvatar(context),
                                   customBorder: const CircleBorder(),
                                   child: const Padding(
                                     padding: EdgeInsets.all(6),
@@ -874,7 +877,7 @@ class TelaEditarPerfil extends StatelessWidget {
                         icone: Icons.person_outline,
                         titulo: 'Alias',
                         valor: estado.nomeUsuario,
-                        onTap: () => TelaConfiguracoes._editarNome(context),
+                        onTap: () => _TelaConfiguracoesState._editarNome(context),
                       ),
                       _Item(
                         icone: Icons.email_outlined,
@@ -886,7 +889,7 @@ class TelaEditarPerfil extends StatelessWidget {
                         icone: Icons.phone_outlined,
                         titulo: 'Telefone',
                         valor: estado.telefoneUsuario.isEmpty ? 'Opcional — adicionar' : Fmt.telefone(estado.telefoneUsuario),
-                        onTap: () => TelaConfiguracoes._editarTelefone(context),
+                        onTap: () => _TelaConfiguracoesState._editarTelefone(context),
                       ),
                     ],
                   ),
