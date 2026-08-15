@@ -527,6 +527,27 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
     if (ok == true) await estado.salvarTelefoneUsuario(Fmt.somenteDigitos(ctrl.text));
   }
 
+  static Future<void> _editarRecoveryEmail(BuildContext context) async {
+    final estado = context.read<AppState>();
+    final ctrl = TextEditingController(text: estado.recoveryEmail);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('E-mail de recuperação'),
+        content: TextField(controller: ctrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'E-mail que receberá o link')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () {
+            final email = ctrl.text.trim();
+            if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) return;
+            Navigator.pop(ctx, true);
+          }, child: const Text('Salvar')),
+        ],
+      ),
+    );
+    if (ok == true) await estado.salvarRecoveryEmail(ctrl.text);
+  }
+
   static Future<void> _editarNome(BuildContext context) async {
     final estado = context.read<AppState>();
     final ctrl = TextEditingController(text: estado.nomeUsuario);
@@ -885,6 +906,12 @@ class TelaEditarPerfil extends StatelessWidget {
                         titulo: 'E-mail de acesso',
                         valor: email,
                         onTap: () {},
+                      ),
+                      _Item(
+                        icone: Icons.mark_email_read_outlined,
+                        titulo: 'E-mail de recuperação',
+                        valor: estado.recoveryEmail.isEmpty ? 'Não cadastrado' : estado.recoveryEmail,
+                        onTap: () => _TelaConfiguracoesState._editarRecoveryEmail(context),
                       ),
                       _Item(
                         icone: Icons.phone_outlined,

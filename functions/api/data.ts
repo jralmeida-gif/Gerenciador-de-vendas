@@ -1,7 +1,7 @@
 import { getSession, type AuthEnv, json, optionsResponse } from '../_auth';
 
 type DataBody = {
-  config?: { nomeUsuario?: string; modeloMeta?: string; avatarData?: string; avatarScale?: number; avatarOffsetX?: number; avatarOffsetY?: number; idleTimeoutMinutes?: number };
+  config?: { nomeUsuario?: string; modeloMeta?: string; avatarData?: string; avatarScale?: number; avatarOffsetX?: number; avatarOffsetY?: number; idleTimeoutMinutes?: number; recoveryEmail?: string };
   produtos?: Array<{ nome?: string; formato?: string }>;
   convenios?: Array<{ nome?: string; codigo?: string }>;
   metas?: Array<{ produto?: string; metaMes?: number }>;
@@ -23,7 +23,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
   const user = await getSession(request, env);
   if (!user) return json(request, { error: 'Sessão expirada.' }, 401);
   const result = await env.DB.batch([
-    env.DB.prepare('SELECT display_name, avatar_data, avatar_scale, avatar_offset_x, avatar_offset_y, idle_timeout_minutes FROM user_settings WHERE user_id = ?').bind(user.id),
+    env.DB.prepare('SELECT display_name, avatar_data, avatar_scale, avatar_offset_x, avatar_offset_y, idle_timeout_minutes, recovery_email FROM user_settings WHERE user_id = ?').bind(user.id),
     env.DB.prepare('SELECT name, format FROM user_products WHERE user_id = ? ORDER BY name').bind(user.id),
     env.DB.prepare('SELECT name, code FROM user_convenios WHERE user_id = ? ORDER BY name').bind(user.id),
     env.DB.prepare('SELECT product, target_month FROM user_metas WHERE user_id = ? ORDER BY product').bind(user.id),
@@ -45,6 +45,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
       avatarOffsetX: Number(settings?.results?.[0]?.avatar_offset_x ?? 0),
       avatarOffsetY: Number(settings?.results?.[0]?.avatar_offset_y ?? 0),
       idleTimeoutMinutes: Number(settings?.results?.[0]?.idle_timeout_minutes ?? 30),
+      recoveryEmail: settings?.results?.[0]?.recovery_email ?? '',
     },
     produtos: products.results.map((r: any) => ({ nome: r.name, formato: r.format })),
     convenios: convenios.results.map((r: any) => ({ nome: r.name, codigo: r.code })),
@@ -69,6 +70,9 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   const avatarOffsetX = Math.min(1, Math.max(-1, num(cfg.avatarOffsetX || 0)));
   const avatarOffsetY = Math.min(1, Math.max(-1, num(cfg.avatarOffsetY || 0)));
   const idleTimeoutMinutes = Math.min(120, Math.max(15, Math.trunc(num(cfg.idleTimeoutMinutes || 30))));
+  const recoveryEmail = cfg.recoveryEmail == null
+    ? ((await env.DB.prepare('SELECT recovery_email FROM user_settings WHERE user_id = ?').bind(user.id).first<{ recovery_email?: string }>())?.recovery_email ?? '')
+    : text(cfg.recoveryEmail).trim().toLowerCase();
   const batch: D1PreparedStatement[] = [
     env.DB.prepare('DELETE FROM user_products WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_convenios WHERE user_id = ?').bind(user.id),
@@ -79,8 +83,8 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     env.DB.prepare('DELETE FROM user_portabilidades WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_prospeccoes WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_clients WHERE user_id = ?').bind(user.id),
-    env.DB.prepare(`INSERT INTO user_settings (user_id, display_name, avatar_data, avatar_scale, avatar_offset_x, avatar_offset_y, idle_timeout_minutes, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-      ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, avatar_data = excluded.avatar_data, avatar_scale = excluded.avatar_scale, avatar_offset_x = excluded.avatar_offset_x, avatar_offset_y = excluded.avatar_offset_y, idle_timeout_minutes = excluded.idle_timeout_minutes, updated_at = datetime('now')`).bind(user.id, displayName, avatarData, avatarScale, avatarOffsetX, avatarOffsetY, idleTimeoutMinutes),
+    env.DB.prepare(`INSERT INTO user_settings (user_id, display_name, avatar_data, avatar_scale, avatar_offset_x, avatar_offset_y, idle_timeout_minutes, recovery_email, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, avatar_data = excluded.avatar_data, avatar_scale = excluded.avatar_scale, avatar_offset_x = excluded.avatar_offset_x, avatar_offset_y = excluded.avatar_offset_y, idle_timeout_minutes = excluded.idle_timeout_minutes, recovery_email = excluded.recovery_email, updated_at = datetime('now')`).bind(user.id, displayName, avatarData, avatarScale, avatarOffsetX, avatarOffsetY, idleTimeoutMinutes, recoveryEmail),
     env.DB.prepare(`UPDATE users SET display_name = ?, updated_at = datetime('now') WHERE id = ?`).bind(displayName, user.id),
   ];
   for (const p of body.produtos ?? []) if (text(p.nome)) batch.push(env.DB.prepare('INSERT INTO user_products (user_id, name, format) VALUES (?, ?, ?)').bind(user.id, text(p.nome), text(p.formato) || 'Valor'));

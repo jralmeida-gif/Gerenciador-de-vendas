@@ -47,6 +47,7 @@ class AppState extends ChangeNotifier {
   int get numFuncionarios => repo.numFuncionarios;
   String get nomeUsuario => repo.nomeUsuario;
   String get telefoneUsuario => repo.telefoneUsuario;
+  String get recoveryEmail => repo.recoveryEmail;
   String get avatarData => repo.avatarData;
   double get avatarScale => repo.avatarScale;
   double get avatarOffsetX => repo.avatarOffsetX;
@@ -75,6 +76,12 @@ class AppState extends ChangeNotifier {
     await repo.salvarTelefoneUsuario(telefone);
     notifyListeners();
     unawaited(sincronizarNuvem());
+  }
+
+  Future<void> salvarRecoveryEmail(String email) async {
+    await repo.salvarRecoveryEmail(email);
+    notifyListeners();
+    await sincronizarNuvem();
   }
 
   Future<void> salvarAvatarData(String value) async {

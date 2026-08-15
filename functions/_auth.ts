@@ -1,5 +1,11 @@
 export interface AuthEnv {
   DB: D1Database;
+  MAILJET_API_KEY?: string;
+  MAILJET_SECRET_KEY?: string;
+  MAILJET_FROM_EMAIL?: string;
+  MAILJET_FROM_NAME?: string;
+  mailjetapikey?: string;
+  mailjetsecretkey?: string;
 }
 
 export interface AuthUser {
@@ -48,7 +54,7 @@ export function normalizeUsername(value: unknown): string | null {
   return username;
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
+export function bytesToBase64(bytes: Uint8Array): string {
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
@@ -59,9 +65,14 @@ function base64ToBytes(value: string): Uint8Array {
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
 
-async function digestSha256(value: string): Promise<string> {
+export async function digestSha256(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', encoder.encode(value));
   return bytesToBase64(new Uint8Array(digest));
+}
+
+export function createRecoveryToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return bytesToBase64(bytes).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 }
 
 export async function hashPassword(password: string, salt?: Uint8Array): Promise<{ hash: string; salt: string }> {

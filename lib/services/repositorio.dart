@@ -138,6 +138,7 @@ class Repositorio {
 
   String get nomeUsuario => (_config.get('nomeUsuario') ?? 'Usuário') as String;
   String get telefoneUsuario => (_config.get('telefoneUsuario') ?? '') as String;
+  String get recoveryEmail => (_config.get('recoveryEmail') ?? '') as String;
   String get avatarData => (_config.get('avatarData') ?? '') as String;
   int get idleTimeoutMinutes => (_config.get('idleTimeoutMinutes') ?? 30) as int;
   double get avatarScale => ((_config.get('avatarScale') as num?) ?? 1.0).toDouble();
@@ -160,6 +161,8 @@ class Repositorio {
       _config.put('nomeUsuario', nome);
   Future<void> salvarTelefoneUsuario(String telefone) =>
       _config.put('telefoneUsuario', telefone);
+  Future<void> salvarRecoveryEmail(String email) =>
+      _config.put('recoveryEmail', email.trim().toLowerCase());
 
   Future<void> salvarAvatarData(String value) => _config.put('avatarData', value);
   Future<void> salvarAvatarEnquadramento({required double escala, required double deslocamentoX, required double deslocamentoY}) async {
@@ -360,6 +363,7 @@ class Repositorio {
         'assistentes': assistentes,
         'nomeUsuario': nomeUsuario,
         'telefoneUsuario': telefoneUsuario,
+        'recoveryEmail': recoveryEmail,
         'modeloMeta': 'individual',
         'avatarData': avatarData,
         'avatarScale': avatarScale,
@@ -400,6 +404,7 @@ class Repositorio {
       await _config.put('assistentes', cfg['assistentes'] ?? 0);
       await _config.put('nomeUsuario', cfg['nomeUsuario'] ?? 'Usuário');
       await _config.put('telefoneUsuario', cfg['telefoneUsuario'] ?? '');
+      await _config.put('recoveryEmail', cfg['recoveryEmail'] ?? '');
       await _config.put('avatarData', cfg['avatarData'] ?? '');
       await _config.put('avatarScale', cfg['avatarScale'] ?? 1.0);
       await _config.put('avatarOffsetX', cfg['avatarOffsetX'] ?? 0.0);

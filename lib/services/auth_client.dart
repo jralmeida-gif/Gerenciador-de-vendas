@@ -62,6 +62,36 @@ class AuthClient {
     return _postUser('/api/auth/register-first', {'username': username, 'password': password});
   }
 
+  Future<String?> requestPasswordReset(String username) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$_origin/api/auth/request-reset'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username.trim()}),
+      );
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 200 && response.statusCode < 300) return body['message']?.toString() ?? 'Se houver uma conta elegível, enviaremos as instruções para o e-mail cadastrado.';
+      return body['error']?.toString() ?? 'Não foi possível solicitar a recuperação.';
+    } catch (_) {
+      return 'Não foi possível conectar ao servidor.';
+    }
+  }
+
+  Future<String?> resetPassword(String token, String newPassword) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$_origin/api/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': token, 'newPassword': newPassword}),
+      );
+      if (response.statusCode >= 200 && response.statusCode < 300) return null;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      return body['error']?.toString() ?? 'Não foi possível redefinir a senha.';
+    } catch (_) {
+      return 'Não foi possível conectar ao servidor.';
+    }
+  }
+
   Future<String?> changePassword(String currentPassword, String newPassword) async {
     try {
       final response = await _client.post(

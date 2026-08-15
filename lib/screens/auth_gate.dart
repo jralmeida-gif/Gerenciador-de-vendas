@@ -22,11 +22,17 @@ class _AuthGateState extends State<AuthGate> {
   AuthUser? _user;
   bool _loading = true;
   bool _setup = false;
+  String? _resetToken;
 
   @override
   void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
+    final resetToken = Uri.base.queryParameters['reset_token'];
+    if (resetToken != null && resetToken.isNotEmpty) {
+      if (mounted) setState(() { _resetToken = resetToken; _loading = false; });
+      return;
+    }
     final appState = context.read<AppState>();
     final user = await _auth.session();
     var setup = false;
@@ -87,6 +93,9 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_resetToken != null) {
+      return ResetPasswordView(auth: _auth, token: _resetToken!, onDone: () => setState(() => _resetToken = null));
+    }
     if (_user == null) return LoginView(auth: _auth, setup: _setup, onLoggedIn: _loggedIn);
     if (_user!.mustChangePassword) return ChangePasswordView(auth: _auth, onDone: _senhaDefinitivaSalva);
     Future<void> sair() async {
@@ -128,16 +137,25 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _esqueciSenha() async {
-    await showDialog<void>(
+    final username = TextEditingController(text: _username.text.trim());
+    final resultado = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Esqueci minha senha'),
-        content: const Text('Por segurança, a redefinição é feita pelo administrador do sistema. Informe seu usuário ao administrador para que ele gere uma nova senha temporária. No próximo acesso, você deverá criar uma senha definitiva.'),
+        content: TextField(controller: username, autofocus: username.text.isEmpty, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Usuário ou prefixo do e-mail')),
         actions: [
-          FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendi')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, username.text.trim()), child: const Text('Enviar link')),
         ],
       ),
     );
+    username.dispose();
+    if (resultado == null || resultado.isEmpty || !mounted) return;
+    setState(() => _busy = true);
+    final mensagem = await widget.auth.requestPasswordReset(resultado);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensagem ?? 'Se houver uma conta elegível, enviaremos as instruções para o e-mail cadastrado.')));
   }
   @override
   Widget build(BuildContext context) => _AuthScaffold(
@@ -155,6 +173,47 @@ class _LoginViewState extends State<LoginView> {
           ],
         ],
       );
+}
+
+class ResetPasswordView extends StatefulWidget {
+  final AuthClient auth;
+  final String token;
+  final VoidCallback onDone;
+  const ResetPasswordView({super.key, required this.auth, required this.token, required this.onDone});
+  @override
+  State<ResetPasswordView> createState() => _ResetPasswordViewState();
+}
+
+class _ResetPasswordViewState extends State<ResetPasswordView> {
+  final _newPassword = TextEditingController();
+  final _confirm = TextEditingController();
+  bool _busy = false;
+
+  Future<void> _submit() async {
+    if (_newPassword.text.length < 8 || _newPassword.text.length > 128 || _newPassword.text != _confirm.text) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('A nova senha deve ter entre 8 e 128 caracteres e coincidir nos dois campos.')));
+      return;
+    }
+    setState(() => _busy = true);
+    final error = await widget.auth.resetPassword(widget.token, _newPassword.text);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    await showDialog<void>(context: context, builder: (ctx) => AlertDialog(title: const Text('Senha redefinida'), content: const Text('Sua senha foi alterada. Entre no aplicativo com a nova senha.'), actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('Ir para o login'))]));
+    if (mounted) widget.onDone();
+  }
+
+  @override
+  Widget build(BuildContext context) => _AuthScaffold(title: 'Redefinir senha', subtitle: 'Crie uma nova senha para acessar o Gestor de Vendas.', children: [
+    TextField(controller: _newPassword, obscureText: true, decoration: const InputDecoration(labelText: 'Nova senha')),
+    const SizedBox(height: 14),
+    TextField(controller: _confirm, obscureText: true, decoration: const InputDecoration(labelText: 'Confirme a nova senha')),
+    const SizedBox(height: 22),
+    SizedBox(width: double.infinity, child: FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Salvando...' : 'Redefinir senha'))),
+  ]);
 }
 
 class ChangePasswordView extends StatefulWidget {
