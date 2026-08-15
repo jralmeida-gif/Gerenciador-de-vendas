@@ -850,11 +850,12 @@ class TelaEditarPerfil extends StatelessWidget {
                     children: [
                       Center(
                         child: Stack(
+                          clipBehavior: Clip.none,
                           children: [
                             _AvatarPerfil(data: estado.avatarData, raio: 48),
                             Positioned(
-                              right: -5,
-                              bottom: -5,
+                              right: -2,
+                              bottom: -2,
                               child: Material(
                                 color: AppColors.primary,
                                 shape: const CircleBorder(),
