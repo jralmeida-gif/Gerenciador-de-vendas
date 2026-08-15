@@ -201,7 +201,7 @@ class TelaConfiguracoes extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'O backup automático fica dentro do aplicativo e pode ser restaurado pela lista interna. Ele pode ser perdido se os dados do PWA forem apagados. Para proteção adicional, use também Exportar para Arquivos e guarde uma cópia externa.'
+                                'O backup automático fica dentro do aplicativo e pode ser restaurado pela lista interna. Ele pode ser perdido se os dados do PWA forem apagados. Para proteção adicional, use também Salvar arquivo de backup e guarde uma cópia externa. No iPhone, escolha Mais → Salvar em Arquivos; no WhatsApp ou e-mail, confirme que o backup foi enviado como documento anexado, não como texto.'
                                 '${estado.ultimoBackup != null ? '\n\nÚltimo backup: ${Fmt.data(estado.ultimoBackup!)}' : ''}',
                                 style: const TextStyle(
                                   fontSize: 12.5,
@@ -231,7 +231,7 @@ class TelaConfiguracoes extends StatelessWidget {
                                 child: OutlinedButton.icon(
                                   onPressed: () => _exportar(context),
                                   icon: const Icon(Icons.folder_outlined, size: 19),
-                                  label: const RotuloBotao('EXPORTAR PARA ARQUIVOS'),
+                                  label: const RotuloBotao('SALVAR ARQUIVO DE BACKUP'),
                                 ),
                               ),
                               const SizedBox(width: 9),
@@ -440,39 +440,11 @@ class TelaConfiguracoes extends StatelessWidget {
   }
 
   static Future<void> _editarPerfil(BuildContext context, String email) async {
-    final estado = context.read<AppState>();
-    final escolha = await showModalBottomSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const ListTile(title: Text('Editar meu perfil')),
-            ListTile(leading: const Icon(Icons.person_outline), title: const Text('Alias'), subtitle: Text(estado.nomeUsuario), onTap: () => Navigator.pop(ctx, 'alias')),
-            ListTile(leading: const Icon(Icons.account_circle_outlined), title: const Text('Foto de perfil'), subtitle: Text(estado.avatarData.isEmpty ? 'Adicionar foto' : 'Alterar foto'), onTap: () => Navigator.pop(ctx, 'foto')),
-            ListTile(leading: const Icon(Icons.email_outlined), title: const Text('E-mail de acesso'), subtitle: Text(email)),
-            ListTile(
-              leading: const Icon(Icons.phone_outlined),
-              title: const Text('Telefone'),
-              subtitle: Text(estado.telefoneUsuario.isEmpty ? 'Opcional — adicionar' : Fmt.telefone(estado.telefoneUsuario)),
-              onTap: () => Navigator.pop(ctx, 'telefone'),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+    if (!context.mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TelaEditarPerfil(email: email)),
     );
-    if (!context.mounted || escolha == null) return;
-    if (escolha == 'alias') {
-      if (!context.mounted) return;
-      await _editarNome(context);
-    } else if (escolha == 'foto') {
-      if (!context.mounted) return;
-      await _editarAvatar(context);
-    } else if (escolha == 'telefone') {
-      if (!context.mounted) return;
-      await _editarTelefone(context);
-    }
   }
 
   static Future<void> _editarTelefone(BuildContext context) async {
@@ -555,7 +527,7 @@ class TelaConfiguracoes extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () => Navigator.pop(ctx, true),
             icon: const Icon(Icons.folder_open, size: 18),
-            label: const Text('Escolher onde salvar'),
+            label: const Text('Continuar'),
           ),
         ],
       ),
@@ -581,8 +553,7 @@ class TelaConfiguracoes extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Backup preparado'),
         content: Text(
-          'O arquivo "$nome" foi salvo ou encaminhado ao seletor de arquivos do aparelho. '
-          'Guarde-o em um local seguro. Depois, você poderá restaurá-lo pela opção IMPORTAR.',
+          'O arquivo "$nome" foi preparado como documento. No iPhone, escolha Mais → Salvar em Arquivos; em outros apps, confirme que ele aparece como anexo/documento. Guarde-o em um local seguro. Depois, você poderá restaurá-lo pela opção IMPORTAR.',
           style: const TextStyle(height: 1.45),
         ),
         actions: [
@@ -784,6 +755,78 @@ class TelaConfiguracoes extends StatelessWidget {
         content: Text('$rotulo removido(s).'),
         backgroundColor: AppColors.textPrimary,
         behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
+
+class TelaEditarPerfil extends StatelessWidget {
+  final String email;
+  const TelaEditarPerfil({super.key, required this.email});
+
+  @override
+  Widget build(BuildContext context) {
+    final estado = context.watch<AppState>();
+    return Scaffold(
+      body: Column(
+        children: [
+          const HeaderCurvo(
+            titulo: 'Editar perfil',
+            subtitulo: 'Dados pessoais e preferências',
+            mostrarVoltar: true,
+            voltarGlobal: false,
+            mostrarAcoesGlobais: false,
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+              children: [
+                CartaoSecao(
+                  titulo: 'Dados do perfil',
+                  child: Column(
+                    children: [
+                      Center(
+                        child: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            AvatarPerfil(data: estado.avatarData, raio: 48),
+                            Container(
+                              decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                              child: IconButton(
+                                tooltip: 'Alterar foto',
+                                onPressed: () => TelaConfiguracoes._editarAvatar(context),
+                                icon: const Icon(Icons.edit, color: Colors.white, size: 17),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _Item(
+                        icone: Icons.person_outline,
+                        titulo: 'Alias',
+                        valor: estado.nomeUsuario,
+                        onTap: () => TelaConfiguracoes._editarNome(context),
+                      ),
+                      _Item(
+                        icone: Icons.email_outlined,
+                        titulo: 'E-mail de acesso',
+                        valor: email,
+                        onTap: () {},
+                      ),
+                      _Item(
+                        icone: Icons.phone_outlined,
+                        titulo: 'Telefone',
+                        valor: estado.telefoneUsuario.isEmpty ? 'Opcional — adicionar' : Fmt.telefone(estado.telefoneUsuario),
+                        onTap: () => TelaConfiguracoes._editarTelefone(context),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
