@@ -111,9 +111,48 @@ class AppState extends ChangeNotifier {
   List<Portabilidade> get portConfirmadas => repo.portabilidadesConfirmadas;
   List<Prospeccao> get prospeccoes => repo.prospeccoes;
   List<Campanha> get campanhas => repo.campanhas;
-  List<Cliente> get clientes => repo.clientes;
 
-  Cliente? clientePorCpf(String cpf) => repo.clientePorCpf(cpf);
+  /// União dos clientes salvos explicitamente com os clientes presentes nos
+  /// três processos, incluindo prospecções antigas sem venda.
+  List<Cliente> get clientes {
+    final mapa = <String, Cliente>{};
+
+    void incorporar({required String cpf, required String nome, required String telefone, DateTime? dataNascimento}) {
+      if (cpf.isEmpty) return;
+      final atual = mapa[cpf];
+      mapa[cpf] = Cliente(
+        cpf: cpf,
+        nome: nome.trim().isEmpty ? (atual?.nome ?? '') : nome.trim(),
+        telefone: telefone.isEmpty ? (atual?.telefone ?? '') : telefone,
+        dataNascimento: dataNascimento ?? atual?.dataNascimento,
+        observacoes: atual?.observacoes ?? '',
+      );
+    }
+
+    for (final c in repo.clientes) {
+      incorporar(cpf: c.cpf, nome: c.nome, telefone: c.telefone, dataNascimento: c.dataNascimento);
+    }
+    for (final v in repo.vendas) {
+      incorporar(cpf: v.cpf, nome: v.nome, telefone: v.telefone, dataNascimento: v.dataNascimento);
+    }
+    for (final p in repo.portabilidades) {
+      incorporar(cpf: p.cpf, nome: p.nome, telefone: p.telefone, dataNascimento: p.dataNascimento);
+    }
+    for (final p in repo.prospeccoes) {
+      incorporar(cpf: p.cpf, nome: p.nome, telefone: p.telefone, dataNascimento: p.dataNascimento);
+    }
+
+    final lista = mapa.values.toList()
+      ..sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
+    return lista;
+  }
+
+  Cliente? clientePorCpf(String cpf) {
+    for (final cliente in clientes) {
+      if (cliente.cpf == cpf) return cliente;
+    }
+    return null;
+  }
 
   String formatoDoProduto(String p) => repo.formatoDoProduto(p);
   double metaDoProduto(String p) => repo.metaDoProduto(p);
@@ -139,6 +178,25 @@ class AppState extends ChangeNotifier {
     await repo.salvarCliente(c);
     notifyListeners();
     unawaited(sincronizarNuvem());
+  }
+
+  /// Cria ou atualiza o cadastro consolidado a partir de qualquer processo.
+  /// Campos vazios não apagam informações já preenchidas.
+  Future<void> atualizarClienteConsolidado({
+    required String cpf,
+    required String nome,
+    required String telefone,
+    DateTime? dataNascimento,
+  }) async {
+    final atual = clientePorCpf(cpf);
+    final cliente = Cliente(
+      cpf: cpf,
+      nome: nome.trim().isEmpty ? (atual?.nome ?? '') : nome.trim(),
+      telefone: telefone.isEmpty ? (atual?.telefone ?? '') : telefone,
+      dataNascimento: dataNascimento ?? atual?.dataNascimento,
+      observacoes: atual?.observacoes ?? '',
+    );
+    await salvarCliente(cliente);
   }
 
   Future<void> salvarVenda(Venda v) async {
@@ -173,13 +231,14 @@ class AppState extends ChangeNotifier {
       cpf: p.cpf,
       nome: p.nome,
       telefone: p.telefone,
+      dataNascimento: p.dataNascimento,
       produto: 'Portabilidade',
       valorRealizado: p.saldoDevedor,
       observacoes: 'Gerada automaticamente a partir da confirmação da portabilidade ${p.numeroContrato}.',
     );
     if (existente == null) {
       await repo.salvarVenda(venda);
-    } else if (existente.data != venda.data || existente.valorRealizado != venda.valorRealizado || existente.nome != venda.nome || existente.telefone != venda.telefone) {
+    } else if (existente.data != venda.data || existente.valorRealizado != venda.valorRealizado || existente.nome != venda.nome || existente.telefone != venda.telefone || existente.dataNascimento != venda.dataNascimento) {
       await repo.salvarVenda(venda);
     }
   }

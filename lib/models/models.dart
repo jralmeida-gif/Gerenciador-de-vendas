@@ -16,6 +16,7 @@ class Venda {
   final String cpf;
   final String nome;
   final String telefone;
+  final DateTime? dataNascimento;
   final String produto;
   final double valorRealizado;
   final String observacoes;
@@ -26,6 +27,7 @@ class Venda {
     required this.cpf,
     required this.nome,
     required this.telefone,
+    this.dataNascimento,
     required this.produto,
     required this.valorRealizado,
     this.observacoes = '',
@@ -37,6 +39,7 @@ class Venda {
     'cpf': cpf,
     'nome': nome,
     'telefone': telefone,
+    'dataNascimento': dataNascimento?.toIso8601String(),
     'produto': produto,
     'valorRealizado': valorRealizado,
     'observacoes': observacoes,
@@ -48,6 +51,7 @@ class Venda {
     cpf: _s(j['cpf']),
     nome: _s(j['nome']),
     telefone: _s(j['telefone']),
+    dataNascimento: _dtNull(j['dataNascimento']),
     produto: _s(j['produto']),
     valorRealizado: _d(j['valorRealizado']),
     observacoes: _s(j['observacoes']),
@@ -58,6 +62,7 @@ class Venda {
     String? cpf,
     String? nome,
     String? telefone,
+    DateTime? dataNascimento,
     String? produto,
     double? valorRealizado,
     String? observacoes,
@@ -67,6 +72,7 @@ class Venda {
     cpf: cpf ?? this.cpf,
     nome: nome ?? this.nome,
     telefone: telefone ?? this.telefone,
+    dataNascimento: dataNascimento ?? this.dataNascimento,
     produto: produto ?? this.produto,
     valorRealizado: valorRealizado ?? this.valorRealizado,
     observacoes: observacoes ?? this.observacoes,
@@ -81,6 +87,7 @@ class Portabilidade {
   final String cpf;
   final String nome;
   final String telefone;
+  final DateTime? dataNascimento;
   final String convenio;
   final double saldoDevedor;
   final double valorPrestacao;
@@ -96,6 +103,7 @@ class Portabilidade {
     required this.cpf,
     required this.nome,
     required this.telefone,
+    this.dataNascimento,
     required this.convenio,
     required this.saldoDevedor,
     required this.valorPrestacao,
@@ -112,6 +120,7 @@ class Portabilidade {
     'cpf': cpf,
     'nome': nome,
     'telefone': telefone,
+    'dataNascimento': dataNascimento?.toIso8601String(),
     'convenio': convenio,
     'saldoDevedor': saldoDevedor,
     'valorPrestacao': valorPrestacao,
@@ -128,6 +137,7 @@ class Portabilidade {
     cpf: _s(j['cpf']),
     nome: _s(j['nome']),
     telefone: _s(j['telefone']),
+    dataNascimento: _dtNull(j['dataNascimento']),
     convenio: _s(j['convenio']),
     saldoDevedor: _d(j['saldoDevedor']),
     valorPrestacao: _d(j['valorPrestacao']),
@@ -143,6 +153,7 @@ class Portabilidade {
     String? cpf,
     String? nome,
     String? telefone,
+    DateTime? dataNascimento,
     String? convenio,
     double? saldoDevedor,
     double? valorPrestacao,
@@ -157,6 +168,7 @@ class Portabilidade {
     cpf: cpf ?? this.cpf,
     nome: nome ?? this.nome,
     telefone: telefone ?? this.telefone,
+    dataNascimento: dataNascimento ?? this.dataNascimento,
     convenio: convenio ?? this.convenio,
     saldoDevedor: saldoDevedor ?? this.saldoDevedor,
     valorPrestacao: valorPrestacao ?? this.valorPrestacao,
@@ -175,6 +187,7 @@ class Prospeccao {
   final String cpf;
   final String nome;
   final String telefone;
+  final DateTime? dataNascimento;
   final String produto;
   final DateTime? dataRetorno;
   final String observacao;
@@ -186,6 +199,7 @@ class Prospeccao {
     required this.cpf,
     required this.nome,
     required this.telefone,
+    this.dataNascimento,
     required this.produto,
     this.dataRetorno,
     this.observacao = '',
@@ -198,6 +212,7 @@ class Prospeccao {
     'cpf': cpf,
     'nome': nome,
     'telefone': telefone,
+    'dataNascimento': dataNascimento?.toIso8601String(),
     'produto': produto,
     'dataRetorno': dataRetorno?.toIso8601String(),
     'observacao': observacao,
@@ -210,6 +225,7 @@ class Prospeccao {
     cpf: _s(j['cpf']),
     nome: _s(j['nome']),
     telefone: _s(j['telefone']),
+    dataNascimento: _dtNull(j['dataNascimento']),
     produto: _s(j['produto']),
     dataRetorno: _dtNull(j['dataRetorno']),
     observacao: _s(j['observacao']),
@@ -221,6 +237,7 @@ class Prospeccao {
     String? cpf,
     String? nome,
     String? telefone,
+    DateTime? dataNascimento,
     String? produto,
     DateTime? dataRetorno,
     String? observacao,
@@ -231,6 +248,7 @@ class Prospeccao {
     cpf: cpf ?? this.cpf,
     nome: nome ?? this.nome,
     telefone: telefone ?? this.telefone,
+    dataNascimento: dataNascimento ?? this.dataNascimento,
     produto: produto ?? this.produto,
     dataRetorno: dataRetorno ?? this.dataRetorno,
     observacao: observacao ?? this.observacao,

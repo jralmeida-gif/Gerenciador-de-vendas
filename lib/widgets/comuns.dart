@@ -674,3 +674,89 @@ class RotuloBotao extends StatelessWidget {
     );
   }
 }
+
+/// Seletor de data opcional usado no cadastro consolidado do cliente.
+class CampoDataOpcional extends StatelessWidget {
+  final String rotulo;
+  final DateTime? valor;
+  final ValueChanged<DateTime?> onChanged;
+
+  const CampoDataOpcional({
+    super.key,
+    required this.rotulo,
+    required this.valor,
+    required this.onChanged,
+  });
+
+  Future<void> _escolher(BuildContext context) async {
+    final data = await showDatePicker(
+      context: context,
+      initialDate: valor ?? DateTime(1980, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      locale: const Locale('pt', 'BR'),
+      helpText: 'Selecione a data de nascimento',
+    );
+    if (data != null) onChanged(data);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => _escolher(context),
+      borderRadius: BorderRadius.circular(12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: rotulo,
+          prefixIcon: const Icon(Icons.cake_outlined, size: 20),
+          suffixIcon: valor == null
+              ? null
+              : IconButton(
+                  tooltip: 'Remover data',
+                  onPressed: () => onChanged(null),
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                ),
+        ),
+        child: Text(
+          valor == null ? 'Não informado' : Fmt.data(valor!),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: valor == null ? AppColors.textSecondary : AppColors.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Título de seção usado na ficha consolidada para separar prospecções sem venda.
+class TituloSecaoLista extends StatelessWidget {
+  final String texto;
+  const TituloSecaoLista(this.texto, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: AppColors.primary.withValues(alpha: 0.25))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text(
+              texto.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: AppColors.primary.withValues(alpha: 0.25))),
+        ],
+      ),
+    );
+  }
+}

@@ -21,6 +21,7 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
   final _cpf = TextEditingController();
   final _nome = TextEditingController();
   final _telefone = TextEditingController();
+  DateTime? _dataNascimento;
   final _obs = TextEditingController();
 
   bool _hoje = true;
@@ -38,6 +39,7 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
       _cpf.text = Fmt.cpf(p.cpf);
       _nome.text = p.nome;
       _telefone.text = Fmt.telefone(p.telefone);
+      _dataNascimento = p.dataNascimento ?? context.read<AppState>().clientePorCpf(p.cpf)?.dataNascimento;
       _produto = p.produto;
       _data = p.data;
       _hoje = mesmoDia(p.data, DateTime.now());
@@ -101,6 +103,7 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
             cpf: Fmt.somenteDigitos(_cpf.text),
             nome: _nome.text.trim(),
             telefone: Fmt.somenteDigitos(_telefone.text),
+            dataNascimento: _dataNascimento,
             produto: _produto,
             dataRetorno: _dataRetorno,
             observacao: _obs.text.trim(),
@@ -111,11 +114,18 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
             cpf: Fmt.somenteDigitos(_cpf.text),
             nome: _nome.text.trim(),
             telefone: Fmt.somenteDigitos(_telefone.text),
+            dataNascimento: _dataNascimento,
             produto: _produto!,
             dataRetorno: _dataRetorno,
             observacao: _obs.text.trim(),
           );
 
+    await estado.atualizarClienteConsolidado(
+      cpf: registro.cpf,
+      nome: registro.nome,
+      telefone: registro.telefone,
+      dataNascimento: registro.dataNascimento,
+    );
     await estado.salvarProspeccao(registro);
     if (!mounted) return;
 
@@ -225,6 +235,12 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
                             if (d.length < 10) return 'Telefone incompleto';
                             return null;
                           },
+                        ),
+                        const SizedBox(height: 14),
+                        CampoDataOpcional(
+                          rotulo: 'Data de nascimento (opcional)',
+                          valor: _dataNascimento,
+                          onChanged: (data) => setState(() => _dataNascimento = data),
                         ),
                       ],
                     ),

@@ -608,6 +608,15 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
           if (q.isNotEmpty) {
             lista = lista.where((c) => c.nome.toLowerCase().contains(q) || (digitos.isNotEmpty && c.cpf.contains(digitos))).toList();
           }
+          bool temHistoricoComercial(Cliente c) =>
+              estado.vendas.any((v) => v.cpf == c.cpf) ||
+              estado.portabilidades.any((p) => p.cpf == c.cpf);
+          final comerciais = lista.where(temHistoricoComercial).toList()
+            ..sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
+          final somenteProspec = lista.where((c) =>
+              !temHistoricoComercial(c) && estado.prospeccoes.any((p) => p.cpf == c.cpf)).toList()
+            ..sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
+          lista = [...comerciais, ...somenteProspec];
           final linhas = lista.map((c) {
             final produtos = <String>{
               ...estado.vendas.where((v) => v.cpf == c.cpf).map((v) => v.produto),
@@ -663,6 +672,17 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<AppState>();
+    final busca = _cliente.text.trim().toLowerCase();
+    final digitosBusca = Fmt.somenteDigitos(busca);
+    final clientesFiltrados = estado.clientes.where((c) {
+      return busca.isEmpty || c.nome.toLowerCase().contains(busca) || (digitosBusca.isNotEmpty && c.cpf.contains(digitosBusca));
+    }).toList();
+    bool temHistoricoComercial(Cliente c) =>
+        estado.vendas.any((v) => v.cpf == c.cpf) ||
+        estado.portabilidades.any((p) => p.cpf == c.cpf);
+    final clientesComerciais = clientesFiltrados.where(temHistoricoComercial).toList();
+    final clientesSomenteProspec = clientesFiltrados.where((c) =>
+        !temHistoricoComercial(c) && estado.prospeccoes.any((p) => p.cpf == c.cpf)).toList();
 
     return Scaffold(
       body: Column(
@@ -852,11 +872,8 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
                 if (_tipoId == 'clientes') ...[
                   const SizedBox(height: 14),
                   _EditorDatasNascimento(
-                    clientes: estado.clientes.where((c) {
-                      final q = _cliente.text.trim().toLowerCase();
-                      final digitos = Fmt.somenteDigitos(q);
-                      return q.isEmpty || c.nome.toLowerCase().contains(q) || (digitos.isNotEmpty && c.cpf.contains(digitos));
-                    }).toList(),
+                    clientes: clientesComerciais,
+                    somenteProspec: clientesSomenteProspec,
                   ),
                 ],
                 const SizedBox(height: 14),
@@ -902,7 +919,12 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
 
 class _EditorDatasNascimento extends StatelessWidget {
   final List<Cliente> clientes;
-  const _EditorDatasNascimento({required this.clientes});
+  final List<Cliente> somenteProspec;
+
+  const _EditorDatasNascimento({
+    required this.clientes,
+    required this.somenteProspec,
+  });
 
   Future<void> _editar(BuildContext context, Cliente cliente) async {
     final nome = TextEditingController(text: cliente.nome);
@@ -929,7 +951,11 @@ class _EditorDatasNascimento extends StatelessWidget {
       ),
     );
     if (salvo != true || !context.mounted) return;
-    await context.read<AppState>().salvarCliente(cliente.copyWith(nome: nome.text.trim(), telefone: Fmt.somenteDigitos(telefone.text), observacoes: observacoes.text.trim()));
+    await context.read<AppState>().salvarCliente(cliente.copyWith(
+      nome: nome.text.trim(),
+      telefone: Fmt.somenteDigitos(telefone.text),
+      observacoes: observacoes.text.trim(),
+    ));
   }
 
   Future<void> _produtos(BuildContext context, Cliente cliente) async {
@@ -973,41 +999,55 @@ class _EditorDatasNascimento extends StatelessWidget {
     await context.read<AppState>().salvarCliente(cliente.copyWith(dataNascimento: data));
   }
 
+  Widget _card(BuildContext context, Cliente cliente, {required bool apenasProspec}) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      color: AppColors.background,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text(cliente.nome, style: const TextStyle(fontWeight: FontWeight.w800))),
+                if (apenasProspec) const Etiqueta(texto: 'Somente prospecção', cor: AppColors.accent, icone: Icons.phone_in_talk_outlined),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text('${Fmt.cpf(cliente.cpf)} · ${Fmt.telefone(cliente.telefone)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            Text(cliente.dataNascimento == null ? 'Nascimento não informado' : 'Nascimento: ${Fmt.data(cliente.dataNascimento!)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              children: [
+                TextButton.icon(onPressed: () => _produtos(context, cliente), icon: const Icon(Icons.shopping_bag_outlined, size: 16), label: const Text('Produtos comprados')),
+                TextButton.icon(onPressed: () => _whatsapp(context, cliente), icon: const Icon(Icons.chat_outlined, size: 16), label: const Text('WhatsApp')),
+                TextButton.icon(onPressed: () => _editar(context, cliente), icon: const Icon(Icons.edit_outlined, size: 16), label: const Text('Editar')),
+                TextButton.icon(onPressed: () => _nascimento(context, cliente), icon: const Icon(Icons.cake_outlined, size: 16), label: const Text('Nascimento')),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final todos = [
+      ...clientes.map((cliente) => _card(context, cliente, apenasProspec: false)),
+      if (somenteProspec.isNotEmpty) ...[
+        TituloSecaoLista('Prospecção'),
+        ...somenteProspec.map((cliente) => _card(context, cliente, apenasProspec: true)),
+      ],
+    ];
     return CartaoSecao(
       titulo: 'Clientes',
-      child: clientes.isEmpty
+      child: todos.isEmpty
           ? const Text('Nenhum cliente encontrado.', style: TextStyle(color: AppColors.textSecondary))
-          : Column(
-              children: clientes.map((cliente) => Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                elevation: 0,
-                color: AppColors.background,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(cliente.nome, style: const TextStyle(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 3),
-                      Text('${Fmt.cpf(cliente.cpf)} · ${Fmt.telefone(cliente.telefone)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                      Text(cliente.dataNascimento == null ? 'Nascimento não informado' : 'Nascimento: ${Fmt.data(cliente.dataNascimento!)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        children: [
-                          TextButton.icon(onPressed: () => _produtos(context, cliente), icon: const Icon(Icons.shopping_bag_outlined, size: 16), label: const Text('Produtos comprados')),
-                          TextButton.icon(onPressed: () => _whatsapp(context, cliente), icon: const Icon(Icons.chat_outlined, size: 16), label: const Text('WhatsApp')),
-                          TextButton.icon(onPressed: () => _editar(context, cliente), icon: const Icon(Icons.edit_outlined, size: 16), label: const Text('Editar')),
-                          TextButton.icon(onPressed: () => _nascimento(context, cliente), icon: const Icon(Icons.cake_outlined, size: 16), label: const Text('Nascimento')),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              )).toList(),
-            ),
+          : Column(children: todos),
     );
   }
 }

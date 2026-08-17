@@ -22,6 +22,7 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
   final _cpf = TextEditingController();
   final _nome = TextEditingController();
   final _telefone = TextEditingController();
+  DateTime? _dataNascimento;
   final _saldo = TextEditingController();
   final _prestacao = TextEditingController();
   final _qtd = TextEditingController();
@@ -43,6 +44,7 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
       _cpf.text = Fmt.cpf(p.cpf);
       _nome.text = p.nome;
       _telefone.text = Fmt.telefone(p.telefone);
+      _dataNascimento = p.dataNascimento ?? context.read<AppState>().clientePorCpf(p.cpf)?.dataNascimento;
       _convenio = p.convenio;
       _saldo.text = Fmt.decimal(p.saldoDevedor);
       _prestacao.text = Fmt.decimal(p.valorPrestacao);
@@ -100,6 +102,7 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
       cpf: Fmt.somenteDigitos(_cpf.text),
       nome: _nome.text.trim(),
       telefone: Fmt.somenteDigitos(_telefone.text),
+      dataNascimento: _dataNascimento,
       convenio: _convenio!,
       saldoDevedor: saldo,
       valorPrestacao: prest,
@@ -112,6 +115,12 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
           ? (widget.port?.dataConfirmacao ?? DateTime.now())
           : widget.port?.dataConfirmacao,
       observacoes: _obs.text.trim(),
+    );
+    await estado.atualizarClienteConsolidado(
+      cpf: p.cpf,
+      nome: p.nome,
+      telefone: p.telefone,
+      dataNascimento: p.dataNascimento,
     );
     await estado.salvarPortabilidade(p);
     if (!mounted) return;
@@ -168,6 +177,7 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
       _cpf.clear();
       _nome.clear();
       _telefone.clear();
+      _dataNascimento = null;
       _saldo.clear();
       _prestacao.clear();
       _qtd.clear();
@@ -250,6 +260,12 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
                             if (d.length < 10) return 'Telefone incompleto';
                             return null;
                           },
+                        ),
+                        const SizedBox(height: 14),
+                        CampoDataOpcional(
+                          rotulo: 'Data de nascimento (opcional)',
+                          valor: _dataNascimento,
+                          onChanged: (data) => setState(() => _dataNascimento = data),
                         ),
                       ],
                     ),

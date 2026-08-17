@@ -36,6 +36,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
   final _cpf = TextEditingController();
   final _nome = TextEditingController();
   final _telefone = TextEditingController();
+  DateTime? _dataNascimento;
   final _valor = TextEditingController();
   final _obs = TextEditingController();
 
@@ -53,6 +54,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
       _cpf.text = Fmt.cpf(v.cpf);
       _nome.text = v.nome;
       _telefone.text = Fmt.telefone(v.telefone);
+      _dataNascimento = v.dataNascimento ?? context.read<AppState>().clientePorCpf(v.cpf)?.dataNascimento;
       _produto = v.produto;
       _data = v.data;
       _vendaHoje = mesmoDia(v.data, DateTime.now());
@@ -63,6 +65,10 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
       if (widget.nomeInicial != null) _nome.text = widget.nomeInicial!;
       if (widget.telefoneInicial != null) {
         _telefone.text = Fmt.telefone(widget.telefoneInicial!);
+      }
+      final cpfInicial = Fmt.somenteDigitos(widget.cpfInicial ?? '');
+      if (cpfInicial.isNotEmpty) {
+        _dataNascimento = context.read<AppState>().clientePorCpf(cpfInicial)?.dataNascimento;
       }
       _produto = widget.produtoInicial;
     }
@@ -116,6 +122,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
       cpf: Fmt.somenteDigitos(_cpf.text),
       nome: _nome.text.trim(),
       telefone: Fmt.somenteDigitos(_telefone.text),
+      dataNascimento: _dataNascimento,
       produto: _produto!,
       valorRealizado: valorNum,
       observacoes: _obs.text.trim(),
@@ -125,7 +132,8 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
     final nomeDiferente = clienteAtual != null &&
         clienteAtual.nome.trim().toLowerCase() != venda.nome.trim().toLowerCase();
     final telefoneDiferente = clienteAtual != null && clienteAtual.telefone != venda.telefone;
-    if (clienteAtual != null && (nomeDiferente || telefoneDiferente)) {
+    final nascimentoDiferente = _dataNascimento != null && clienteAtual?.dataNascimento != _dataNascimento;
+    if (clienteAtual != null && (nomeDiferente || telefoneDiferente || nascimentoDiferente)) {
       final continuar = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -143,10 +151,20 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
         ),
       );
       if (!mounted || continuar != true) return;
-      await estado.salvarCliente(clienteAtual.copyWith(nome: venda.nome, telefone: venda.telefone));
+      await estado.salvarCliente(clienteAtual.copyWith(
+        nome: venda.nome,
+        telefone: venda.telefone,
+        dataNascimento: _dataNascimento ?? clienteAtual.dataNascimento,
+      ));
+
       if (!mounted) return;
     } else if (clienteAtual == null) {
-      await estado.salvarCliente(Cliente(cpf: venda.cpf, nome: venda.nome, telefone: venda.telefone));
+      await estado.salvarCliente(Cliente(
+        cpf: venda.cpf,
+        nome: venda.nome,
+        telefone: venda.telefone,
+        dataNascimento: _dataNascimento,
+      ));
       if (!mounted) return;
     }
 
@@ -338,6 +356,12 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
                             if (d.length < 10) return 'Telefone incompleto';
                             return null;
                           },
+                        ),
+                        const SizedBox(height: 14),
+                        CampoDataOpcional(
+                          rotulo: 'Data de nascimento (opcional)',
+                          valor: _dataNascimento,
+                          onChanged: (data) => setState(() => _dataNascimento = data),
                         ),
                       ],
                     ),
