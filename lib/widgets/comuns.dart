@@ -694,6 +694,8 @@ class CampoDataOpcional extends StatefulWidget {
 
 class _CampoDataOpcionalState extends State<CampoDataOpcional> {
   late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+  bool _editando = false;
 
   String _texto(DateTime? data) => data == null ? '' : Fmt.data(data);
 
@@ -701,6 +703,7 @@ class _CampoDataOpcionalState extends State<CampoDataOpcional> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: _texto(widget.valor));
+    _focusNode = FocusNode();
   }
 
   @override
@@ -717,7 +720,15 @@ class _CampoDataOpcionalState extends State<CampoDataOpcional> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  void _ativarEdicao() {
+    setState(() => _editando = true);
+    Future<void>.delayed(Duration.zero, () {
+      if (mounted) _focusNode.requestFocus();
+    });
   }
 
   void _textoAlterado(String texto) {
@@ -757,6 +768,8 @@ class _CampoDataOpcionalState extends State<CampoDataOpcional> {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: _controller,
+      focusNode: _focusNode,
+      readOnly: !_editando,
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.next,
       autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -767,10 +780,27 @@ class _CampoDataOpcionalState extends State<CampoDataOpcional> {
         labelText: widget.rotulo,
         hintText: 'dd/mm/aaaa',
         prefixIcon: const Icon(Icons.cake_outlined, size: 20),
-        suffixIcon: IconButton(
-          tooltip: 'Escolher no calendário',
-          onPressed: () => _escolher(context),
-          icon: const Icon(Icons.calendar_month_outlined, size: 19),
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: _editando ? 'Concluir edição' : 'Digitar data',
+              onPressed: () {
+                if (_editando) {
+                  _focusNode.unfocus();
+                  setState(() => _editando = false);
+                } else {
+                  _ativarEdicao();
+                }
+              },
+              icon: Icon(_editando ? Icons.check_rounded : Icons.edit_outlined, size: 19),
+            ),
+            IconButton(
+              tooltip: 'Escolher no calendário',
+              onPressed: () => _escolher(context),
+              icon: const Icon(Icons.calendar_month_outlined, size: 19),
+            ),
+          ],
         ),
       ),
     );
