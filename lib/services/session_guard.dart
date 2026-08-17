@@ -23,21 +23,24 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _reiniciar();
+    _iniciarMonitor();
   }
 
   @override
   void didUpdateWidget(covariant SessionGuard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.timeout != widget.timeout) _reiniciar();
+    if (oldWidget.timeout != widget.timeout) _verificar();
   }
 
-  void _reiniciar() {
+  void _iniciarMonitor() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _verificar());
+  }
+
+  void _registrarAtividade() {
     if (_encerrando) return;
     _ultimaAtividade = DateTime.now();
     _suspensaEm = null;
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _verificar());
   }
 
   void _verificar() {
@@ -86,10 +89,10 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     return Listener(
       behavior: HitTestBehavior.translucent,
-      onPointerDown: (_) => _reiniciar(),
-      onPointerMove: (_) => _reiniciar(),
-      onPointerSignal: (_) => _reiniciar(),
-      child: MouseRegion(onHover: (_) => _reiniciar(), child: widget.child),
+      onPointerDown: (_) => _registrarAtividade(),
+      onPointerMove: (_) => _registrarAtividade(),
+      onPointerSignal: (_) => _registrarAtividade(),
+      child: widget.child,
     );
   }
 }
