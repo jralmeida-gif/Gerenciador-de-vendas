@@ -172,13 +172,17 @@ class AuthClient {
     } catch (_) { return 'Não foi possível conectar ao servidor.'; }
   }
 
-  Future<void> logout() async {
+  Future<void> logout({Duration timeout = const Duration(seconds: 4)}) async {
     try {
-      await _client.post(
-        Uri.parse('$_origin/api/auth/logout?t=${DateTime.now().millisecondsSinceEpoch}'),
-        headers: {'Cache-Control': 'no-cache'},
-      );
-    } catch (_) {}
+      await _client
+          .post(
+            Uri.parse('$_origin/api/auth/logout?t=${DateTime.now().millisecondsSinceEpoch}'),
+            headers: {'Cache-Control': 'no-cache'},
+          )
+          .timeout(timeout);
+    } catch (_) {
+      // O logout local não pode ficar bloqueado por uma rede indisponível.
+    }
   }
 
   Future<AuthResult> _postUser(String path, Map<String, String> body) async {

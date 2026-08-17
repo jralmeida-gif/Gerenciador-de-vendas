@@ -26,6 +26,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   bool _revalidandoSessao = false;
   DateTime? _ultimaRevalidacao;
   Timer? _timerRevalidacaoSessao;
+  bool _logoutEmAndamento = false;
+  Future<void>? _limpezaPerfilPendente;
 
   @override
   void initState() {
@@ -102,6 +104,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
   Future<void> _loggedIn(AuthResult result) async {
     if (!result.ok || result.user == null) { _showError(result.error ?? 'Não foi possível entrar.'); return; }
+    final limpezaPendente = _limpezaPerfilPendente;
+    if (limpezaPendente != null) await limpezaPendente;
+    if (!mounted) return;
+    _logoutEmAndamento = false;
     final appState = context.read<AppState>();
     await widget.repo.switchProfile(result.user!.username);
     if (mounted) {
@@ -174,14 +180,29 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     if (_user == null) return LoginView(auth: _auth, setup: _setup, onLoggedIn: _loggedIn);
     if (_user!.mustChangePassword) return ChangePasswordView(auth: _auth, onDone: _senhaDefinitivaSalva);
     Future<void> sair() async {
-      // Primeiro invalida a sessão remota; depois limpa o perfil local e a árvore autenticada.
+      if (_logoutEmAndamento) return;
+      _logoutEmAndamento = true;
       final appState = context.read<AppState>();
-      await _auth.logout();
-      if (!mounted) return;
-      await appState.mudarPerfilLocal('guest');
-      appState.definirUsuarioAutenticado(null);
-      if (!mounted) return;
-      setState(() => _user = null);
+
+      // A tela deve sair imediatamente. A rede não pode impedir o logout local.
+      if (mounted) {
+        appState.definirUsuarioAutenticado(null);
+        setState(() => _user = null);
+      }
+
+      // Inicia a limpeza do perfil local sem bloquear a troca visual para o login.
+      // Um login novo aguarda essa operação para evitar misturar caixas locais.
+      final limpezaLocal = appState.mudarPerfilLocal('guest');
+      _limpezaPerfilPendente = limpezaLocal;
+      unawaited(limpezaLocal.whenComplete(() {
+        if (identical(_limpezaPerfilPendente, limpezaLocal)) {
+          _limpezaPerfilPendente = null;
+          _logoutEmAndamento = false;
+        }
+      }));
+
+      // A invalidação remota é uma operação de melhor esforço, com timeout.
+      unawaited(_auth.logout());
     }
     return Selector<AppState, int>(
       selector: (_, state) => state.idleTimeoutMinutes,

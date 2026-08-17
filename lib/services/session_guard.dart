@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'browser_lifecycle.dart';
+
 class SessionGuard extends StatefulWidget {
   final Widget child;
   final Duration timeout;
@@ -15,6 +17,7 @@ class SessionGuard extends StatefulWidget {
 
 class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver {
   Timer? _timer;
+  StreamSubscription<BrowserLifecycleEvent>? _browserLifecycleSubscription;
   DateTime _ultimaAtividade = DateTime.now();
   DateTime? _suspensaEm;
   bool _encerrando = false;
@@ -23,6 +26,7 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _browserLifecycleSubscription = BrowserLifecycle.events.listen(_onBrowserLifecycle);
     _iniciarMonitor();
   }
 
@@ -35,6 +39,24 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
   void _iniciarMonitor() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _verificar());
+  }
+
+  void _onBrowserLifecycle(BrowserLifecycleEvent event) {
+    if (_encerrando) return;
+    switch (event) {
+      case BrowserLifecycleEvent.hidden:
+      case BrowserLifecycleEvent.blurred:
+      case BrowserLifecycleEvent.pageHidden:
+        _suspensaEm ??= DateTime.now();
+        _verificar();
+        break;
+      case BrowserLifecycleEvent.visible:
+      case BrowserLifecycleEvent.focused:
+      case BrowserLifecycleEvent.pageShown:
+        _verificar();
+        _suspensaEm = null;
+        break;
+    }
   }
 
   void _registrarAtividade() {
@@ -81,6 +103,7 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _browserLifecycleSubscription?.cancel();
     _timer?.cancel();
     super.dispose();
   }
