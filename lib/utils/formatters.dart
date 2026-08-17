@@ -66,6 +66,20 @@ class Fmt {
     }
     return double.tryParse(t) ?? 0;
   }
+
+  /// Converte uma data digitada em dd/MM/aaaa, retornando null se inválida.
+  static DateTime? parseData(String s) {
+    final d = somenteDigitos(s);
+    if (d.length != 8) return null;
+    final dia = int.tryParse(d.substring(0, 2));
+    final mes = int.tryParse(d.substring(2, 4));
+    final ano = int.tryParse(d.substring(4, 8));
+    if (dia == null || mes == null || ano == null) return null;
+    final data = DateTime(ano, mes, dia);
+    if (data.year != ano || data.month != mes || data.day != dia) return null;
+    if (data.isAfter(DateTime.now())) return null;
+    return data;
+  }
 }
 
 /// Máscara genérica baseada em padrão com '#'.

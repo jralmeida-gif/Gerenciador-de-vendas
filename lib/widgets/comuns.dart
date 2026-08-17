@@ -675,8 +675,8 @@ class RotuloBotao extends StatelessWidget {
   }
 }
 
-/// Seletor de data opcional usado no cadastro consolidado do cliente.
-class CampoDataOpcional extends StatelessWidget {
+/// Campo de data opcional com digitação em dd/MM/aaaa e calendário auxiliar.
+class CampoDataOpcional extends StatefulWidget {
   final String rotulo;
   final DateTime? valor;
   final ValueChanged<DateTime?> onChanged;
@@ -688,42 +688,89 @@ class CampoDataOpcional extends StatelessWidget {
     required this.onChanged,
   });
 
+  @override
+  State<CampoDataOpcional> createState() => _CampoDataOpcionalState();
+}
+
+class _CampoDataOpcionalState extends State<CampoDataOpcional> {
+  late final TextEditingController _controller;
+
+  String _texto(DateTime? data) => data == null ? '' : Fmt.data(data);
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _texto(widget.valor));
+  }
+
+  @override
+  void didUpdateWidget(covariant CampoDataOpcional oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.valor != widget.valor && _controller.text != _texto(widget.valor)) {
+      _controller.value = TextEditingValue(
+        text: _texto(widget.valor),
+        selection: TextSelection.collapsed(offset: _texto(widget.valor).length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _textoAlterado(String texto) {
+    final digitos = Fmt.somenteDigitos(texto);
+    if (digitos.isEmpty) {
+      widget.onChanged(null);
+    } else if (digitos.length == 8) {
+      final data = Fmt.parseData(texto);
+      if (data != null) widget.onChanged(data);
+    }
+  }
+
   Future<void> _escolher(BuildContext context) async {
     final data = await showDatePicker(
       context: context,
-      initialDate: valor ?? DateTime(1980, 1, 1),
+      initialDate: widget.valor ?? DateTime(1980, 1, 1),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       locale: const Locale('pt', 'BR'),
       helpText: 'Selecione a data de nascimento',
     );
-    if (data != null) onChanged(data);
+    if (data == null) return;
+    _controller.text = Fmt.data(data);
+    widget.onChanged(data);
+  }
+
+  String? _validar(String? texto) {
+    final value = texto?.trim() ?? '';
+    if (value.isEmpty) return null;
+    if (Fmt.somenteDigitos(value).length != 8 || Fmt.parseData(value) == null) {
+      return 'Informe uma data válida no formato dd/mm/aaaa';
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => _escolher(context),
-      borderRadius: BorderRadius.circular(12),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: rotulo,
-          prefixIcon: const Icon(Icons.cake_outlined, size: 20),
-          suffixIcon: valor == null
-              ? null
-              : IconButton(
-                  tooltip: 'Remover data',
-                  onPressed: () => onChanged(null),
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                ),
-        ),
-        child: Text(
-          valor == null ? 'Não informado' : Fmt.data(valor!),
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: valor == null ? AppColors.textSecondary : AppColors.textPrimary,
-          ),
+    return TextFormField(
+      controller: _controller,
+      keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.next,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      inputFormatters: [DataInputFormatter()],
+      onChanged: _textoAlterado,
+      validator: _validar,
+      decoration: InputDecoration(
+        labelText: widget.rotulo,
+        hintText: 'dd/mm/aaaa',
+        prefixIcon: const Icon(Icons.cake_outlined, size: 20),
+        suffixIcon: IconButton(
+          tooltip: 'Escolher no calendário',
+          onPressed: () => _escolher(context),
+          icon: const Icon(Icons.calendar_month_outlined, size: 19),
         ),
       ),
     );
