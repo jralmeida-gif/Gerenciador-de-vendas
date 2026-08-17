@@ -1,5 +1,7 @@
 import 'dart:async';
-import 'dart:html' as html;
+import 'dart:js_interop';
+
+import 'package:web/web.dart' as web;
 
 class BrowserLifecycle {
   static final StreamController<BrowserLifecycleEvent> _controller =
@@ -15,23 +17,33 @@ class BrowserLifecycle {
     if (_installed) return;
     _installed = true;
 
-    html.document.on['visibilitychange']?.listen((_) {
-      _emit(html.document.hidden == true
-          ? BrowserLifecycleEvent.hidden
-          : BrowserLifecycleEvent.visible);
-    });
-    html.window.on['focus']?.listen((_) {
-      _emit(BrowserLifecycleEvent.focused);
-    });
-    html.window.on['blur']?.listen((_) {
-      _emit(BrowserLifecycleEvent.blurred);
-    });
-    html.window.on['pageshow']?.listen((_) {
-      _emit(BrowserLifecycleEvent.pageShown);
-    });
-    html.window.on['pagehide']?.listen((_) {
-      _emit(BrowserLifecycleEvent.pageHidden);
-    });
+    web.document.addEventListener('visibilitychange', _onVisibility.toJS);
+    web.window.addEventListener('focus', _onFocus.toJS);
+    web.window.addEventListener('blur', _onBlur.toJS);
+    web.window.addEventListener('pageshow', _onPageShow.toJS);
+    web.window.addEventListener('pagehide', _onPageHide.toJS);
+  }
+
+  static void _onVisibility(web.Event _) {
+    _emit(web.document.hidden
+        ? BrowserLifecycleEvent.hidden
+        : BrowserLifecycleEvent.visible);
+  }
+
+  static void _onFocus(web.Event _) {
+    _emit(BrowserLifecycleEvent.focused);
+  }
+
+  static void _onBlur(web.Event _) {
+    _emit(BrowserLifecycleEvent.blurred);
+  }
+
+  static void _onPageShow(web.Event _) {
+    _emit(BrowserLifecycleEvent.pageShown);
+  }
+
+  static void _onPageHide(web.Event _) {
+    _emit(BrowserLifecycleEvent.pageHidden);
   }
 
   static void _emit(BrowserLifecycleEvent event) {
