@@ -183,10 +183,13 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       if (!mounted) return;
       setState(() => _user = null);
     }
-    return SessionGuard(
-      timeout: Duration(minutes: context.read<AppState>().idleTimeoutMinutes),
-      onTimeout: () => unawaited(sair()),
-      child: TelaInicio(user: _user!, onLogout: () => unawaited(sair())),
+    return Selector<AppState, int>(
+      selector: (_, state) => state.idleTimeoutMinutes,
+      builder: (_, timeoutMinutes, __) => SessionGuard(
+        timeout: Duration(minutes: timeoutMinutes),
+        onTimeout: () => unawaited(sair()),
+        child: TelaInicio(user: _user!, onLogout: () => unawaited(sair())),
+      ),
     );
   }
 }

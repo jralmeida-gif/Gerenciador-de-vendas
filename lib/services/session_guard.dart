@@ -37,7 +37,7 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
     _ultimaAtividade = DateTime.now();
     _suspensaEm = null;
     _timer?.cancel();
-    _timer = Timer(widget.timeout, _expirar);
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _verificar());
   }
 
   void _verificar() {
