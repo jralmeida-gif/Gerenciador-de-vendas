@@ -837,3 +837,132 @@ class TituloSecaoLista extends StatelessWidget {
     );
   }
 }
+
+
+/// Menu inferior usado em formulários abertos acima do shell principal.
+/// Ao selecionar uma aba, o shell fecha a rota de formulário e muda de seção.
+class MenuRodapeApp extends StatelessWidget {
+  final int abaSelecionada;
+  final ValueChanged<int> onSelecionar;
+
+  const MenuRodapeApp({
+    super.key,
+    required this.abaSelecionada,
+    required this.onSelecionar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 68,
+          child: Row(
+            children: [
+              _MenuRodapeItem(
+                label: 'Início',
+                icon: Icons.dashboard_outlined,
+                selectedIcon: Icons.dashboard,
+                selected: abaSelecionada == 0,
+                onTap: () => onSelecionar(0),
+              ),
+              _MenuRodapeItem(
+                label: 'Vendas',
+                icon: Icons.point_of_sale_outlined,
+                selectedIcon: Icons.point_of_sale,
+                selected: abaSelecionada == 1,
+                onTap: () => onSelecionar(1),
+              ),
+              _MenuRodapeItem(
+                label: 'Portab.',
+                icon: Icons.swap_horiz_outlined,
+                selectedIcon: Icons.swap_horiz,
+                selected: abaSelecionada == 2,
+                onTap: () => onSelecionar(2),
+              ),
+              _MenuRodapeItem(
+                label: 'Prospec.',
+                icon: Icons.phone_in_talk_outlined,
+                selectedIcon: Icons.phone_in_talk,
+                selected: abaSelecionada == 3,
+                onTap: () => onSelecionar(3),
+              ),
+              _MenuRodapeItem(
+                label: 'Relatórios',
+                icon: Icons.insert_chart_outlined,
+                selectedIcon: Icons.insert_chart,
+                selected: abaSelecionada == 4,
+                onTap: () => onSelecionar(4),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuRodapeItem extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MenuRodapeItem({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.primary : AppColors.textSecondary;
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox.expand(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.primary.withValues(alpha: 0.12) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Icon(selected ? selectedIcon : icon, size: 23, color: color),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

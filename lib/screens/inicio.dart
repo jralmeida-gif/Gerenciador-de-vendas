@@ -75,6 +75,7 @@ class _TelaInicioState extends State<TelaInicio> {
       ajuda: () => _abrirGlobal(const TelaAjuda()),
       voltar: _fecharGlobal,
       relatorio: _abrirGlobal,
+      selecionarAba: _selecionarAba,
     );
     _paginas = [
       TelaDashboard(

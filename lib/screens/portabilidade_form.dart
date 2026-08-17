@@ -204,12 +204,23 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
   Widget build(BuildContext context) {
     final convenios = context.watch<AppState>().convenios;
 
+    void navegarParaAba(int indice) {
+      final selecionar = context.read<AppState>().onSelecionarAba;
+      Navigator.of(context).pop();
+      selecionar?.call(indice);
+    }
+
     return Scaffold(
+      bottomNavigationBar: MenuRodapeApp(
+        abaSelecionada: 2,
+        onSelecionar: navegarParaAba,
+      ),
       body: Column(
         children: [
           HeaderCurvo(
             titulo: _editando ? 'Editar Portabilidade' : 'Nova Portabilidade',
             subtitulo: Fmt.data(DateTime.now()),
+            mostrarVoltar: true,
           ),
           Expanded(
             child: Form(

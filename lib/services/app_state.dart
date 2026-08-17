@@ -23,16 +23,18 @@ class AppState extends ChangeNotifier {
   VoidCallback? onAbrirAjuda;
   VoidCallback? onVoltarGlobal;
   ValueChanged<Widget>? onAbrirRelatorio;
+  ValueChanged<int>? onSelecionarAba;
 
   AppState(this.repo);
 
   AuthUser? get authUser => _authUser;
-  void configurarNavegacaoGlobal({VoidCallback? agenda, VoidCallback? configuracoes, VoidCallback? ajuda, VoidCallback? voltar, ValueChanged<Widget>? relatorio}) {
+  void configurarNavegacaoGlobal({VoidCallback? agenda, VoidCallback? configuracoes, VoidCallback? ajuda, VoidCallback? voltar, ValueChanged<Widget>? relatorio, ValueChanged<int>? selecionarAba}) {
     onAbrirAgenda = agenda;
     onAbrirConfiguracoes = configuracoes;
     onAbrirAjuda = ajuda;
     onVoltarGlobal = voltar;
     onAbrirRelatorio = relatorio;
+    onSelecionarAba = selecionarAba;
   }
   void definirUsuarioAutenticado(AuthUser? user) {
     _authUser = user;

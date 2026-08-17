@@ -28,6 +28,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Timer? _timerRevalidacaoSessao;
   bool _logoutEmAndamento = false;
   Future<void>? _limpezaPerfilPendente;
+  int _cicloSessao = 0;
 
   @override
   void initState() {
@@ -116,7 +117,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
     if (!mounted) return;
     appState.definirUsuarioAutenticado(result.user);
-    setState(() => _user = result.user);
+    setState(() {
+      _cicloSessao++;
+      _user = result.user;
+    });
   }
 
   void _showError(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
@@ -187,7 +191,10 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       // A tela deve sair imediatamente. A rede não pode impedir o logout local.
       if (mounted) {
         appState.definirUsuarioAutenticado(null);
-        setState(() => _user = null);
+        setState(() {
+          _cicloSessao++;
+          _user = null;
+        });
       }
 
       // Inicia a limpeza do perfil local sem bloquear a troca visual para o login.
@@ -207,6 +214,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     return Selector<AppState, int>(
       selector: (_, state) => state.idleTimeoutMinutes,
       builder: (_, timeoutMinutes, __) => SessionGuard(
+        key: ValueKey('session-$_cicloSessao-${_user!.id}'),
         timeout: Duration(minutes: timeoutMinutes),
         onTimeout: () => unawaited(sair()),
         child: TelaInicio(user: _user!, onLogout: () => unawaited(sair())),

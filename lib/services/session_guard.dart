@@ -25,6 +25,11 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
   @override
   void initState() {
     super.initState();
+    // Cada montagem representa uma sessão nova. O reset explícito evita que
+    // qualquer estado de uma instância anterior impeça o segundo ciclo.
+    _encerrando = false;
+    _ultimaAtividade = DateTime.now();
+    _suspensaEm = null;
     WidgetsBinding.instance.addObserver(this);
     _browserLifecycleSubscription = BrowserLifecycle.events.listen(_onBrowserLifecycle);
     _iniciarMonitor();
