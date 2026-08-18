@@ -83,6 +83,10 @@ class TelaRelatorios extends StatelessWidget {
 
   ];
 
+  static Widget fichaConsolidada() => TelaRelatorioParametros(
+        tipo: _tipos.firstWhere((tipo) => tipo.id == 'clientes'),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

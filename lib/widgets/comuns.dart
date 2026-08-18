@@ -138,12 +138,6 @@ class HeaderCurvo extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       ...acoes,
-                      if (ajudaContextualTitulo != null)
-                        _AtalhoCabecalho(
-                          rotulo: 'Ajuda',
-                          icone: Icons.help_outline,
-                          onTap: () => _mostrarAjudaContextual(context),
-                        ),
                       if (mostrarAcoesGlobais && usuario != null && titulo != 'Agenda')
                         _AtalhoCabecalho(
                           rotulo: 'Agenda',
@@ -156,6 +150,18 @@ class HeaderCurvo extends StatelessWidget {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAgenda()));
                             }
                           },
+                        ),
+                      if (mostrarAcoesGlobais && usuario != null && estado.onAbrirClientes != null)
+                        _AtalhoCabecalho(
+                          rotulo: 'Clientes',
+                          icone: Icons.people_outline,
+                          onTap: estado.onAbrirClientes!,
+                        ),
+                      if (ajudaContextualTitulo != null)
+                        _AtalhoCabecalho(
+                          rotulo: 'Ajuda',
+                          icone: Icons.help_outline,
+                          onTap: () => _mostrarAjudaContextual(context),
                         ),
                       if (mostrarAcoesGlobais && usuario != null && titulo != 'Configurações')
                         _AtalhoCabecalho(

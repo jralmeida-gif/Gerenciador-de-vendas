@@ -20,6 +20,7 @@ class AppState extends ChangeNotifier {
   AuthUser? _authUser;
   String? _versaoCatalogo;
   VoidCallback? onAbrirAgenda;
+  VoidCallback? onAbrirClientes;
   VoidCallback? onAbrirConfiguracoes;
   VoidCallback? onAbrirAjuda;
   VoidCallback? onVoltarGlobal;
@@ -29,8 +30,9 @@ class AppState extends ChangeNotifier {
   AppState(this.repo);
 
   AuthUser? get authUser => _authUser;
-  void configurarNavegacaoGlobal({VoidCallback? agenda, VoidCallback? configuracoes, VoidCallback? ajuda, VoidCallback? voltar, ValueChanged<Widget>? relatorio, ValueChanged<int>? selecionarAba}) {
+  void configurarNavegacaoGlobal({VoidCallback? agenda, VoidCallback? clientes, VoidCallback? configuracoes, VoidCallback? ajuda, VoidCallback? voltar, ValueChanged<Widget>? relatorio, ValueChanged<int>? selecionarAba}) {
     onAbrirAgenda = agenda;
+    onAbrirClientes = clientes;
     onAbrirConfiguracoes = configuracoes;
     onAbrirAjuda = ajuda;
     onVoltarGlobal = voltar;
