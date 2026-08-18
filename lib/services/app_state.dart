@@ -106,8 +106,11 @@ class AppState extends ChangeNotifier {
   }
 
   // ------------------- Listas -------------------
+  /// Catálogo completo, incluindo produtos inativos preservados para histórico.
   List<Produto> get produtos => repo.produtos;
-  List<Convenio> get convenios => repo.convenios;
+  /// Opções permitidas em novos lançamentos, metas e campanhas.
+  List<Produto> get produtosAtivos => repo.produtos.where((p) => p.ativo).toList();
+  List<Produto> get convenios => repo.convenios;
   List<Venda> get vendas => repo.vendas;
   List<Portabilidade> get portabilidades => repo.portabilidades;
   List<Portabilidade> get portPendentes => repo.portabilidadesPendentes;
@@ -367,7 +370,8 @@ class AppState extends ChangeNotifier {
   Future<String?> excluirProdutoMestre(String nome) async {
     final error = await _cloud.saveCatalog(entity: 'produto', action: 'delete', name: nome);
     if (error != null) return error;
-    await repo.excluirProduto(nome);
+    // O produto permanece no catálogo local como inativo para preservar
+    // históricos; a sincronização recarrega o estado ativo/inativo da nuvem.
     _versaoCatalogo = null;
     await carregarCatalogoDaNuvem();
     return null;

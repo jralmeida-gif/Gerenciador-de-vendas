@@ -2,7 +2,7 @@ import { getSession, type AuthEnv, json, optionsResponse } from '../_auth';
 
 type DataBody = {
   config?: { nomeUsuario?: string; modeloMeta?: string; avatarData?: string; avatarScale?: number; avatarOffsetX?: number; avatarOffsetY?: number; idleTimeoutMinutes?: number; recoveryEmail?: string };
-  produtos?: Array<{ nome?: string; formato?: string }>;
+  produtos?: Array<{ nome?: string; formato?: string; ativo?: boolean }>;
   convenios?: Array<{ nome?: string; codigo?: string }>;
   metas?: Array<{ produto?: string; metaMes?: number }>;
   metasMensais?: Array<{ produto?: string; mes?: string; valor?: number }>;
@@ -24,7 +24,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
   if (!user) return json(request, { error: 'Sessão expirada.' }, 401);
   const result = await env.DB.batch([
     env.DB.prepare('SELECT display_name, avatar_data, avatar_scale, avatar_offset_x, avatar_offset_y, idle_timeout_minutes, recovery_email FROM user_settings WHERE user_id = ?').bind(user.id),
-    env.DB.prepare('SELECT name, format FROM catalog_products ORDER BY name'),
+    env.DB.prepare('SELECT name, format, active FROM catalog_products ORDER BY active DESC, name'),
     env.DB.prepare('SELECT name, code FROM catalog_convenios ORDER BY name'),
     env.DB.prepare('SELECT product, target_month FROM user_metas WHERE user_id = ? ORDER BY product').bind(user.id),
     env.DB.prepare('SELECT product, month_ref, target FROM user_monthly_metas WHERE user_id = ? ORDER BY month_ref, product').bind(user.id),
@@ -47,7 +47,7 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
       idleTimeoutMinutes: Number(settings?.results?.[0]?.idle_timeout_minutes ?? 30),
       recoveryEmail: settings?.results?.[0]?.recovery_email ?? '',
     },
-    produtos: products.results.map((r: any) => ({ nome: r.name, formato: r.format })),
+    produtos: products.results.map((r: any) => ({ nome: r.name, formato: r.format, ativo: r.active !== 0 })),
     convenios: convenios.results.map((r: any) => ({ nome: r.name, codigo: r.code })),
     metas: metas.results.map((r: any) => ({ produto: r.product, metaMes: r.target_month })),
     metasMensais: metasMensais.results.map((r: any) => ({ produto: r.product, mes: r.month_ref, valor: r.target })),

@@ -272,7 +272,15 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<AppState>();
-    final produtos = estado.produtos;
+    final produtos = estado.produtosAtivos.toList();
+    if (_produto != null && produtos.every((p) => p.nome != _produto)) {
+      for (final p in estado.produtos) {
+        if (p.nome == _produto) {
+          produtos.add(p);
+          break;
+        }
+      }
+    }
     final vendasHoje = estado.vendas
         .where((v) => mesmoDia(v.data, DateTime.now()))
         .length;

@@ -106,6 +106,9 @@ class _TelaMetasEditarState extends State<TelaMetasEditar> {
   Future<void> _salvar() async {
     final estado = context.read<AppState>();
     for (final e in _ctrls.entries) {
+      final produto = estado.produtos.firstWhere((p) => p.nome == e.key);
+      final metaAnterior = estado.metaMensalDoProduto(e.key, _mesRef);
+      if (!produto.ativo && metaAnterior <= 0) continue;
       final v = Fmt.parseNumero(e.value.text);
       await estado.salvarMetaMensal(e.key, _mesRef, v);
       if (_mesRef == '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}') {
@@ -129,7 +132,9 @@ class _TelaMetasEditarState extends State<TelaMetasEditar> {
     _sincronizarControles(estado);
     final q = _busca.text.trim().toLowerCase();
 
-    var produtos = estado.produtos;
+    var produtos = estado.produtos
+        .where((p) => p.ativo || estado.metaMensalDoProduto(p.nome, _mesRef) > 0)
+        .toList();
     if (q.isNotEmpty) {
       produtos = produtos
           .where((p) => p.nome.toLowerCase().contains(q))

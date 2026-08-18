@@ -177,6 +177,15 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<AppState>();
+    final produtos = estado.produtosAtivos.toList();
+    if (_produto != null && produtos.every((p) => p.nome != _produto)) {
+      for (final p in estado.produtos) {
+        if (p.nome == _produto) {
+          produtos.add(p);
+          break;
+        }
+      }
+    }
 
     return Scaffold(
       body: Column(
@@ -270,7 +279,7 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
                               size: 20,
                             ),
                           ),
-                          items: estado.produtos
+                          items: produtos
                               .map(
                                 (p) => DropdownMenuItem(
                                   value: p.nome,

@@ -337,7 +337,7 @@ class _TelaCampanhaFormState extends State<TelaCampanhaForm> {
       _fim = c.dataFim;
     }
     final estado = context.read<AppState>();
-    for (final p in estado.produtos) {
+    for (final p in _editando ? estado.produtos : estado.produtosAtivos) {
       final v = c?.metasPorProduto[p.nome] ?? 0;
       _metas[p.nome] = TextEditingController(
         text: v > 0 ? (p.ehQuantidade ? Fmt.inteiro(v) : Fmt.decimal(v)) : '',
@@ -417,6 +417,7 @@ class _TelaCampanhaFormState extends State<TelaCampanhaForm> {
     final selecionados = _metas.values
         .where((c) => Fmt.parseNumero(c.text) > 0)
         .length;
+    final produtosExibidos = _editando ? estado.produtos : estado.produtosAtivos;
 
     return Scaffold(
       body: Column(
@@ -480,7 +481,7 @@ class _TelaCampanhaFormState extends State<TelaCampanhaForm> {
                           ),
                         ),
                       ),
-                      ...estado.produtos.map((p) {
+                      ...produtosExibidos.map((p) {
                         final ctrl = _metas[p.nome]!;
                         final ativo = Fmt.parseNumero(ctrl.text) > 0;
                         return Padding(

@@ -260,13 +260,21 @@ class Prospeccao {
 class Produto {
   final String nome;
   final String formato;
-  Produto({required this.nome, required this.formato});
+  final bool ativo;
+  Produto({required this.nome, required this.formato, this.ativo = true});
 
   bool get ehQuantidade => formato.toLowerCase() == 'quantidade';
 
-  Map<String, dynamic> toJson() => {'nome': nome, 'formato': formato};
-  factory Produto.fromJson(Map<dynamic, dynamic> j) =>
-      Produto(nome: _s(j['nome']), formato: _s(j['formato']));
+  Map<String, dynamic> toJson() => {
+    'nome': nome,
+    'formato': formato,
+    'ativo': ativo,
+  };
+  factory Produto.fromJson(Map<dynamic, dynamic> j) => Produto(
+        nome: _s(j['nome']),
+        formato: _s(j['formato']),
+        ativo: j['ativo'] is bool ? j['ativo'] as bool : j['ativo'] != 0,
+      );
 }
 
 /// tblconv: Convênio | Cod Conv

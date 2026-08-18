@@ -1138,6 +1138,13 @@ class TelaProdutos extends StatelessWidget {
                                       ? AppColors.primaryLight
                                       : AppColors.accent,
                                 ),
+                                if (!p.ativo) ...[
+                                  const SizedBox(width: 6),
+                                  const Etiqueta(
+                                    texto: 'Inativo',
+                                    cor: AppColors.danger,
+                                  ),
+                                ],
                                 if (meta > 0) ...[
                                   const SizedBox(width: 6),
                                   Etiqueta(
@@ -1161,9 +1168,9 @@ class TelaProdutos extends StatelessWidget {
                           final ok = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
-                              title: const Text('Excluir produto'),
+                              title: const Text('Desativar produto'),
                               content: Text(
-                                'Remover "${p.nome}"? Vendas já lançadas não são apagadas.',
+                                'Desativar "${p.nome}"? O produto permanecerá nas bases e históricos, mas não poderá ser usado em novos cadastros.',
                               ),
                               actions: [
                                 TextButton(
@@ -1175,7 +1182,7 @@ class TelaProdutos extends StatelessWidget {
                                     backgroundColor: AppColors.danger,
                                   ),
                                   onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text('Excluir'),
+                                  child: const Text('Desativar'),
                                 ),
                               ],
                             ),
