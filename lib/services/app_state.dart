@@ -110,7 +110,7 @@ class AppState extends ChangeNotifier {
   List<Produto> get produtos => repo.produtos;
   /// Opções permitidas em novos lançamentos, metas e campanhas.
   List<Produto> get produtosAtivos => repo.produtos.where((p) => p.ativo).toList();
-  List<Produto> get convenios => repo.convenios;
+  List<Convenio> get convenios => repo.convenios;
   List<Venda> get vendas => repo.vendas;
   List<Portabilidade> get portabilidades => repo.portabilidades;
   List<Portabilidade> get portPendentes => repo.portabilidadesPendentes;
