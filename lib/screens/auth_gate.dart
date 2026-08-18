@@ -199,7 +199,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       }
 
       // Inicia a limpeza do perfil local sem bloquear a troca visual para o login.
-      // Um login novo aguarda essa operação para evitar misturar caixas locais.
+      // Um login novo aguarda essa operação para evitar misturar perfis locais.
       final limpezaLocal = appState.mudarPerfilLocal('guest');
       _limpezaPerfilPendente = limpezaLocal;
       unawaited(limpezaLocal.whenComplete(() {
@@ -284,9 +284,9 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) => _AuthScaffold(
         title: widget.setup ? 'Configuração inicial' : 'Entrar no Gestor de Vendas',
-        subtitle: widget.setup ? 'Cadastre o primeiro usuário. Ele será administrador automaticamente.' : 'Use o prefixo do e-mail ou o e-mail completo @caixa.gov.br.',
+        subtitle: widget.setup ? 'Cadastre o primeiro usuário. Ele será administrador automaticamente.' : 'Use seu usuário ou o e-mail cadastrado.',
         children: [
-          TextField(controller: _username, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Usuário @caixa.gov.br', prefixIcon: Icon(Icons.person_outline))),
+          TextField(controller: _username, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Usuário ou e-mail', prefixIcon: Icon(Icons.person_outline))),
           const SizedBox(height: 14),
           TextField(controller: _password, obscureText: true, decoration: InputDecoration(labelText: widget.setup ? 'Senha inicial' : 'Senha', prefixIcon: const Icon(Icons.lock_outline))),
           const SizedBox(height: 22),

@@ -51,7 +51,13 @@ export function json(request: Request, data: unknown, status = 200, extra?: Head
 export function normalizeUsername(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const raw = value.trim().toLowerCase();
-  const username = raw.endsWith('@caixa.gov.br') ? raw.slice(0, -'@caixa.gov.br'.length) : raw;
+  if (raw.length > 254 || /\s/.test(raw)) return null;
+  const partes = raw.split('@');
+  if (partes.length > 2) return null;
+  if (partes.length === 2 && !/^[^@]+@[^@]+\.[^@]+$/.test(raw)) return null;
+  // O banco mantém o identificador curto (parte antes do @) para preservar
+  // compatibilidade com as contas já cadastradas. O domínio não é fixo.
+  const username = partes[0];
   if (!/^[a-z0-9][a-z0-9._-]{1,63}$/.test(username)) return null;
   return username;
 }

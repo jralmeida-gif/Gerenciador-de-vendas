@@ -61,7 +61,7 @@ class _TelaPortabilidadeConfirmarState
     if (contratoDigitos.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Informe o número do contrato gerado pela CAIXA.'),
+          content: Text('Informe o número do contrato gerado pela instituição.'),
           backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
         ),
@@ -156,7 +156,7 @@ class _TelaPortabilidadeConfirmarState
                   child: Column(
                     children: [
                       CampoTexto(
-                        rotulo: 'Número do contrato (CAIXA)',
+                        rotulo: 'Número do contrato',
                         controller: _contrato,
                         dica: '0000000-00',
                         teclado: TextInputType.number,

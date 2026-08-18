@@ -1,4 +1,4 @@
--- Multiusuário: cada registro pertence a uma identidade @caixa.gov.br.
+-- Multiusuário: cada registro pertence a uma identidade de login administrada pelo sistema.
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,

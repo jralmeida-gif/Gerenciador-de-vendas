@@ -40,7 +40,7 @@ class _TelaUsuariosAdminState extends State<TelaUsuariosAdmin> {
         builder: (context, setDialog) => AlertDialog(
           title: const Text('Cadastrar usuário'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(controller: username, decoration: const InputDecoration(labelText: 'Usuário ou e-mail @caixa.gov.br')),
+            TextField(controller: username, decoration: const InputDecoration(labelText: 'Usuário ou e-mail')),
             TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'Senha temporária')),
             DropdownButtonFormField<String>(
               initialValue: role,
@@ -82,7 +82,7 @@ class _TelaUsuariosAdminState extends State<TelaUsuariosAdmin> {
         builder: (context, setDialog) => AlertDialog(
           title: const Text('Editar usuário'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('Login: ${user['username']}@caixa.gov.br', style: const TextStyle(color: Colors.black54)),
+            Text('Identificador de login: ${user['username']}', style: const TextStyle(color: Colors.black54)),
             TextField(controller: alias, decoration: const InputDecoration(labelText: 'Alias')),
             DropdownButtonFormField<String>(initialValue: role, decoration: const InputDecoration(labelText: 'Perfil'), items: const [DropdownMenuItem(value: 'user', child: Text('Usuário comum')), DropdownMenuItem(value: 'admin', child: Text('Administrador'))], onChanged: (value) { if (value != null) setDialog(() => role = value); }),
             SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Acesso ativo'), value: active, onChanged: (value) => setDialog(() => active = value)),
@@ -150,8 +150,8 @@ class _TelaUsuariosAdminState extends State<TelaUsuariosAdmin> {
               return Card(
                 child: ListTile(
                   leading: Icon(u['role'] == 'admin' ? Icons.admin_panel_settings : Icons.person_outline),
-                  title: Text(alias.isEmpty ? '${u['username']}@caixa.gov.br' : alias),
-                  subtitle: Text('${u['username']}@caixa.gov.br · ${u['role'] == 'admin' ? 'Administrador' : 'Usuário comum'}${isSelf ? ' · Você' : ''}'),
+                  title: Text(alias.isEmpty ? u['username'].toString() : alias),
+                  subtitle: Text('${u['username']} · ${u['role'] == 'admin' ? 'Administrador' : 'Usuário comum'}${isSelf ? ' · Você' : ''}'),
                   trailing: PopupMenuButton<String>(
                     onSelected: (action) { if (action == 'edit') _editUser(u); if (action == 'password') _resetPassword(u); if (action == 'delete') _deleteUser(u); },
                     itemBuilder: (_) => [
