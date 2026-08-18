@@ -364,7 +364,7 @@ class AppState extends ChangeNotifier {
         (mapa['metas'] as List? ?? []).isNotEmpty ||
         (mapa['campanhas'] as List? ?? []).isNotEmpty;
     if (temDados) {
-      await repo.importarJson(json);
+      await repo.importarJson(json, preservarTimeoutSessao: true);
       notifyListeners();
     } else {
       // D1 vazio: preserva e envia a base local deste usuário, sem misturar perfis.

@@ -385,8 +385,18 @@ class Repositorio {
   }
 
   /// Importa um backup. Se [substituir] for true, apaga os dados atuais.
-  Future<void> importarJson(String conteudo, {bool substituir = true}) async {
+  ///
+  /// O limite de inatividade é uma configuração de segurança da sessão local.
+  /// Ao carregar dados da nuvem, ele não deve ser trocado por um valor antigo
+  /// guardado no backup remoto; na restauração manual, porém, continua sendo
+  /// possível restaurá-lo junto com o restante da configuração.
+  Future<void> importarJson(
+    String conteudo, {
+    bool substituir = true,
+    bool preservarTimeoutSessao = false,
+  }) async {
     final mapa = jsonDecode(conteudo) as Map<String, dynamic>;
+    final timeoutSessaoLocal = idleTimeoutMinutes;
     if (substituir) {
       await _vendas.clear();
       await _port.clear();
@@ -409,7 +419,11 @@ class Repositorio {
       await _config.put('avatarScale', cfg['avatarScale'] ?? 1.0);
       await _config.put('avatarOffsetX', cfg['avatarOffsetX'] ?? 0.0);
       await _config.put('avatarOffsetY', cfg['avatarOffsetY'] ?? 0.0);
-      await _config.put('idleTimeoutMinutes', cfg['idleTimeoutMinutes'] ?? 30);
+      if (preservarTimeoutSessao) {
+        await _config.put('idleTimeoutMinutes', timeoutSessaoLocal);
+      } else {
+        await _config.put('idleTimeoutMinutes', cfg['idleTimeoutMinutes'] ?? 30);
+      }
     }
     for (final e in (mapa['produtos'] as List? ?? [])) {
       final p = Produto.fromJson(e as Map);
