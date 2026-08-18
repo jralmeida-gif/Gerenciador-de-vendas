@@ -24,8 +24,8 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
   if (!user) return json(request, { error: 'Sessão expirada.' }, 401);
   const result = await env.DB.batch([
     env.DB.prepare('SELECT display_name, avatar_data, avatar_scale, avatar_offset_x, avatar_offset_y, idle_timeout_minutes, recovery_email FROM user_settings WHERE user_id = ?').bind(user.id),
-    env.DB.prepare('SELECT name, format FROM user_products WHERE user_id = ? ORDER BY name').bind(user.id),
-    env.DB.prepare('SELECT name, code FROM user_convenios WHERE user_id = ? ORDER BY name').bind(user.id),
+    env.DB.prepare('SELECT name, format FROM catalog_products ORDER BY name'),
+    env.DB.prepare('SELECT name, code FROM catalog_convenios ORDER BY name'),
     env.DB.prepare('SELECT product, target_month FROM user_metas WHERE user_id = ? ORDER BY product').bind(user.id),
     env.DB.prepare('SELECT product, month_ref, target FROM user_monthly_metas WHERE user_id = ? ORDER BY month_ref, product').bind(user.id),
     env.DB.prepare('SELECT id, name, start_date, end_date, targets_json FROM user_campaigns WHERE user_id = ? ORDER BY start_date DESC').bind(user.id),
@@ -74,8 +74,6 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     ? ((await env.DB.prepare('SELECT recovery_email FROM user_settings WHERE user_id = ?').bind(user.id).first<{ recovery_email?: string }>())?.recovery_email ?? '')
     : text(cfg.recoveryEmail).trim().toLowerCase();
   const batch: D1PreparedStatement[] = [
-    env.DB.prepare('DELETE FROM user_products WHERE user_id = ?').bind(user.id),
-    env.DB.prepare('DELETE FROM user_convenios WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_metas WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_monthly_metas WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_campaigns WHERE user_id = ?').bind(user.id),
@@ -87,8 +85,8 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
       ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, avatar_data = excluded.avatar_data, avatar_scale = excluded.avatar_scale, avatar_offset_x = excluded.avatar_offset_x, avatar_offset_y = excluded.avatar_offset_y, idle_timeout_minutes = excluded.idle_timeout_minutes, recovery_email = excluded.recovery_email, updated_at = datetime('now')`).bind(user.id, displayName, avatarData, avatarScale, avatarOffsetX, avatarOffsetY, idleTimeoutMinutes, recoveryEmail),
     env.DB.prepare(`UPDATE users SET display_name = ?, updated_at = datetime('now') WHERE id = ?`).bind(displayName, user.id),
   ];
-  for (const p of body.produtos ?? []) if (text(p.nome)) batch.push(env.DB.prepare('INSERT INTO user_products (user_id, name, format) VALUES (?, ?, ?)').bind(user.id, text(p.nome), text(p.formato) || 'Valor'));
-  for (const c of body.convenios ?? []) if (text(c.nome)) batch.push(env.DB.prepare('INSERT INTO user_convenios (user_id, name, code) VALUES (?, ?, ?)').bind(user.id, text(c.nome), text(c.codigo)));
+  // Produtos e convênios são catálogos mestres. Eles só podem ser alterados
+  // pelo endpoint administrativo; a sincronização comum não os aceita.
   for (const m of body.metas ?? []) if (text(m.produto)) batch.push(env.DB.prepare('INSERT INTO user_metas (user_id, product, target_month) VALUES (?, ?, ?)').bind(user.id, text(m.produto), num(m.metaMes)));
   for (const m of body.metasMensais ?? []) if (text(m.produto) && text(m.mes)) batch.push(env.DB.prepare('INSERT INTO user_monthly_metas (user_id, product, month_ref, target) VALUES (?, ?, ?, ?)').bind(user.id, text(m.produto), text(m.mes), num(m.valor)));
   for (const c of body.campanhas ?? []) if (text(c.id) && text(c.nome) && text(c.dataInicio) && text(c.dataFim)) batch.push(env.DB.prepare('INSERT INTO user_campaigns (user_id, id, name, start_date, end_date, targets_json) VALUES (?, ?, ?, ?, ?, ?)').bind(user.id, text(c.id), text(c.nome), text(c.dataInicio), text(c.dataFim), JSON.stringify(c.metasPorProduto ?? {})));

@@ -186,36 +186,38 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                CartaoSecao(
-                  titulo: 'Cadastros',
-                  child: Column(
-                    children: [
-                      _Item(
-                        icone: Icons.inventory_2_outlined,
-                        titulo: 'Produtos',
-                        valor: '${estado.produtos.length} item(ns)',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TelaProdutos(),
+                if (widget.user.isAdmin) ...[
+                  CartaoSecao(
+                    titulo: 'Cadastros mestres',
+                    child: Column(
+                      children: [
+                        _Item(
+                          icone: Icons.inventory_2_outlined,
+                          titulo: 'Produtos',
+                          valor: '${estado.produtos.length} item(ns) · admin',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TelaProdutos(),
+                            ),
                           ),
                         ),
-                      ),
-                      _Item(
-                        icone: Icons.account_balance_outlined,
-                        titulo: 'Convênios',
-                        valor: '${estado.convenios.length} item(ns)',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TelaConvenios(),
+                        _Item(
+                          icone: Icons.account_balance_outlined,
+                          titulo: 'Convênios',
+                          valor: '${estado.convenios.length} item(ns) · admin',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TelaConvenios(),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
+                  const SizedBox(height: 14),
+                ],
                 CartaoSecao(
                   titulo: 'Backup dos dados',
                   child: Column(
@@ -1080,6 +1082,11 @@ class TelaProdutos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<AppState>();
+    if (!(estado.authUser?.isAdmin ?? false)) {
+      return const Scaffold(
+        body: Center(child: Text('Acesso restrito aos administradores.')),
+      );
+    }
     final produtos = estado.produtos;
 
     return Scaffold(
@@ -1174,9 +1181,10 @@ class TelaProdutos extends StatelessWidget {
                             ),
                           );
                           if (ok == true && context.mounted) {
-                            await context.read<AppState>().excluirProduto(
-                              p.nome,
-                            );
+                            final error = await context.read<AppState>().excluirProdutoMestre(p.nome);
+                            if (error != null && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+                            }
                           }
                         },
                         icon: const Icon(Icons.delete_outline, size: 19),
@@ -1264,12 +1272,13 @@ class TelaProdutos extends StatelessWidget {
 
     if (ok != true || nome.text.trim().isEmpty || !context.mounted) return;
     final estado = context.read<AppState>();
-    if (p != null && p.nome != nome.text.trim()) {
-      await estado.excluirProduto(p.nome);
-    }
-    await estado.salvarProduto(
-      Produto(nome: nome.text.trim(), formato: formato),
+    final error = await estado.salvarProdutoMestre(
+      anterior: p,
+      produto: Produto(nome: nome.text.trim(), formato: formato),
     );
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+    }
   }
 }
 
@@ -1281,6 +1290,11 @@ class TelaConvenios extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<AppState>();
+    if (!(estado.authUser?.isAdmin ?? false)) {
+      return const Scaffold(
+        body: Center(child: Text('Acesso restrito aos administradores.')),
+      );
+    }
     final convenios = estado.convenios;
 
     return Scaffold(
@@ -1365,9 +1379,10 @@ class TelaConvenios extends StatelessWidget {
                                   ),
                                 );
                                 if (ok == true && context.mounted) {
-                                  await context
-                                      .read<AppState>()
-                                      .excluirConvenio(c.nome);
+                                  final error = await context.read<AppState>().excluirConvenioMestre(c.nome);
+                                  if (error != null && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+                                  }
                                 }
                               },
                               icon: const Icon(Icons.delete_outline, size: 19),
@@ -1434,11 +1449,12 @@ class TelaConvenios extends StatelessWidget {
 
     if (ok != true || nome.text.trim().isEmpty || !context.mounted) return;
     final estado = context.read<AppState>();
-    if (c != null && c.nome != nome.text.trim()) {
-      await estado.excluirConvenio(c.nome);
-    }
-    await estado.salvarConvenio(
-      Convenio(nome: nome.text.trim(), codigo: codigo.text.trim()),
+    final error = await estado.salvarConvenioMestre(
+      anterior: c,
+      convenio: Convenio(nome: nome.text.trim(), codigo: codigo.text.trim()),
     );
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+    }
   }
 }

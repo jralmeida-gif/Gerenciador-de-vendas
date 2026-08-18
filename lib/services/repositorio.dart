@@ -237,6 +237,13 @@ class Repositorio {
   Future<void> salvarProduto(Produto p) => _produtos.put(p.nome, p.toJson());
   Future<void> excluirProduto(String nome) => _produtos.delete(nome);
 
+  Future<void> substituirProdutos(Iterable<Produto> itens) async {
+    await _produtos.clear();
+    for (final item in itens) {
+      await _produtos.put(item.nome, item.toJson());
+    }
+  }
+
   // ---------------- Convênios ----------------
   List<Convenio> get convenios {
     final l = _convenios.values
@@ -248,6 +255,13 @@ class Repositorio {
 
   Future<void> salvarConvenio(Convenio c) => _convenios.put(c.nome, c.toJson());
   Future<void> excluirConvenio(String nome) => _convenios.delete(nome);
+
+  Future<void> substituirConvenios(Iterable<Convenio> itens) async {
+    await _convenios.clear();
+    for (final item in itens) {
+      await _convenios.put(item.nome, item.toJson());
+    }
+  }
 
   // ---------------- Vendas ----------------
   List<Venda> get vendas {

@@ -18,6 +18,7 @@ class AppState extends ChangeNotifier {
   final _uuid = const Uuid();
   final _cloud = CloudDataClient();
   AuthUser? _authUser;
+  String? _versaoCatalogo;
   VoidCallback? onAbrirAgenda;
   VoidCallback? onAbrirConfiguracoes;
   VoidCallback? onAbrirAjuda;
@@ -315,6 +316,86 @@ class AppState extends ChangeNotifier {
     await repo.excluirConvenio(nome);
     notifyListeners();
     unawaited(sincronizarNuvem());
+  }
+
+  Future<void> carregarCatalogoDaNuvem() async {
+    final body = await _cloud.loadCatalog();
+    if (body == null) return;
+    final versao = body['versao']?.toString() ?? '';
+    if (_versaoCatalogo == versao) return;
+
+    // Quando o catálogo muda, a API também renomeia os textos nos registros
+    // históricos. Recarregar o backup do próprio usuário mantém listas e
+    // relatórios locais iguais ao banco, sem misturar dados de outros perfis.
+    final dadosAtualizados = await _cloud.load();
+    if (dadosAtualizados != null) {
+      await repo.importarJson(dadosAtualizados, preservarTimeoutSessao: true);
+    } else {
+      final produtos = (body['produtos'] as List<dynamic>? ?? [])
+          .whereType<Map>()
+          .map((item) => Produto.fromJson(item))
+          .where((item) => item.nome.trim().isNotEmpty)
+          .toList();
+      final convenios = (body['convenios'] as List<dynamic>? ?? [])
+          .whereType<Map>()
+          .map((item) => Convenio.fromJson(item))
+          .where((item) => item.nome.trim().isNotEmpty)
+          .toList();
+      await repo.substituirProdutos(produtos);
+      await repo.substituirConvenios(convenios);
+    }
+    _versaoCatalogo = versao;
+    notifyListeners();
+  }
+
+  Future<String?> salvarProdutoMestre({Produto? anterior, required Produto produto}) async {
+    final action = anterior == null ? 'upsert' : anterior.nome == produto.nome ? 'upsert' : 'rename';
+    final error = await _cloud.saveCatalog(
+      entity: 'produto',
+      action: action,
+      oldName: action == 'rename' ? anterior!.nome : null,
+      name: produto.nome,
+      format: produto.formato,
+    );
+    if (error != null) return error;
+    if (anterior != null && anterior.nome != produto.nome) await repo.excluirProduto(anterior.nome);
+    await repo.salvarProduto(produto);
+    await carregarCatalogoDaNuvem();
+    return null;
+  }
+
+  Future<String?> excluirProdutoMestre(String nome) async {
+    final error = await _cloud.saveCatalog(entity: 'produto', action: 'delete', name: nome);
+    if (error != null) return error;
+    await repo.excluirProduto(nome);
+    _versaoCatalogo = null;
+    await carregarCatalogoDaNuvem();
+    return null;
+  }
+
+  Future<String?> salvarConvenioMestre({Convenio? anterior, required Convenio convenio}) async {
+    final action = anterior == null ? 'upsert' : anterior.nome == convenio.nome ? 'upsert' : 'rename';
+    final error = await _cloud.saveCatalog(
+      entity: 'convenio',
+      action: action,
+      oldName: action == 'rename' ? anterior!.nome : null,
+      name: convenio.nome,
+      code: convenio.codigo,
+    );
+    if (error != null) return error;
+    if (anterior != null && anterior.nome != convenio.nome) await repo.excluirConvenio(anterior.nome);
+    await repo.salvarConvenio(convenio);
+    await carregarCatalogoDaNuvem();
+    return null;
+  }
+
+  Future<String?> excluirConvenioMestre(String nome) async {
+    final error = await _cloud.saveCatalog(entity: 'convenio', action: 'delete', name: nome);
+    if (error != null) return error;
+    await repo.excluirConvenio(nome);
+    _versaoCatalogo = null;
+    await carregarCatalogoDaNuvem();
+    return null;
   }
 
   Future<void> salvarMeta(String produto, double valor) async {
