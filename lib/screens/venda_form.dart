@@ -37,6 +37,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
   final _nome = TextEditingController();
   final _telefone = TextEditingController();
   DateTime? _dataNascimento;
+  String? _cpfComDadosPreenchidos;
   final _valor = TextEditingController();
   final _obs = TextEditingController();
 
@@ -54,6 +55,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
       _cpf.text = Fmt.cpf(v.cpf);
       _nome.text = v.nome;
       _telefone.text = Fmt.telefone(v.telefone);
+      _cpfComDadosPreenchidos = v.cpf;
       _dataNascimento = v.dataNascimento ?? context.read<AppState>().clientePorCpf(v.cpf)?.dataNascimento;
       _produto = v.produto;
       _data = v.data;
@@ -68,6 +70,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
       }
       final cpfInicial = Fmt.somenteDigitos(widget.cpfInicial ?? '');
       if (cpfInicial.isNotEmpty) {
+        _cpfComDadosPreenchidos = cpfInicial.length == 11 ? cpfInicial : null;
         _dataNascimento = context.read<AppState>().clientePorCpf(cpfInicial)?.dataNascimento;
       }
       _produto = widget.produtoInicial;
@@ -89,6 +92,23 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
       : context.read<AppState>().formatoDoProduto(_produto!);
 
   bool get _ehQuantidade => _formatoAtual.toLowerCase() == 'quantidade';
+
+  void _preencherClientePorCpf(String texto) {
+    final cpf = Fmt.somenteDigitos(texto);
+    if (_cpfComDadosPreenchidos != null && _cpfComDadosPreenchidos != cpf) {
+      _nome.clear();
+      _telefone.clear();
+      _cpfComDadosPreenchidos = null;
+      if (mounted) setState(() => _dataNascimento = null);
+    }
+    if (cpf.length != 11 || !cpfValido(cpf)) return;
+    final cliente = context.read<AppState>().clientePorCpf(cpf);
+    if (cliente == null) return;
+    _nome.text = cliente.nome;
+    _telefone.text = Fmt.telefone(cliente.telefone);
+    _cpfComDadosPreenchidos = cpf;
+    if (mounted) setState(() => _dataNascimento = cliente.dataNascimento);
+  }
 
   Future<void> _escolherData() async {
     final d = await showDatePicker(
@@ -239,6 +259,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
   void _limpar() {
     setState(() {
       _cpf.clear();
+      _cpfComDadosPreenchidos = null;
       _nome.clear();
       _telefone.clear();
       _valor.clear();
@@ -330,6 +351,7 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
                           dica: '000.000.000-00',
                           teclado: TextInputType.number,
                           formatadores: [CpfInputFormatter()],
+                          onChanged: _preencherClientePorCpf,
                           prefixo: const Icon(Icons.badge_outlined, size: 20),
                           validador: (v) {
                             final d = Fmt.somenteDigitos(v ?? '');

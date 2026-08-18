@@ -22,6 +22,7 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
   final _nome = TextEditingController();
   final _telefone = TextEditingController();
   DateTime? _dataNascimento;
+  String? _cpfComDadosPreenchidos;
   final _obs = TextEditingController();
 
   bool _hoje = true;
@@ -39,6 +40,7 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
       _cpf.text = Fmt.cpf(p.cpf);
       _nome.text = p.nome;
       _telefone.text = Fmt.telefone(p.telefone);
+      _cpfComDadosPreenchidos = p.cpf;
       _dataNascimento = p.dataNascimento ?? context.read<AppState>().clientePorCpf(p.cpf)?.dataNascimento;
       _produto = p.produto;
       _data = p.data;
@@ -57,6 +59,23 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
     _telefone.dispose();
     _obs.dispose();
     super.dispose();
+  }
+
+  void _preencherClientePorCpf(String texto) {
+    final cpf = Fmt.somenteDigitos(texto);
+    if (_cpfComDadosPreenchidos != null && _cpfComDadosPreenchidos != cpf) {
+      _nome.clear();
+      _telefone.clear();
+      _cpfComDadosPreenchidos = null;
+      if (mounted) setState(() => _dataNascimento = null);
+    }
+    if (cpf.length != 11 || !cpfValido(cpf)) return;
+    final cliente = context.read<AppState>().clientePorCpf(cpf);
+    if (cliente == null) return;
+    _nome.text = cliente.nome;
+    _telefone.text = Fmt.telefone(cliente.telefone);
+    _cpfComDadosPreenchidos = cpf;
+    if (mounted) setState(() => _dataNascimento = cliente.dataNascimento);
   }
 
   Future<void> _escolherData({required bool retorno}) async {
@@ -162,6 +181,7 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
     if (!mounted) return;
     if (outro == true) {
       setState(() {
+        _cpfComDadosPreenchidos = Fmt.somenteDigitos(_cpf.text);
         _produto = null;
         _obs.clear();
       });
@@ -211,6 +231,7 @@ class _TelaProspeccaoFormState extends State<TelaProspeccaoForm> {
                           dica: '000.000.000-00',
                           teclado: TextInputType.number,
                           formatadores: [CpfInputFormatter()],
+                          onChanged: _preencherClientePorCpf,
                           prefixo: const Icon(Icons.badge_outlined, size: 20),
                           validador: (v) {
                             final d = Fmt.somenteDigitos(v ?? '');
