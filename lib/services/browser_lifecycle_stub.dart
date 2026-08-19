@@ -11,4 +11,5 @@ enum BrowserLifecycleEvent {
   blurred,
   pageShown,
   pageHidden,
+  activity,
 }

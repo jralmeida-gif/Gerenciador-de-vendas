@@ -17,6 +17,7 @@ class TelaVendaForm extends StatefulWidget {
   final String? nomeInicial;
   final String? telefoneInicial;
   final String? produtoInicial;
+  final String? prospeccaoOrigemId;
 
   const TelaVendaForm({
     super.key,
@@ -25,6 +26,7 @@ class TelaVendaForm extends StatefulWidget {
     this.nomeInicial,
     this.telefoneInicial,
     this.produtoInicial,
+    this.prospeccaoOrigemId,
   });
 
   @override
@@ -209,6 +211,19 @@ class _TelaVendaFormState extends State<TelaVendaForm> {
     }
 
     await estado.salvarVenda(venda);
+    final prospeccaoOrigemId = widget.prospeccaoOrigemId;
+    if (prospeccaoOrigemId != null) {
+      Prospeccao? origem;
+      for (final item in estado.prospeccoes) {
+        if (item.id == prospeccaoOrigemId) {
+          origem = item;
+          break;
+        }
+      }
+      if (origem != null && !origem.concluida) {
+        await estado.salvarProspeccao(origem.copyWith(concluida: true));
+      }
+    }
     if (!mounted) return;
 
     if (_editando) {

@@ -61,6 +61,9 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
         _verificar();
         _suspensaEm = null;
         break;
+      case BrowserLifecycleEvent.activity:
+        _registrarAtividade();
+        break;
     }
   }
 

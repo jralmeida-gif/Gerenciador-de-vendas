@@ -295,6 +295,7 @@ class _TelaProspeccaoListaState extends State<TelaProspeccaoLista>
                         nomeInicial: p.nome,
                         telefoneInicial: p.telefone,
                         produtoInicial: p.produto,
+                        prospeccaoOrigemId: p.id,
                       ),
                     ),
                   );

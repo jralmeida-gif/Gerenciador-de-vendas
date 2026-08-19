@@ -22,6 +22,9 @@ class BrowserLifecycle {
     web.window.addEventListener('blur', _onBlur.toJS);
     web.window.addEventListener('pageshow', _onPageShow.toJS);
     web.window.addEventListener('pagehide', _onPageHide.toJS);
+    web.document.addEventListener('pointerdown', _onActivity.toJS);
+    web.document.addEventListener('touchstart', _onActivity.toJS);
+    web.document.addEventListener('keydown', _onActivity.toJS);
   }
 
   static void _onVisibility(web.Event _) {
@@ -44,6 +47,10 @@ class BrowserLifecycle {
 
   static void _onPageHide(web.Event _) {
     _emit(BrowserLifecycleEvent.pageHidden);
+  }
+
+  static void _onActivity(web.Event _) {
+    _emit(BrowserLifecycleEvent.activity);
   }
 
   static void _emit(BrowserLifecycleEvent event) {
