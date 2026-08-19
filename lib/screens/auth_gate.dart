@@ -118,6 +118,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
     if (!mounted) return;
     appState.definirUsuarioAutenticado(result.user);
+    await appState.salvarUltimaAtividadeSessao(DateTime.now());
     setState(() {
       _cicloSessao++;
       _user = result.user;
@@ -191,6 +192,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
 
       // A tela deve sair imediatamente. A rede não pode impedir o logout local.
       if (mounted) {
+        await appState.limparUltimaAtividadeSessao();
         appState.definirUsuarioAutenticado(null);
         setState(() {
           _cicloSessao++;
@@ -217,6 +219,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       builder: (_, timeoutMinutes, __) => SessionGuard(
         key: ValueKey('session-$_cicloSessao-${_user!.id}'),
         timeout: Duration(minutes: timeoutMinutes),
+        ultimaAtividadeInicial: context.read<AppState>().ultimaAtividadeSessao,
+        onAtividade: context.read<AppState>().salvarUltimaAtividadeSessao,
         onTimeout: () => unawaited(sair()),
         child: TelaInicio(user: _user!, onLogout: () => unawaited(sair())),
       ),

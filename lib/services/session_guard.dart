@@ -8,8 +8,17 @@ class SessionGuard extends StatefulWidget {
   final Widget child;
   final Duration timeout;
   final VoidCallback onTimeout;
+  final DateTime? ultimaAtividadeInicial;
+  final Future<void> Function(DateTime)? onAtividade;
 
-  const SessionGuard({super.key, required this.child, required this.timeout, required this.onTimeout});
+  const SessionGuard({
+    super.key,
+    required this.child,
+    required this.timeout,
+    required this.onTimeout,
+    this.ultimaAtividadeInicial,
+    this.onAtividade,
+  });
 
   @override
   State<SessionGuard> createState() => _SessionGuardState();
@@ -18,7 +27,8 @@ class SessionGuard extends StatefulWidget {
 class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver {
   Timer? _timer;
   StreamSubscription<BrowserLifecycleEvent>? _browserLifecycleSubscription;
-  DateTime _ultimaAtividade = DateTime.now();
+  late DateTime _ultimaAtividade;
+  DateTime? _ultimaAtividadePersistida;
   DateTime? _suspensaEm;
   bool _encerrando = false;
 
@@ -28,8 +38,12 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
     // Cada montagem representa uma sessão nova. O reset explícito evita que
     // qualquer estado de uma instância anterior impeça o segundo ciclo.
     _encerrando = false;
-    _ultimaAtividade = DateTime.now();
+    final agora = DateTime.now();
+    final inicial = widget.ultimaAtividadeInicial;
+    _ultimaAtividade = inicial != null && !inicial.isAfter(agora) ? inicial : agora;
+    _ultimaAtividadePersistida = inicial;
     _suspensaEm = null;
+    if (inicial == null) unawaited(widget.onAtividade?.call(agora));
     WidgetsBinding.instance.addObserver(this);
     _browserLifecycleSubscription = BrowserLifecycle.events.listen(_onBrowserLifecycle);
     _iniciarMonitor();
@@ -69,8 +83,14 @@ class _SessionGuardState extends State<SessionGuard> with WidgetsBindingObserver
 
   void _registrarAtividade() {
     if (_encerrando) return;
-    _ultimaAtividade = DateTime.now();
+    final agora = DateTime.now();
+    _ultimaAtividade = agora;
     _suspensaEm = null;
+    final ultimaPersistida = _ultimaAtividadePersistida;
+    if (ultimaPersistida == null || agora.difference(ultimaPersistida) >= const Duration(seconds: 10)) {
+      _ultimaAtividadePersistida = agora;
+      unawaited(widget.onAtividade?.call(agora));
+    }
   }
 
   void _verificar() {

@@ -141,6 +141,10 @@ class Repositorio {
   String get recoveryEmail => (_config.get('recoveryEmail') ?? '') as String;
   String get avatarData => (_config.get('avatarData') ?? '') as String;
   int get idleTimeoutMinutes => (_config.get('idleTimeoutMinutes') ?? 30) as int;
+  DateTime? get ultimaAtividadeSessao {
+    final value = _config.get('ultimaAtividadeSessao');
+    return value is String ? DateTime.tryParse(value) : null;
+  }
   double get avatarScale => ((_config.get('avatarScale') as num?) ?? 1.0).toDouble();
   double get avatarOffsetX => ((_config.get('avatarOffsetX') as num?) ?? 0.0).toDouble();
   double get avatarOffsetY => ((_config.get('avatarOffsetY') as num?) ?? 0.0).toDouble();
@@ -173,6 +177,12 @@ class Repositorio {
 
   Future<void> salvarIdleTimeoutMinutes(int value) =>
       _config.put('idleTimeoutMinutes', value.clamp(15, 120));
+
+  Future<void> salvarUltimaAtividadeSessao(DateTime value) =>
+      _config.put('ultimaAtividadeSessao', value.toIso8601String());
+
+  Future<void> limparUltimaAtividadeSessao() =>
+      _config.delete('ultimaAtividadeSessao');
 
   Future<void> marcarBackup() =>
       _config.put('ultimoBackup', DateTime.now().toIso8601String());

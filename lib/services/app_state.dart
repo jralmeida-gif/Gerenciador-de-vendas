@@ -58,6 +58,7 @@ class AppState extends ChangeNotifier {
   double get avatarOffsetX => repo.avatarOffsetX;
   double get avatarOffsetY => repo.avatarOffsetY;
   int get idleTimeoutMinutes => repo.idleTimeoutMinutes;
+  DateTime? get ultimaAtividadeSessao => repo.ultimaAtividadeSessao;
   DateTime? get ultimoBackup => repo.ultimoBackup;
   List<Map<String, dynamic>> get backupsInternos => repo.backupsInternos;
 
@@ -106,6 +107,12 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     unawaited(sincronizarNuvem());
   }
+
+  Future<void> salvarUltimaAtividadeSessao(DateTime value) =>
+      repo.salvarUltimaAtividadeSessao(value);
+
+  Future<void> limparUltimaAtividadeSessao() =>
+      repo.limparUltimaAtividadeSessao();
 
   // ------------------- Listas -------------------
   /// Catálogo completo, incluindo produtos inativos preservados para histórico.
