@@ -250,24 +250,34 @@
         if (!window.isSecureContext || !('serviceWorker' in navigator) || !('PushManager' in window)) return 'unsupported';
         var permission = Notification.permission;
         if (permission === 'denied') return 'blocked';
-        var registration = await navigator.serviceWorker.getRegistration('/push/');
+        var registration = await navigator.serviceWorker.getRegistration('/');
         var subscription = registration ? await registration.pushManager.getSubscription() : null;
         return subscription && permission === 'granted' ? 'enabled' : permission === 'granted' ? 'available' : 'disabled';
       };
 
       window.gestorPushDisable = async function () {
         if (!('serviceWorker' in navigator)) return false;
-        var registration = await navigator.serviceWorker.getRegistration('/push/');
-        var subscription = registration ? await registration.pushManager.getSubscription() : null;
-        if (!subscription) return true;
-        var payload = subscription.toJSON();
-        var response = await fetch('/api/push/subscribe', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint: payload.endpoint })
-        });
-        if (!response.ok) return false;
-        return await subscription.unsubscribe();
+        var registrations = [];
+        var rootRegistration = await navigator.serviceWorker.getRegistration('/');
+        var legacyRegistration = await navigator.serviceWorker.getRegistration('/push/');
+        if (rootRegistration) registrations.push(rootRegistration);
+        if (legacyRegistration && legacyRegistration !== rootRegistration) registrations.push(legacyRegistration);
+        if (registrations.length === 0) return true;
+        var allOk = true;
+        for (var i = 0; i < registrations.length; i++) {
+          var registration = registrations[i];
+          var subscription = await registration.pushManager.getSubscription();
+          if (!subscription) continue;
+          var payload = subscription.toJSON();
+          var response = await fetch('/api/push/subscribe', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: payload.endpoint })
+          });
+          if (!response.ok) allOk = false;
+          else if (!(await subscription.unsubscribe())) allOk = false;
+        }
+        return allOk;
       };
 
       window.gestorPushOpenSettings = function () {
@@ -291,8 +301,10 @@
         var permission = await Notification.requestPermission();
         if (permission !== 'granted') return false;
 
-        var config = await fetch('/api/push/config').then(function (r) { return r.json(); });
-        var registration = await navigator.serviceWorker.register('/push/push-sw.js', { scope: '/push/' });
+        var configResponse = await fetch('/api/push/config');
+        if (!configResponse.ok) return false;
+        var config = await configResponse.json();
+        var registration = await navigator.serviceWorker.register('/push-sw.js', { scope: '/' });
         var subscription = await registration.pushManager.getSubscription();
         if (!subscription) {
           subscription = await registration.pushManager.subscribe({
