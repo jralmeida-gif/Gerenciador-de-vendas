@@ -59,6 +59,7 @@ class PushClient {
   static Future<void> syncRecords({
     required List<Map<String, dynamic>> portabilidades,
     required List<Map<String, dynamic>> prospeccoes,
+    required List<Map<String, dynamic>> clientes,
   }) async {
     if (!await isSupported()) return;
     try {
@@ -68,6 +69,7 @@ class PushClient {
         body: jsonEncode({
           'portabilidades': portabilidades,
           'prospeccoes': prospeccoes,
+          'clientes': clientes,
         }),
       );
     } catch (_) {

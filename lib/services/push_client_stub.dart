@@ -12,5 +12,6 @@ class PushClient {
   static Future<void> syncRecords({
     required List<Map<String, dynamic>> portabilidades,
     required List<Map<String, dynamic>> prospeccoes,
+    required List<Map<String, dynamic>> clientes,
   }) async {}
 }

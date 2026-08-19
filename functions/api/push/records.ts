@@ -16,9 +16,18 @@ interface ProspeccaoRecord {
   concluida: boolean;
 }
 
+interface ClienteRecord {
+  cpf: string;
+  nome: string;
+  telefone: string;
+  dataNascimento?: string | null;
+  observacoes?: string;
+}
+
 interface RecordsBody {
   portabilidades?: PortabilidadeRecord[];
   prospeccoes?: ProspeccaoRecord[];
+  clientes?: ClienteRecord[];
 }
 
 export const onRequestOptions: PagesFunction<AuthEnv> = ({ request }) => optionsResponse(request);
@@ -29,6 +38,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   const body = (await request.json().catch(() => ({}))) as RecordsBody;
   const portabilidades = body.portabilidades ?? [];
   const prospeccoes = body.prospeccoes ?? [];
+  const clientes = body.clientes ?? [];
   const batch: D1PreparedStatement[] = [];
 
   for (const p of portabilidades) {
@@ -53,6 +63,17 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
         concluida = excluded.concluida, updated_at = datetime('now')
        WHERE prospeccoes.user_id = excluded.user_id`,
     ).bind(p.id, user.id, p.dataRetorno ?? null, p.nome, p.produto ?? '', p.concluida ? 1 : 0));
+  }
+
+  for (const c of clientes) {
+    if (!c.cpf || !c.nome) continue;
+    batch.push(env.DB.prepare(
+      `INSERT INTO user_clients (user_id, cpf, name, phone, birth_date, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(user_id, cpf) DO UPDATE SET
+        name = excluded.name, phone = excluded.phone, birth_date = excluded.birth_date,
+        notes = excluded.notes, updated_at = datetime('now')`,
+    ).bind(user.id, c.cpf, c.nome, c.telefone ?? '', c.dataNascimento ?? null, c.observacoes ?? ''));
   }
 
   if (batch.length > 0) await env.DB.batch(batch);

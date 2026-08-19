@@ -186,6 +186,7 @@ class AppState extends ChangeNotifier {
     await repo.salvarCliente(c);
     notifyListeners();
     unawaited(sincronizarNuvem());
+    await sincronizarPrazosPush();
   }
 
   /// Cria ou atualiza o cadastro consolidado a partir de qualquer processo.
@@ -211,6 +212,7 @@ class AppState extends ChangeNotifier {
     await repo.salvarVenda(v);
     notifyListeners();
     unawaited(sincronizarNuvem());
+    await sincronizarPrazosPush();
   }
 
   Future<void> excluirVenda(String id) async {
@@ -293,6 +295,17 @@ class AppState extends ChangeNotifier {
               'nome': p.nome,
               'produto': p.produto,
               'concluida': p.concluida,
+            },
+          )
+          .toList(),
+      clientes: clientes
+          .map(
+            (c) => {
+              'cpf': c.cpf,
+              'nome': c.nome,
+              'telefone': c.telefone,
+              'dataNascimento': c.dataNascimento?.toIso8601String(),
+              'observacoes': c.observacoes,
             },
           )
           .toList(),

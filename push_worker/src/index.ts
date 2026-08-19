@@ -18,22 +18,39 @@ function localParts(date: Date) {
   return { year: Number(value('year')), month: Number(value('month')), day: Number(value('day')), hour: Number(value('hour')), minute: Number(value('minute')) };
 }
 function localDateKey(date: Date) { const p = localParts(date); return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`; }
-function dateOnly(value: string | null) { if (!value) return null; const date = new Date(value); if (Number.isNaN(date.valueOf())) return null; const p = localParts(date); return Date.UTC(p.year, p.month - 1, p.day); }
+function dateOnly(value: string | null) {
+  if (!value) return null;
+  const text = String(value).trim();
+  const calendar = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+  if (calendar) return Date.UTC(Number(calendar[1]), Number(calendar[2]) - 1, Number(calendar[3]));
+  const date = new Date(text);
+  if (Number.isNaN(date.valueOf())) return null;
+  const p = localParts(date);
+  return Date.UTC(p.year, p.month - 1, p.day);
+}
 function daysBetween(from: string, now: Date) { const start = dateOnly(from); const current = dateOnly(now.toISOString()); if (start === null || current === null) return null; return Math.floor((current - start) / 86400000); }
 async function alreadySent(env: Env, key: string) { return Boolean(await env.DB.prepare('SELECT dedupe_key FROM notifications_sent WHERE dedupe_key = ? AND user_id = ?').bind(key.split('|')[0], key.split('|')[1]).first()); }
 async function markSent(env: Env, key: string, userId: string) { await env.DB.prepare('INSERT OR IGNORE INTO notifications_sent (dedupe_key, user_id) VALUES (?, ?)').bind(key, userId).run(); }
 
-async function sendToUser(env: Env, userId: string, payload: { title: string; body: string; tag: string; url: string }) {
+async function sendToUser(env: Env, userId: string, payload: { title: string; body: string; tag: string; url: string }): Promise<boolean> {
   const rows = await env.DB.prepare('SELECT endpoint, user_id, p256dh, auth, expiration_time FROM push_subscriptions WHERE user_id = ?').bind(userId).all<SubscriptionRow>();
   const vapid: VapidKeys = { subject: env.VAPID_SUBJECT, publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY };
+  let delivered = false;
   for (const row of rows.results ?? []) {
     const subscription: PushSubscription = { endpoint: row.endpoint, expirationTime: row.expiration_time, keys: { p256dh: row.p256dh, auth: row.auth } };
     try {
       const requestInit = await buildPushPayload({ data: JSON.stringify(payload), options: { ttl: 86400 } }, subscription, vapid);
       const response = await fetch(row.endpoint, requestInit as RequestInit);
-      if (response.status === 404 || response.status === 410) await env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?').bind(row.endpoint, userId).run();
+      if (response.ok) {
+        delivered = true;
+      } else if (response.status === 404 || response.status === 410) {
+        await env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?').bind(row.endpoint, userId).run();
+      } else {
+        console.error('Provedor de push recusou a mensagem', response.status, row.endpoint);
+      }
     } catch (error) { console.error('Falha ao enviar push', row.endpoint, error); }
   }
+  return delivered;
 }
 
 async function scheduleAlerts(env: Env, now: Date) {
@@ -45,19 +62,19 @@ async function scheduleAlerts(env: Env, now: Date) {
     if (elapsed === null || elapsed <= 0 || elapsed % 5 !== 0 || parts.hour !== 9) continue;
     const key = `portabilidade:${p.id}:${dateKey}:09`;
     if (await alreadySent(env, `${key}|${p.user_id}`)) continue;
-    await sendToUser(env, p.user_id, { title: 'Portabilidade pendente', body: `${p.nome} — pedido de ${p.convenio || 'portabilidade'} está pendente há ${elapsed} dias.`, tag: `portabilidade-${p.id}`, url: '/#/portabilidades' });
-    await markSent(env, key, p.user_id);
+    const enviado = await sendToUser(env, p.user_id, { title: 'Portabilidade pendente', body: `${p.nome} — pedido de ${p.convenio || 'portabilidade'} está pendente há ${elapsed} dias.`, tag: `portabilidade-${p.id}`, url: '/#/portabilidades' });
+    if (enviado) await markSent(env, key, p.user_id);
   }
   const clientes = await env.DB.prepare('SELECT cpf, user_id, name, birth_date FROM user_clients WHERE birth_date IS NOT NULL AND birth_date != \'\' AND user_id IS NOT NULL AND user_id != \'unassigned\'').all<BirthdayRow>();
-  if (parts.hour === 9) {
+  if (parts.hour === 9 || parts.hour === 14) {
     for (const c of clientes.results ?? []) {
       const birth = String(c.birth_date ?? '').slice(0, 10);
       const [, month, day] = birth.split('-').map(Number);
       if (!month || !day || month !== parts.month || day !== parts.day) continue;
       const key = `aniversario:${c.cpf}:${dateKey}:09`;
       if (await alreadySent(env, `${key}|${c.user_id}`)) continue;
-      await sendToUser(env, c.user_id, { title: 'Aniversário de cliente', body: `${c.name} faz aniversário hoje.`, tag: `aniversario-${c.cpf}`, url: '/#/agenda' });
-      await markSent(env, key, c.user_id);
+      const enviado = await sendToUser(env, c.user_id, { title: 'Aniversário de cliente', body: `${c.name} faz aniversário hoje.`, tag: `aniversario-${c.cpf}`, url: '/#/agenda' });
+      if (enviado) await markSent(env, key, c.user_id);
     }
   }
   const prospeccoes = await env.DB.prepare('SELECT id, user_id, data_retorno, nome, produto FROM prospeccoes WHERE concluida = 0 AND data_retorno IS NOT NULL AND user_id IS NOT NULL AND user_id != \'unassigned\'').all<ProspectRow>();
@@ -69,8 +86,8 @@ async function scheduleAlerts(env: Env, now: Date) {
     const key = `prospeccao:${p.id}:${dateKey}:${slot}`;
     if (await alreadySent(env, `${key}|${p.user_id}`)) continue;
     const quando = daysUntil === 1 ? 'amanhã' : parts.hour === 9 ? 'hoje às 9h' : 'hoje às 14h';
-    await sendToUser(env, p.user_id, { title: 'Retorno de prospecção', body: `${p.nome} — retorno de ${p.produto} ${quando}.`, tag: `prospeccao-${p.id}-${slot}`, url: '/#/prospeccao' });
-    await markSent(env, key, p.user_id);
+    const enviado = await sendToUser(env, p.user_id, { title: 'Retorno de prospecção', body: `${p.nome} — retorno de ${p.produto} ${quando}.`, tag: `prospeccao-${p.id}-${slot}`, url: '/#/prospeccao' });
+    if (enviado) await markSent(env, key, p.user_id);
   }
 }
 export default { async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext) { ctx.waitUntil(scheduleAlerts(env, new Date())); } };
