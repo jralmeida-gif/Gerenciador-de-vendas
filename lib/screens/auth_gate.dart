@@ -190,15 +190,17 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       _logoutEmAndamento = true;
       final appState = context.read<AppState>();
 
-      // A tela deve sair imediatamente. A rede não pode impedir o logout local.
+      // A troca visual precisa acontecer antes de qualquer await. Assim, o
+      // conteúdo autenticado não permanece visível enquanto a limpeza local
+      // é executada.
       if (mounted) {
-        await appState.limparUltimaAtividadeSessao();
         appState.definirUsuarioAutenticado(null);
         setState(() {
           _cicloSessao++;
           _user = null;
         });
       }
+      unawaited(appState.limparUltimaAtividadeSessao());
 
       // Inicia a limpeza do perfil local sem bloquear a troca visual para o login.
       // Um login novo aguarda essa operação para evitar misturar perfis locais.
