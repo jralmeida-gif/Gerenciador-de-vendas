@@ -84,11 +84,21 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       return;
     }
     final appState = context.read<AppState>();
-    final user = await _auth.session();
+    var user = await _auth.session();
     var setup = false;
     if (user != null) {
       await widget.repo.switchProfile(user.username);
-      if (mounted) {
+      final ultimaAtividade = appState.ultimaAtividadeSessao;
+      final expirouPorInatividade = ultimaAtividade != null &&
+          DateTime.now().difference(ultimaAtividade) >=
+              Duration(minutes: appState.idleTimeoutMinutes);
+      if (expirouPorInatividade) {
+        await appState.limparUltimaAtividadeSessao();
+        await widget.repo.switchProfile('guest');
+        appState.definirUsuarioAutenticado(null);
+        unawaited(_auth.logout());
+        user = null;
+      } else if (mounted) {
         await appState.carregarDaNuvem();
         unawaited(appState.criarBackupInterno());
       }
