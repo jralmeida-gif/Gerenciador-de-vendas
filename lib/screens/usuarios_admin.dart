@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_client.dart';
+import '../widgets/comuns.dart';
 
 class TelaUsuariosAdmin extends StatefulWidget {
   const TelaUsuariosAdmin({super.key});
@@ -41,7 +42,7 @@ class _TelaUsuariosAdminState extends State<TelaUsuariosAdmin> {
           title: const Text('Cadastrar usuário'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             TextField(controller: username, decoration: const InputDecoration(labelText: 'Usuário ou e-mail')),
-            TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'Senha temporária')),
+            CampoSenha(controller: password, labelText: 'Senha temporária'),
             DropdownButtonFormField<String>(
               initialValue: role,
               decoration: const InputDecoration(labelText: 'Perfil'),
@@ -103,7 +104,7 @@ class _TelaUsuariosAdminState extends State<TelaUsuariosAdmin> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Redefinir senha temporária'),
-        content: TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'Nova senha temporária', helperText: 'O usuário deverá trocá-la no próximo acesso.')),
+        content: CampoSenha(controller: password, labelText: 'Nova senha temporária', helperText: 'O usuário deverá trocá-la no próximo acesso.'),
         actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Redefinir'))],
       ),
     );

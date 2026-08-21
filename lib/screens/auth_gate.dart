@@ -8,6 +8,7 @@ import '../services/repositorio.dart';
 import '../services/app_state.dart';
 import '../services/session_guard.dart';
 import '../theme/app_theme.dart';
+import '../widgets/comuns.dart';
 import 'inicio.dart';
 
 class AuthGate extends StatefulWidget {
@@ -304,7 +305,7 @@ class _LoginViewState extends State<LoginView> {
         children: [
           TextField(controller: _username, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Usuário ou e-mail', prefixIcon: Icon(Icons.person_outline))),
           const SizedBox(height: 14),
-          TextField(controller: _password, obscureText: true, decoration: InputDecoration(labelText: widget.setup ? 'Senha inicial' : 'Senha', prefixIcon: const Icon(Icons.lock_outline))),
+          CampoSenha(controller: _password, labelText: widget.setup ? 'Senha inicial' : 'Senha'),
           const SizedBox(height: 22),
           SizedBox(width: double.infinity, child: FilledButton(onPressed: _busy ? null : _submit, child: _busy ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(widget.setup ? 'Criar administrador' : 'Entrar'))),
           if (!widget.setup) ...[
@@ -348,9 +349,9 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
 
   @override
   Widget build(BuildContext context) => _AuthScaffold(title: 'Redefinir senha', subtitle: 'Crie uma nova senha para acessar o Gestor de Vendas.', children: [
-    TextField(controller: _newPassword, obscureText: true, decoration: const InputDecoration(labelText: 'Nova senha')),
+    CampoSenha(controller: _newPassword, labelText: 'Nova senha'),
     const SizedBox(height: 14),
-    TextField(controller: _confirm, obscureText: true, decoration: const InputDecoration(labelText: 'Confirme a nova senha')),
+    CampoSenha(controller: _confirm, labelText: 'Confirme a nova senha'),
     const SizedBox(height: 22),
     SizedBox(width: double.infinity, child: FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Salvando...' : 'Redefinir senha'))),
   ]);
@@ -382,9 +383,9 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
   }
   @override
   Widget build(BuildContext context) => _AuthScaffold(title: 'Crie sua senha definitiva', subtitle: 'Por segurança, a senha temporária precisa ser trocada antes do primeiro acesso.', children: [
-        TextField(controller: _current, obscureText: true, decoration: const InputDecoration(labelText: 'Senha temporária')),
-        const SizedBox(height: 14), TextField(controller: _newPassword, obscureText: true, decoration: const InputDecoration(labelText: 'Nova senha')),
-        const SizedBox(height: 14), TextField(controller: _confirm, obscureText: true, decoration: const InputDecoration(labelText: 'Confirme a nova senha')),
+        CampoSenha(controller: _current, labelText: 'Senha temporária'),
+        const SizedBox(height: 14), CampoSenha(controller: _newPassword, labelText: 'Nova senha'),
+        const SizedBox(height: 14), CampoSenha(controller: _confirm, labelText: 'Confirme a nova senha'),
         const SizedBox(height: 22), SizedBox(width: double.infinity, child: FilledButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Salvando...' : 'Salvar nova senha'))),
       ]);
 }

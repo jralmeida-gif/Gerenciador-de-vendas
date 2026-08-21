@@ -834,6 +834,53 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       ),
     );
     if (ok != true || !context.mounted) return;
+
+    final senha = TextEditingController();
+    final senhaInformada = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirme com sua senha'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Para concluir a limpeza de $rotulo, informe sua senha atual.',
+              style: const TextStyle(height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            CampoSenha(controller: senha, labelText: 'Senha atual'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, senha.text),
+            child: const Text('Confirmar limpeza'),
+          ),
+        ],
+      ),
+    );
+    senha.dispose();
+    if (senhaInformada == null || senhaInformada.isEmpty || !context.mounted) return;
+
+    final erroSenha = await AuthClient().verificarSenha(senhaInformada);
+    if (!context.mounted) return;
+    if (erroSenha != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(erroSenha),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     await context.read<AppState>().limparBase(chave);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

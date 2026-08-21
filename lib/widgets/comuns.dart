@@ -972,3 +972,45 @@ class _MenuRodapeItem extends StatelessWidget {
     );
   }
 }
+
+/// Campo de senha com controle explícito para mostrar ou ocultar o conteúdo.
+class CampoSenha extends StatefulWidget {
+  final TextEditingController controller;
+  final String labelText;
+  final String? helperText;
+  final bool enabled;
+
+  const CampoSenha({
+    super.key,
+    required this.controller,
+    required this.labelText,
+    this.helperText,
+    this.enabled = true,
+  });
+
+  @override
+  State<CampoSenha> createState() => _CampoSenhaState();
+}
+
+class _CampoSenhaState extends State<CampoSenha> {
+  bool _visivel = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: widget.controller,
+      enabled: widget.enabled,
+      obscureText: !_visivel,
+      decoration: InputDecoration(
+        labelText: widget.labelText,
+        helperText: widget.helperText,
+        prefixIcon: const Icon(Icons.lock_outline),
+        suffixIcon: IconButton(
+          tooltip: _visivel ? 'Ocultar senha' : 'Mostrar senha',
+          icon: Icon(_visivel ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+          onPressed: () => setState(() => _visivel = !_visivel),
+        ),
+      ),
+    );
+  }
+}

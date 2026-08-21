@@ -136,6 +136,23 @@ class AuthClient {
     }
   }
 
+  Future<String?> verificarSenha(String password) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$_origin/api/auth/verify-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'password': password}),
+      );
+      if (response.statusCode >= 200 && response.statusCode < 300) return null;
+      final body = response.body.trim().isEmpty
+          ? const <String, dynamic>{}
+          : jsonDecode(response.body) as Map<String, dynamic>;
+      return body['error']?.toString() ?? 'Não foi possível confirmar a senha.';
+    } catch (_) {
+      return 'Não foi possível conectar ao servidor.';
+    }
+  }
+
   Future<List<Map<String, dynamic>>> listUsers() async {
     final response = await _client.get(Uri.parse('$_origin/api/auth/users'));
     if (response.statusCode != 200) throw Exception('Não foi possível carregar os usuários.');
