@@ -53,7 +53,9 @@ jobs:
     environment: production
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Account ID não é credencial; fixado para garantir que o token seja
+      # usado na conta que contém o D1 e o projeto Pages de produção.
+      CLOUDFLARE_ACCOUNT_ID: 2b8edd465196defbd06a224e278fc748
       VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
       VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
     steps:
