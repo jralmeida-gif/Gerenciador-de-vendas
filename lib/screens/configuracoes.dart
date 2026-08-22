@@ -28,13 +28,25 @@ class _AvatarPerfil extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (data.isEmpty) {
-      return CircleAvatar(radius: raio, backgroundColor: AppColors.primary, child: Icon(Icons.person, color: Colors.white, size: raio));
+      return CircleAvatar(
+        radius: raio,
+        backgroundColor: AppColors.primary,
+        child: Icon(Icons.person, color: Colors.white, size: raio),
+      );
     }
     try {
       final encoded = data.contains(',') ? data.split(',').last : data;
-      return CircleAvatar(key: ValueKey(data), radius: raio, backgroundImage: MemoryImage(base64Decode(encoded)));
+      return CircleAvatar(
+        key: ValueKey(data),
+        radius: raio,
+        backgroundImage: MemoryImage(base64Decode(encoded)),
+      );
     } catch (_) {
-      return CircleAvatar(radius: raio, backgroundColor: AppColors.primary, child: Icon(Icons.person, color: Colors.white, size: raio));
+      return CircleAvatar(
+        radius: raio,
+        backgroundColor: AppColors.primary,
+        child: Icon(Icons.person, color: Colors.white, size: raio),
+      );
     }
   }
 }
@@ -44,7 +56,12 @@ class _AvatarEnquadrado extends StatelessWidget {
   final double escala;
   final double deslocamentoX;
   final double deslocamentoY;
-  const _AvatarEnquadrado({required this.imageBytes, required this.escala, required this.deslocamentoX, required this.deslocamentoY});
+  const _AvatarEnquadrado({
+    required this.imageBytes,
+    required this.escala,
+    required this.deslocamentoX,
+    required this.deslocamentoY,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +69,14 @@ class _AvatarEnquadrado extends StatelessWidget {
       offset: Offset(deslocamentoX * 70, deslocamentoY * 70),
       child: Transform.scale(
         scale: escala,
-        child: Image.memory(imageBytes, width: 190, height: 190, fit: BoxFit.cover, gaplessPlayback: true, filterQuality: FilterQuality.low),
+        child: Image.memory(
+          imageBytes,
+          width: 190,
+          height: 190,
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+          filterQuality: FilterQuality.low,
+        ),
       ),
     );
   }
@@ -69,6 +93,9 @@ class TelaConfiguracoes extends StatefulWidget {
 
 class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   String _statusNotificacoes = 'carregando';
+  bool _limpezaGlobalCatalogo = false;
+  bool _limpezaGlobalUsuarios = false;
+  bool _limpezaGlobalEmAndamento = false;
 
   @override
   void initState() {
@@ -95,8 +122,10 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
             voltarGlobal: true,
             mostrarAcoesGlobais: false,
             ajudaContextualTitulo: 'Configurações',
-            ajudaContextualTexto: 'Administra perfil, foto, notificações, usuários, backup e ajuda.',
-            ajudaContextualComoUsar: 'Escolha uma opção e salve as alterações. Administradores possuem ações adicionais de gerenciamento.',
+            ajudaContextualTexto:
+                'Administra perfil, foto, notificações, usuários, backup e ajuda.',
+            ajudaContextualComoUsar:
+                'Escolha uma opção e salve as alterações. Administradores possuem ações adicionais de gerenciamento.',
           ),
           Expanded(
             child: ListView(
@@ -110,7 +139,8 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                         icone: Icons.manage_accounts_outlined,
                         titulo: 'Editar perfil',
                         valor: 'Alias, foto, e-mail e telefone',
-                        onTap: () => _editarPerfil(context, widget.user.username),
+                        onTap: () =>
+                            _editarPerfil(context, widget.user.username),
                       ),
                       _Item(
                         icone: Icons.timer_outlined,
@@ -138,7 +168,10 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                       if (abrir != null) {
                         abrir();
                       } else {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAjuda()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TelaAjuda()),
+                        );
                       }
                     },
                   ),
@@ -151,7 +184,12 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                       icone: Icons.admin_panel_settings_outlined,
                       titulo: 'Usuários do sistema',
                       valor: 'Cadastrar, ativar e definir perfis',
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaUsuariosAdmin())),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const TelaUsuariosAdmin(),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -259,8 +297,13 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               onPressed: () => _criarBackupInterno(context),
-                              icon: const Icon(Icons.cloud_done_outlined, size: 19),
-                              label: const RotuloBotao('CRIAR BACKUP AUTOMÁTICO DO APP'),
+                              icon: const Icon(
+                                Icons.cloud_done_outlined,
+                                size: 19,
+                              ),
+                              label: const RotuloBotao(
+                                'CRIAR BACKUP AUTOMÁTICO DO APP',
+                              ),
                             ),
                           ),
                           const SizedBox(height: 9),
@@ -269,15 +312,23 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                               Expanded(
                                 child: OutlinedButton.icon(
                                   onPressed: () => _exportar(context),
-                                  icon: const Icon(Icons.folder_outlined, size: 19),
-                                  label: const RotuloBotao('SALVAR ARQUIVO DE BACKUP'),
+                                  icon: const Icon(
+                                    Icons.folder_outlined,
+                                    size: 19,
+                                  ),
+                                  label: const RotuloBotao(
+                                    'SALVAR ARQUIVO DE BACKUP',
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 9),
                               Expanded(
                                 child: OutlinedButton.icon(
                                   onPressed: () => _importar(context),
-                                  icon: const Icon(Icons.restore_outlined, size: 19),
+                                  icon: const Icon(
+                                    Icons.restore_outlined,
+                                    size: 19,
+                                  ),
                                   label: const RotuloBotao('IMPORTAR'),
                                 ),
                               ),
@@ -296,7 +347,11 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                     children: [
                       const Text(
                         'Receba avisos de portabilidades pendentes e retornos de prospecção, mesmo quando o app estiver fechado.',
-                        style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.4),
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textSecondary,
+                          height: 1.4,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       _StatusNotificacoes(status: _statusNotificacoes),
@@ -309,11 +364,19 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                               final ok = await PushClient.disable();
                               await _atualizarStatusNotificacoes();
                               if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text(ok ? 'Notificações desativadas neste dispositivo.' : 'Não foi possível desativar as notificações.'),
-                                backgroundColor: ok ? AppColors.warning : AppColors.danger,
-                                behavior: SnackBarBehavior.floating,
-                              ));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    ok
+                                        ? 'Notificações desativadas neste dispositivo.'
+                                        : 'Não foi possível desativar as notificações.',
+                                  ),
+                                  backgroundColor: ok
+                                      ? AppColors.warning
+                                      : AppColors.danger,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
                             },
                             icon: const Icon(Icons.notifications_off_outlined),
                             label: const RotuloBotao('DESATIVAR NOTIFICAÇÕES'),
@@ -328,16 +391,31 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                               if (ok) await estado.sincronizarPrazosPush();
                               await _atualizarStatusNotificacoes();
                               if (!context.mounted) return;
-                              if (!ok && (await PushClient.status()) == 'blocked') {
+                              if (!ok &&
+                                  (await PushClient.status()) == 'blocked') {
                                 if (!context.mounted) return;
                                 final abrir = await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
-                                    title: const Text('Notificações bloqueadas'),
-                                    content: const Text('Ative as notificações nas configurações do telefone para receber avisos do Gestor de Vendas.'),
+                                    title: const Text(
+                                      'Notificações bloqueadas',
+                                    ),
+                                    content: const Text(
+                                      'Ative as notificações nas configurações do telefone para receber avisos do Gestor de Vendas.',
+                                    ),
                                     actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Agora não')),
-                                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Abrir configurações')),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, false),
+                                        child: const Text('Agora não'),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, true),
+                                        child: const Text(
+                                          'Abrir configurações',
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 );
@@ -345,14 +423,24 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                                 if (abrir == true) PushClient.openSettings();
                               } else {
                                 if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: Text(ok ? 'Notificações ativadas neste dispositivo.' : 'Não foi possível ativar as notificações.'),
-                                  backgroundColor: ok ? AppColors.success : AppColors.warning,
-                                  behavior: SnackBarBehavior.floating,
-                                ));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      ok
+                                          ? 'Notificações ativadas neste dispositivo.'
+                                          : 'Não foi possível ativar as notificações.',
+                                    ),
+                                    backgroundColor: ok
+                                        ? AppColors.success
+                                        : AppColors.warning,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
                               }
                             },
-                            icon: const Icon(Icons.notifications_active_outlined),
+                            icon: const Icon(
+                              Icons.notifications_active_outlined,
+                            ),
                             label: const RotuloBotao('ATIVAR NOTIFICAÇÕES'),
                           ),
                         ),
@@ -390,6 +478,88 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                     ],
                   ),
                 ),
+                if (widget.user.isAdmin) ...[
+                  const SizedBox(height: 14),
+                  CartaoSecao(
+                    titulo: 'Limpeza global de dados',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Operação administrativa para apagar dados de todos os usuários. As contas administrativas serão preservadas.',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: AppColors.textSecondary,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: true,
+                          onChanged: null,
+                          title: const Text('Dados de negócio'),
+                          subtitle: const Text(
+                            'Obrigatório: vendas, portabilidades, prospecções, clientes, metas e campanhas.',
+                          ),
+                          controlAffinity: ListTileControlAffinity.leading,
+                        ),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: _limpezaGlobalCatalogo,
+                          onChanged: _limpezaGlobalEmAndamento
+                              ? null
+                              : (value) => setState(
+                                  () => _limpezaGlobalCatalogo = value ?? false,
+                                ),
+                          title: const Text('Catálogo de produtos e convênios'),
+                          subtitle: const Text(
+                            'Apaga o catálogo mestre; será necessário cadastrá-lo novamente.',
+                          ),
+                          controlAffinity: ListTileControlAffinity.leading,
+                        ),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: _limpezaGlobalUsuarios,
+                          onChanged: _limpezaGlobalEmAndamento
+                              ? null
+                              : (value) => setState(
+                                  () => _limpezaGlobalUsuarios = value ?? false,
+                                ),
+                          title: const Text('Dados de usuário'),
+                          subtitle: const Text(
+                            'Exclui usuários comuns e seus dados; mantém as contas administrativas.',
+                          ),
+                          controlAffinity: ListTileControlAffinity.leading,
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: _limpezaGlobalEmAndamento
+                              ? null
+                              : () => _limparGlobalmente(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.danger,
+                          ),
+                          icon: _limpezaGlobalEmAndamento
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.delete_forever_outlined),
+                          label: RotuloBotao(
+                            _limpezaGlobalEmAndamento
+                                ? 'PROCESSANDO...'
+                                : 'APAGAR DADOS SELECIONADOS',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 const Center(
                   child: Text(
@@ -416,10 +586,18 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Sair do aplicativo?'),
-        content: const Text('A sessão será encerrada neste dispositivo. Seus dados sincronizados permanecerão separados na sua conta.'),
+        content: const Text(
+          'A sessão será encerrada neste dispositivo. Seus dados sincronizados permanecerão separados na sua conta.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Continuar no app')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sair')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Continuar no app'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sair'),
+          ),
         ],
       ),
     );
@@ -428,14 +606,22 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
 
   static Future<void> _editarAvatar(BuildContext context) async {
     final estado = context.read<AppState>();
-    final res = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
     if (res == null || res.files.isEmpty || !context.mounted) return;
     final bytes = res.files.first.bytes;
     if (bytes == null || bytes.length > 2 * 1024 * 1024) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Escolha uma imagem de até 2 MB.')));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Escolha uma imagem de até 2 MB.')),
+        );
+      }
       return;
     }
-    final encoded = 'data:image/${res.files.first.extension ?? 'jpeg'};base64,${base64Encode(bytes)}';
+    final encoded =
+        'data:image/${res.files.first.extension ?? 'jpeg'};base64,${base64Encode(bytes)}';
     var escala = estado.avatarScale;
     var escalaInicial = escala;
     var deslocamentoX = estado.avatarOffsetX;
@@ -454,8 +640,12 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                   onScaleStart: (_) => escalaInicial = escala,
                   onScaleUpdate: (details) => setDialog(() {
                     escala = (escalaInicial * details.scale).clamp(1.0, 3.0);
-                    deslocamentoX = (deslocamentoX + details.focalPointDelta.dx / 150).clamp(-1.0, 1.0);
-                    deslocamentoY = (deslocamentoY + details.focalPointDelta.dy / 150).clamp(-1.0, 1.0);
+                    deslocamentoX =
+                        (deslocamentoX + details.focalPointDelta.dx / 150)
+                            .clamp(-1.0, 1.0);
+                    deslocamentoY =
+                        (deslocamentoY + details.focalPointDelta.dy / 150)
+                            .clamp(-1.0, 1.0);
                   }),
                   child: ClipOval(
                     child: Container(
@@ -472,20 +662,37 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text('Mova a foto e use dois dedos para aproximar ou afastar.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                const Text(
+                  'Mova a foto e use dois dedos para aproximar ou afastar.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Salvar')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Salvar'),
+            ),
           ],
         ),
       ),
     );
     if (salvo == true && context.mounted) {
       await estado.salvarAvatarData(encoded);
-      await estado.salvarAvatarEnquadramento(escala: escala, deslocamentoX: deslocamentoX, deslocamentoY: deslocamentoY);
+      await estado.salvarAvatarEnquadramento(
+        escala: escala,
+        deslocamentoX: deslocamentoX,
+        deslocamentoY: deslocamentoY,
+      );
     }
   }
 
@@ -495,10 +702,14 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('Bloqueio por inatividade'),
-        children: [15, 30, 60].map((minutos) => SimpleDialogOption(
-          onPressed: () => Navigator.pop(ctx, minutos),
-          child: Text('$minutos minutos'),
-        )).toList(),
+        children: [15, 30, 60]
+            .map(
+              (minutos) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, minutos),
+                child: Text('$minutos minutos'),
+              ),
+            )
+            .toList(),
       ),
     );
     if (escolha != null) await estado.salvarIdleTimeoutMinutes(escolha);
@@ -519,14 +730,26 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Telefone do perfil'),
-        content: TextField(controller: ctrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Telefone opcional')),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(labelText: 'Telefone opcional'),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Salvar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Salvar'),
+          ),
         ],
       ),
     );
-    if (ok == true) await estado.salvarTelefoneUsuario(Fmt.somenteDigitos(ctrl.text));
+    if (ok == true) {
+      await estado.salvarTelefoneUsuario(Fmt.somenteDigitos(ctrl.text));
+    }
   }
 
   static Future<void> _editarRecoveryEmail(BuildContext context) async {
@@ -536,14 +759,28 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('E-mail de recuperação'),
-        content: TextField(controller: ctrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'E-mail que receberá o link')),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'E-mail que receberá o link',
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () {
-            final email = ctrl.text.trim();
-            if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) return;
-            Navigator.pop(ctx, true);
-          }, child: const Text('Salvar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final email = ctrl.text.trim();
+              if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+                return;
+              }
+              Navigator.pop(ctx, true);
+            },
+            child: const Text('Salvar'),
+          ),
         ],
       ),
     );
@@ -625,7 +862,9 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Não foi possível abrir o salvamento automático. Escolha novamente o local ou tente pelo Safari.'),
+          content: Text(
+            'Não foi possível abrir o salvamento automático. Escolha novamente o local ou tente pelo Safari.',
+          ),
           backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
         ),
@@ -672,7 +911,10 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('Restaurar backup'), subtitle: Text('Escolha a origem do arquivo')),
+            const ListTile(
+              title: Text('Restaurar backup'),
+              subtitle: Text('Escolha a origem do arquivo'),
+            ),
             ListTile(
               leading: const Icon(Icons.cloud_done_outlined),
               title: const Text('Restaurar backup do app'),
@@ -702,7 +944,11 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
     final estado = context.read<AppState>();
     final backups = estado.backupsInternos;
     if (backups.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ainda não existe backup automático interno.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ainda não existe backup automático interno.'),
+        ),
+      );
       return;
     }
     final id = await showModalBottomSheet<String>(
@@ -713,11 +959,17 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
           children: [
             const ListTile(title: Text('Backups automáticos do app')),
             ...backups.map((backup) {
-              final data = DateTime.tryParse(backup['geradoEm'] as String? ?? '');
-              final tamanho = (((backup['tamanho'] as num?)?.toDouble() ?? 0) / 1024).toStringAsFixed(0);
+              final data = DateTime.tryParse(
+                backup['geradoEm'] as String? ?? '',
+              );
+              final tamanho =
+                  (((backup['tamanho'] as num?)?.toDouble() ?? 0) / 1024)
+                      .toStringAsFixed(0);
               return ListTile(
                 leading: const Icon(Icons.history),
-                title: Text(data == null ? 'Backup automático' : Fmt.dataHora(data)),
+                title: Text(
+                  data == null ? 'Backup automático' : Fmt.dataHora(data),
+                ),
                 subtitle: Text('$tamanho KB'),
                 trailing: const Icon(Icons.restore),
                 onTap: () => Navigator.pop(ctx, backup['id'] as String),
@@ -732,10 +984,18 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Restaurar backup interno?'),
-        content: const Text('Os dados atuais serão substituídos. Recomendamos criar um backup atual antes de continuar.'),
+        content: const Text(
+          'Os dados atuais serão substituídos. Recomendamos criar um backup atual antes de continuar.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Restaurar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Restaurar'),
+          ),
         ],
       ),
     );
@@ -743,10 +1003,20 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
     try {
       await estado.restaurarBackupInterno(id);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backup interno restaurado com sucesso.'), backgroundColor: AppColors.success));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Backup interno restaurado com sucesso.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
     } catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível restaurar este backup.'), backgroundColor: AppColors.danger));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível restaurar este backup.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
     }
   }
 
@@ -805,6 +1075,166 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
         ),
       );
     }
+  }
+
+  Future<void> _limparGlobalmente(BuildContext context) async {
+    final resumo = <String>[
+      'Dados de negócio de todos os usuários',
+      if (_limpezaGlobalCatalogo) 'Catálogo de produtos e convênios',
+      if (_limpezaGlobalUsuarios) 'Usuários comuns e seus dados',
+    ].join('\n• ');
+    final confirma = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.danger),
+            SizedBox(width: 10),
+            Expanded(child: Text('Confirmar limpeza global')),
+          ],
+        ),
+        content: Text(
+          'Esta operação afetará todos os usuários e não poderá ser desfeita. Serão apagados:\n\n• $resumo\n\nAs contas administrativas serão preservadas. Deseja continuar?',
+          style: const TextStyle(height: 1.45),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+    if (confirma != true || !context.mounted) return;
+
+    final senhaAdmin = TextEditingController();
+    final senhaInformada = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Senha do administrador'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Informe a senha atual do administrador para continuar.',
+              style: TextStyle(height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            CampoSenha(
+              controller: senhaAdmin,
+              labelText: 'Senha do administrador',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, senhaAdmin.text),
+            child: const Text('Confirmar senha'),
+          ),
+        ],
+      ),
+    );
+    senhaAdmin.dispose();
+    if (senhaInformada == null || senhaInformada.isEmpty || !context.mounted) {
+      return;
+    }
+
+    final erroAdmin = await AuthClient().verificarSenha(senhaInformada);
+    if (!context.mounted) return;
+    if (erroAdmin != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(erroAdmin),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final senhaMestra = TextEditingController();
+    final mestraInformada = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Senha mestra'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Informe a senha mestra configurada para operações globais.',
+              style: TextStyle(height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            CampoSenha(controller: senhaMestra, labelText: 'Senha mestra'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, senhaMestra.text),
+            child: const Text('Executar limpeza'),
+          ),
+        ],
+      ),
+    );
+    senhaMestra.dispose();
+    if (mestraInformada == null || mestraInformada.isEmpty || !context.mounted) {
+      return;
+    }
+
+    setState(() => _limpezaGlobalEmAndamento = true);
+    final erro = await AuthClient().executarLimpezaGlobal(
+      password: senhaInformada,
+      masterPassword: mestraInformada,
+      catalogo: _limpezaGlobalCatalogo,
+      dadosUsuario: _limpezaGlobalUsuarios,
+    );
+    if (!context.mounted) return;
+    if (erro != null) {
+      setState(() => _limpezaGlobalEmAndamento = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(erro),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final estado = context.read<AppState>();
+    await estado.carregarDaNuvem();
+    await estado.carregarCatalogoDaNuvem();
+    if (!context.mounted) return;
+    setState(() {
+      _limpezaGlobalEmAndamento = false;
+      _limpezaGlobalCatalogo = false;
+      _limpezaGlobalUsuarios = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Limpeza global concluída. As contas administrativas foram preservadas.',
+        ),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   static Future<void> _limpar(
@@ -866,7 +1296,9 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       ),
     );
     senha.dispose();
-    if (senhaInformada == null || senhaInformada.isEmpty || !context.mounted) return;
+    if (senhaInformada == null || senhaInformada.isEmpty || !context.mounted) {
+      return;
+    }
 
     final erroSenha = await AuthClient().verificarSenha(senhaInformada);
     if (!context.mounted) return;
@@ -931,11 +1363,18 @@ class TelaEditarPerfil extends StatelessWidget {
                                 shape: const CircleBorder(),
                                 elevation: 2,
                                 child: InkWell(
-                                  onTap: () => _TelaConfiguracoesState._editarAvatar(context),
+                                  onTap: () =>
+                                      _TelaConfiguracoesState._editarAvatar(
+                                        context,
+                                      ),
                                   customBorder: const CircleBorder(),
                                   child: const Padding(
                                     padding: EdgeInsets.all(6),
-                                    child: Icon(Icons.edit, color: Colors.white, size: 15),
+                                    child: Icon(
+                                      Icons.edit,
+                                      color: Colors.white,
+                                      size: 15,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -948,7 +1387,8 @@ class TelaEditarPerfil extends StatelessWidget {
                         icone: Icons.person_outline,
                         titulo: 'Alias',
                         valor: estado.nomeUsuario,
-                        onTap: () => _TelaConfiguracoesState._editarNome(context),
+                        onTap: () =>
+                            _TelaConfiguracoesState._editarNome(context),
                       ),
                       _Item(
                         icone: Icons.email_outlined,
@@ -959,14 +1399,22 @@ class TelaEditarPerfil extends StatelessWidget {
                       _Item(
                         icone: Icons.mark_email_read_outlined,
                         titulo: 'E-mail de recuperação',
-                        valor: estado.recoveryEmail.isEmpty ? 'Não cadastrado' : estado.recoveryEmail,
-                        onTap: () => _TelaConfiguracoesState._editarRecoveryEmail(context),
+                        valor: estado.recoveryEmail.isEmpty
+                            ? 'Não cadastrado'
+                            : estado.recoveryEmail,
+                        onTap: () =>
+                            _TelaConfiguracoesState._editarRecoveryEmail(
+                              context,
+                            ),
                       ),
                       _Item(
                         icone: Icons.phone_outlined,
                         titulo: 'Telefone',
-                        valor: estado.telefoneUsuario.isEmpty ? 'Opcional — adicionar' : Fmt.telefone(estado.telefoneUsuario),
-                        onTap: () => _TelaConfiguracoesState._editarTelefone(context),
+                        valor: estado.telefoneUsuario.isEmpty
+                            ? 'Opcional — adicionar'
+                            : Fmt.telefone(estado.telefoneUsuario),
+                        onTap: () =>
+                            _TelaConfiguracoesState._editarTelefone(context),
                       ),
                     ],
                   ),
@@ -989,22 +1437,44 @@ class _StatusNotificacoes extends StatelessWidget {
     final ativo = status == 'enabled';
     final bloqueado = status == 'blocked';
     final indisponivel = status == 'unsupported';
-    final cor = ativo ? AppColors.success : bloqueado ? AppColors.warning : AppColors.textSecondary;
+    final cor = ativo
+        ? AppColors.success
+        : bloqueado
+        ? AppColors.warning
+        : AppColors.textSecondary;
     final texto = ativo
         ? 'Notificações ativadas neste dispositivo.'
         : bloqueado
-            ? 'Notificações bloqueadas pelo sistema. Use as configurações do telefone para liberar.'
-            : indisponivel
-                ? 'Este navegador não oferece notificações push.'
-                : status == 'carregando'
-                    ? 'Verificando o estado das notificações...'
-                    : 'Notificações ainda não ativadas.';
+        ? 'Notificações bloqueadas pelo sistema. Use as configurações do telefone para liberar.'
+        : indisponivel
+        ? 'Este navegador não oferece notificações push.'
+        : status == 'carregando'
+        ? 'Verificando o estado das notificações...'
+        : 'Notificações ainda não ativadas.';
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(ativo ? Icons.check_circle_outline : bloqueado ? Icons.warning_amber_outlined : Icons.notifications_none, color: cor, size: 21),
+        Icon(
+          ativo
+              ? Icons.check_circle_outline
+              : bloqueado
+              ? Icons.warning_amber_outlined
+              : Icons.notifications_none,
+          color: cor,
+          size: 21,
+        ),
         const SizedBox(width: 9),
-        Expanded(child: Text(texto, style: TextStyle(color: cor, fontSize: 13, height: 1.35, fontWeight: FontWeight.w600))),
+        Expanded(
+          child: Text(
+            texto,
+            style: TextStyle(
+              color: cor,
+              fontSize: 13,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -1235,9 +1705,13 @@ class TelaProdutos extends StatelessWidget {
                             ),
                           );
                           if (ok == true && context.mounted) {
-                            final error = await context.read<AppState>().excluirProdutoMestre(p.nome);
+                            final error = await context
+                                .read<AppState>()
+                                .excluirProdutoMestre(p.nome);
                             if (error != null && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text(error)));
                             }
                           }
                         },
@@ -1331,7 +1805,9 @@ class TelaProdutos extends StatelessWidget {
       produto: Produto(nome: nome.text.trim(), formato: formato),
     );
     if (error != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
     }
   }
 }
@@ -1433,9 +1909,13 @@ class TelaConvenios extends StatelessWidget {
                                   ),
                                 );
                                 if (ok == true && context.mounted) {
-                                  final error = await context.read<AppState>().excluirConvenioMestre(c.nome);
+                                  final error = await context
+                                      .read<AppState>()
+                                      .excluirConvenioMestre(c.nome);
                                   if (error != null && context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(error)),
+                                    );
                                   }
                                 }
                               },
@@ -1508,7 +1988,9 @@ class TelaConvenios extends StatelessWidget {
       convenio: Convenio(nome: nome.text.trim(), codigo: codigo.text.trim()),
     );
     if (error != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
     }
   }
 }

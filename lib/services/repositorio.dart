@@ -56,7 +56,9 @@ class Repositorio {
     _config = await Hive.openBox(_name(_bConfig));
     _backupsInternos = await Hive.openBox(_name(_bBackupsInternos));
     await _semearSePreciso();
-    if (_profile != 'guest') await _migrarLegadoSeNecessario();
+    // Caixas antigas sem namespace nunca são migradas automaticamente. A
+    // restauração de uma base legada deve ser explícita pelo backup externo,
+    // para impedir que um novo perfil receba dados de outro usuário.
   }
 
   Future<void> switchProfile(String profile) async {
@@ -73,44 +75,6 @@ class Repositorio {
     await _config.close();
     await _backupsInternos.close();
     await _openProfile(profile);
-  }
-
-  Future<void> _migrarLegadoSeNecessario() async {
-    if (_config.get('migracaoLegadoConcluida') == true) return;
-    final antigos = <String, Box>{
-      _bVendas: await Hive.openBox(_bVendas),
-      _bPort: await Hive.openBox(_bPort),
-      _bProsp: await Hive.openBox(_bProsp),
-      _bProdutos: await Hive.openBox(_bProdutos),
-      _bConvenios: await Hive.openBox(_bConvenios),
-      _bMetas: await Hive.openBox(_bMetas),
-      _bMetasMensais: await Hive.openBox(_bMetasMensais),
-      _bCampanhas: await Hive.openBox(_bCampanhas),
-      _bClientes: await Hive.openBox(_bClientes),
-      _bConfig: await Hive.openBox(_bConfig),
-    };
-    final destinos = <String, Box>{
-      _bVendas: _vendas,
-      _bPort: _port,
-      _bProsp: _prosp,
-      _bProdutos: _produtos,
-      _bConvenios: _convenios,
-      _bMetas: _metas,
-      _bMetasMensais: _metasMensais,
-      _bCampanhas: _campanhas,
-      _bClientes: _clientes,
-    };
-    for (final entry in destinos.entries) {
-      for (final key in antigos[entry.key]!.keys) {
-        await entry.value.put(key, antigos[entry.key]!.get(key));
-      }
-    }
-    final configAntiga = antigos[_bConfig]!;
-    for (final key in ['gerentes', 'assistentes', 'nomeUsuario', 'telefoneUsuario', 'ultimoBackup', 'avatarData', 'avatarScale', 'avatarOffsetX', 'avatarOffsetY', 'idleTimeoutMinutes']) {
-      final value = configAntiga.get(key);
-      if (value != null) await _config.put(key, value);
-    }
-    await _config.put('migracaoLegadoConcluida', true);
   }
 
   Future<void> _semearSePreciso() async {
@@ -137,17 +101,23 @@ class Repositorio {
   }
 
   String get nomeUsuario => (_config.get('nomeUsuario') ?? 'Usuário') as String;
-  String get telefoneUsuario => (_config.get('telefoneUsuario') ?? '') as String;
+  String get telefoneUsuario =>
+      (_config.get('telefoneUsuario') ?? '') as String;
   String get recoveryEmail => (_config.get('recoveryEmail') ?? '') as String;
   String get avatarData => (_config.get('avatarData') ?? '') as String;
-  int get idleTimeoutMinutes => (_config.get('idleTimeoutMinutes') ?? 30) as int;
+  int get idleTimeoutMinutes =>
+      (_config.get('idleTimeoutMinutes') ?? 30) as int;
   DateTime? get ultimaAtividadeSessao {
     final value = _config.get('ultimaAtividadeSessao');
     return value is String ? DateTime.tryParse(value) : null;
   }
-  double get avatarScale => ((_config.get('avatarScale') as num?) ?? 1.0).toDouble();
-  double get avatarOffsetX => ((_config.get('avatarOffsetX') as num?) ?? 0.0).toDouble();
-  double get avatarOffsetY => ((_config.get('avatarOffsetY') as num?) ?? 0.0).toDouble();
+
+  double get avatarScale =>
+      ((_config.get('avatarScale') as num?) ?? 1.0).toDouble();
+  double get avatarOffsetX =>
+      ((_config.get('avatarOffsetX') as num?) ?? 0.0).toDouble();
+  double get avatarOffsetY =>
+      ((_config.get('avatarOffsetY') as num?) ?? 0.0).toDouble();
   DateTime? get ultimoBackup {
     final s = _config.get('ultimoBackup');
     return s == null ? null : DateTime.tryParse(s as String);
@@ -168,8 +138,13 @@ class Repositorio {
   Future<void> salvarRecoveryEmail(String email) =>
       _config.put('recoveryEmail', email.trim().toLowerCase());
 
-  Future<void> salvarAvatarData(String value) => _config.put('avatarData', value);
-  Future<void> salvarAvatarEnquadramento({required double escala, required double deslocamentoX, required double deslocamentoY}) async {
+  Future<void> salvarAvatarData(String value) =>
+      _config.put('avatarData', value);
+  Future<void> salvarAvatarEnquadramento({
+    required double escala,
+    required double deslocamentoX,
+    required double deslocamentoY,
+  }) async {
     await _config.put('avatarScale', escala.clamp(1.0, 3.0));
     await _config.put('avatarOffsetX', deslocamentoX.clamp(-1.0, 1.0));
     await _config.put('avatarOffsetY', deslocamentoY.clamp(-1.0, 1.0));
@@ -184,6 +159,37 @@ class Repositorio {
   Future<void> limparUltimaAtividadeSessao() =>
       _config.delete('ultimaAtividadeSessao');
 
+  String? get marcadorLimpezaGlobal =>
+      _config.get('marcadorLimpezaGlobal') as String?;
+
+  Future<void> salvarMarcadorLimpezaGlobal(String valor) =>
+      _config.put('marcadorLimpezaGlobal', valor);
+
+  Future<void> aplicarLimpezaGlobalLocal({
+    required bool dadosNegocio,
+    required bool catalogo,
+  }) async {
+    if (dadosNegocio) {
+      await _vendas.clear();
+      await _port.clear();
+      await _prosp.clear();
+      await _campanhas.clear();
+      await _metas.clear();
+      await _metasMensais.clear();
+      await _clientes.clear();
+    }
+    if (catalogo) {
+      await _produtos.clear();
+      await _convenios.clear();
+    }
+    // Backups internos podem conter justamente os dados que acabaram de ser
+    // eliminados. Removê-los impede a reintrodução acidental pela restauração.
+    if (dadosNegocio || catalogo) {
+      await _backupsInternos.clear();
+      await _config.delete('ultimoBackup');
+    }
+  }
+
   Future<void> marcarBackup() =>
       _config.put('ultimoBackup', DateTime.now().toIso8601String());
 
@@ -192,7 +198,9 @@ class Repositorio {
         .whereType<Map>()
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
-    lista.sort((a, b) => (b['geradoEm'] as String).compareTo(a['geradoEm'] as String));
+    lista.sort(
+      (a, b) => (b['geradoEm'] as String).compareTo(a['geradoEm'] as String),
+    );
     return lista;
   }
 
@@ -206,11 +214,17 @@ class Repositorio {
       'conteudo': conteudo,
     });
     final todos = backupsInternos;
-    var total = todos.fold<int>(0, (s, b) => s + ((b['tamanho'] as num?)?.toInt() ?? 0));
+    var total = todos.fold<int>(
+      0,
+      (s, b) => s + ((b['tamanho'] as num?)?.toInt() ?? 0),
+    );
     for (final backup in todos.skip(10).toList()) {
       await _backupsInternos.delete(backup['id']);
     }
-    total = backupsInternos.fold<int>(0, (s, b) => s + ((b['tamanho'] as num?)?.toInt() ?? 0));
+    total = backupsInternos.fold<int>(
+      0,
+      (s, b) => s + ((b['tamanho'] as num?)?.toInt() ?? 0),
+    );
     for (final backup in backupsInternos.reversed.toList()) {
       if (total <= 50 * 1024 * 1024) break;
       await _backupsInternos.delete(backup['id']);
@@ -328,7 +342,9 @@ class Repositorio {
 
   Cliente? clientePorCpf(String cpf) {
     final e = _clientes.get(cpf);
-    return e == null ? null : Cliente.fromJson(Map<dynamic, dynamic>.from(e as Map));
+    return e == null
+        ? null
+        : Cliente.fromJson(Map<dynamic, dynamic>.from(e as Map));
   }
 
   Future<void> salvarCliente(Cliente c) => _clientes.put(c.cpf, c.toJson());
@@ -345,11 +361,14 @@ class Repositorio {
 
   double metaMensalDoProduto(String produto, String mes) {
     final e = _metasMensais.get('${produto}_$mes');
-    if (e != null) return MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)).valor;
+    if (e != null) {
+      return MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)).valor;
+    }
     return metaDoProduto(produto);
   }
 
-  Future<void> salvarMetaMensal(String produto, String mes, double valor) => _metasMensais.put(
+  Future<void> salvarMetaMensal(String produto, String mes, double valor) =>
+      _metasMensais.put(
         '${produto}_$mes',
         MetaMensal(produto: produto, mes: mes, valor: valor).toJson(),
       );
@@ -446,7 +465,10 @@ class Repositorio {
       if (preservarTimeoutSessao) {
         await _config.put('idleTimeoutMinutes', timeoutSessaoLocal);
       } else {
-        await _config.put('idleTimeoutMinutes', cfg['idleTimeoutMinutes'] ?? 30);
+        await _config.put(
+          'idleTimeoutMinutes',
+          cfg['idleTimeoutMinutes'] ?? 30,
+        );
       }
     }
     for (final e in (mapa['produtos'] as List? ?? [])) {
@@ -508,8 +530,11 @@ class Repositorio {
         await _prosp.clear();
         await _campanhas.clear();
         await _metas.clear();
+        await _metasMensais.clear();
+        await _clientes.clear();
         await _produtos.clear();
         await _convenios.clear();
+        await _backupsInternos.clear();
         await _config.clear();
         await _semearSePreciso();
         break;

@@ -35,17 +35,31 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
     env.DB.prepare('SELECT cpf, name, phone, birth_date, notes FROM user_clients WHERE user_id = ? ORDER BY name').bind(user.id),
   ]);
   const [settings, products, convenios, metas, metasMensais, campaigns, sales, ports, prospects, clients] = result;
+  const settingsRow = settings.results?.[0] as Record<string, unknown> | undefined;
+  const cleanupRow = await env.DB.prepare(
+    "SELECT value FROM app_settings WHERE key = 'global_cleanup_marker'",
+  ).first<{ value: string }>();
+  let limpezaGlobal: Record<string, unknown> | null = null;
+  if (cleanupRow?.value) {
+    try {
+      const parsed = JSON.parse(cleanupRow.value) as unknown;
+      if (parsed && typeof parsed === 'object') limpezaGlobal = parsed as Record<string, unknown>;
+    } catch (_) {
+      limpezaGlobal = null;
+    }
+  }
   return json(request, {
     ok: true,
+    limpezaGlobal,
     config: {
-      nomeUsuario: settings?.results?.[0]?.display_name ?? user.username,
+      nomeUsuario: settingsRow?.display_name ?? user.username,
       modeloMeta: 'individual',
-      avatarData: settings?.results?.[0]?.avatar_data ?? '',
-      avatarScale: Number(settings?.results?.[0]?.avatar_scale ?? 1),
-      avatarOffsetX: Number(settings?.results?.[0]?.avatar_offset_x ?? 0),
-      avatarOffsetY: Number(settings?.results?.[0]?.avatar_offset_y ?? 0),
-      idleTimeoutMinutes: Number(settings?.results?.[0]?.idle_timeout_minutes ?? 30),
-      recoveryEmail: settings?.results?.[0]?.recovery_email ?? '',
+      avatarData: settingsRow?.avatar_data ?? '',
+      avatarScale: Number(settingsRow?.avatar_scale ?? 1),
+      avatarOffsetX: Number(settingsRow?.avatar_offset_x ?? 0),
+      avatarOffsetY: Number(settingsRow?.avatar_offset_y ?? 0),
+      idleTimeoutMinutes: Number(settingsRow?.idle_timeout_minutes ?? 30),
+      recoveryEmail: settingsRow?.recovery_email ?? '',
     },
     produtos: products.results.map((r: any) => ({ nome: r.name, formato: r.format, ativo: r.active !== 0 })),
     convenios: convenios.results.map((r: any) => ({ nome: r.name, codigo: r.code })),

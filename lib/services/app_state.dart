@@ -30,7 +30,15 @@ class AppState extends ChangeNotifier {
   AppState(this.repo);
 
   AuthUser? get authUser => _authUser;
-  void configurarNavegacaoGlobal({VoidCallback? agenda, VoidCallback? clientes, VoidCallback? configuracoes, VoidCallback? ajuda, VoidCallback? voltar, ValueChanged<Widget>? relatorio, ValueChanged<int>? selecionarAba}) {
+  void configurarNavegacaoGlobal({
+    VoidCallback? agenda,
+    VoidCallback? clientes,
+    VoidCallback? configuracoes,
+    VoidCallback? ajuda,
+    VoidCallback? voltar,
+    ValueChanged<Widget>? relatorio,
+    ValueChanged<int>? selecionarAba,
+  }) {
     onAbrirAgenda = agenda;
     onAbrirClientes = clientes;
     onAbrirConfiguracoes = configuracoes;
@@ -39,6 +47,7 @@ class AppState extends ChangeNotifier {
     onAbrirRelatorio = relatorio;
     onSelecionarAba = selecionarAba;
   }
+
   void definirUsuarioAutenticado(AuthUser? user) {
     _authUser = user;
     notifyListeners();
@@ -96,8 +105,16 @@ class AppState extends ChangeNotifier {
     await sincronizarNuvem();
   }
 
-  Future<void> salvarAvatarEnquadramento({required double escala, required double deslocamentoX, required double deslocamentoY}) async {
-    await repo.salvarAvatarEnquadramento(escala: escala, deslocamentoX: deslocamentoX, deslocamentoY: deslocamentoY);
+  Future<void> salvarAvatarEnquadramento({
+    required double escala,
+    required double deslocamentoX,
+    required double deslocamentoY,
+  }) async {
+    await repo.salvarAvatarEnquadramento(
+      escala: escala,
+      deslocamentoX: deslocamentoX,
+      deslocamentoY: deslocamentoY,
+    );
     notifyListeners();
     await sincronizarNuvem();
   }
@@ -117,8 +134,10 @@ class AppState extends ChangeNotifier {
   // ------------------- Listas -------------------
   /// Catálogo completo, incluindo produtos inativos preservados para histórico.
   List<Produto> get produtos => repo.produtos;
+
   /// Opções permitidas em novos lançamentos, metas e campanhas.
-  List<Produto> get produtosAtivos => repo.produtos.where((p) => p.ativo).toList();
+  List<Produto> get produtosAtivos =>
+      repo.produtos.where((p) => p.ativo).toList();
   List<Convenio> get convenios => repo.convenios;
   List<Venda> get vendas => repo.vendas;
   List<Portabilidade> get portabilidades => repo.portabilidades;
@@ -132,7 +151,12 @@ class AppState extends ChangeNotifier {
   List<Cliente> get clientes {
     final mapa = <String, Cliente>{};
 
-    void incorporar({required String cpf, required String nome, required String telefone, DateTime? dataNascimento}) {
+    void incorporar({
+      required String cpf,
+      required String nome,
+      required String telefone,
+      DateTime? dataNascimento,
+    }) {
       if (cpf.isEmpty) return;
       final atual = mapa[cpf];
       mapa[cpf] = Cliente(
@@ -145,16 +169,36 @@ class AppState extends ChangeNotifier {
     }
 
     for (final c in repo.clientes) {
-      incorporar(cpf: c.cpf, nome: c.nome, telefone: c.telefone, dataNascimento: c.dataNascimento);
+      incorporar(
+        cpf: c.cpf,
+        nome: c.nome,
+        telefone: c.telefone,
+        dataNascimento: c.dataNascimento,
+      );
     }
     for (final v in repo.vendas) {
-      incorporar(cpf: v.cpf, nome: v.nome, telefone: v.telefone, dataNascimento: v.dataNascimento);
+      incorporar(
+        cpf: v.cpf,
+        nome: v.nome,
+        telefone: v.telefone,
+        dataNascimento: v.dataNascimento,
+      );
     }
     for (final p in repo.portabilidades) {
-      incorporar(cpf: p.cpf, nome: p.nome, telefone: p.telefone, dataNascimento: p.dataNascimento);
+      incorporar(
+        cpf: p.cpf,
+        nome: p.nome,
+        telefone: p.telefone,
+        dataNascimento: p.dataNascimento,
+      );
     }
     for (final p in repo.prospeccoes) {
-      incorporar(cpf: p.cpf, nome: p.nome, telefone: p.telefone, dataNascimento: p.dataNascimento);
+      incorporar(
+        cpf: p.cpf,
+        nome: p.nome,
+        telefone: p.telefone,
+        dataNascimento: p.dataNascimento,
+      );
     }
 
     final lista = mapa.values.toList()
@@ -172,17 +216,22 @@ class AppState extends ChangeNotifier {
   String formatoDoProduto(String p) => repo.formatoDoProduto(p);
   double metaDoProduto(String p) => repo.metaDoProduto(p);
   List<MetaMensal> get metasMensais => repo.metasMensais;
-  double metaMensalDoProduto(String produto, String mes) => repo.metaMensalDoProduto(produto, mes);
+  double metaMensalDoProduto(String produto, String mes) =>
+      repo.metaMensalDoProduto(produto, mes);
 
   Venda? encontrarVendaDuplicada(Venda candidata) {
     for (final existente in vendas) {
       if (existente.id == candidata.id) continue;
-      final mesmaData = existente.data.year == candidata.data.year &&
+      final mesmaData =
+          existente.data.year == candidata.data.year &&
           existente.data.month == candidata.data.month &&
           existente.data.day == candidata.data.day;
       final mesmoCpf = existente.cpf == candidata.cpf;
-      final mesmoProduto = existente.produto.trim().toLowerCase() == candidata.produto.trim().toLowerCase();
-      final mesmoValor = (existente.valorRealizado - candidata.valorRealizado).abs() < 0.005;
+      final mesmoProduto =
+          existente.produto.trim().toLowerCase() ==
+          candidata.produto.trim().toLowerCase();
+      final mesmoValor =
+          (existente.valorRealizado - candidata.valorRealizado).abs() < 0.005;
       if (mesmaData && mesmoCpf && mesmoProduto && mesmoValor) return existente;
     }
     return null;
@@ -251,11 +300,16 @@ class AppState extends ChangeNotifier {
       dataNascimento: p.dataNascimento,
       produto: 'Portabilidade',
       valorRealizado: p.saldoDevedor,
-      observacoes: 'Gerada automaticamente a partir da confirmação da portabilidade ${p.numeroContrato}.',
+      observacoes:
+          'Gerada automaticamente a partir da confirmação da portabilidade ${p.numeroContrato}.',
     );
     if (existente == null) {
       await repo.salvarVenda(venda);
-    } else if (existente.data != venda.data || existente.valorRealizado != venda.valorRealizado || existente.nome != venda.nome || existente.telefone != venda.telefone || existente.dataNascimento != venda.dataNascimento) {
+    } else if (existente.data != venda.data ||
+        existente.valorRealizado != venda.valorRealizado ||
+        existente.nome != venda.nome ||
+        existente.telefone != venda.telefone ||
+        existente.dataNascimento != venda.dataNascimento) {
       await repo.salvarVenda(venda);
     }
   }
@@ -343,9 +397,32 @@ class AppState extends ChangeNotifier {
     unawaited(sincronizarNuvem());
   }
 
+  Future<bool> _aplicarMarcadorLimpezaGlobal(
+    Map<String, dynamic>? marcador,
+  ) async {
+    if (marcador == null) return false;
+    final versao = marcador['versao']?.toString() ?? '';
+    if (versao.isEmpty || repo.marcadorLimpezaGlobal == versao) return false;
+    final dadosNegocio = marcador['dadosNegocio'] == true;
+    final catalogo = marcador['catalogo'] == true;
+    await repo.aplicarLimpezaGlobalLocal(
+      dadosNegocio: dadosNegocio,
+      catalogo: catalogo,
+    );
+    await repo.salvarMarcadorLimpezaGlobal(versao);
+    if (catalogo) _versaoCatalogo = null;
+    return true;
+  }
+
   Future<void> carregarCatalogoDaNuvem() async {
     final body = await _cloud.loadCatalog();
     if (body == null) return;
+    final rawMarcador = body['limpezaGlobal'];
+    final marcador = rawMarcador is Map
+        ? Map<String, dynamic>.from(rawMarcador)
+        : null;
+    final mudouLimpeza = await _aplicarMarcadorLimpezaGlobal(marcador);
+    if (mudouLimpeza) notifyListeners();
     final versao = body['versao']?.toString() ?? '';
     if (_versaoCatalogo == versao) return;
 
@@ -373,8 +450,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String?> salvarProdutoMestre({Produto? anterior, required Produto produto}) async {
-    final action = anterior == null ? 'upsert' : anterior.nome == produto.nome ? 'upsert' : 'rename';
+  Future<String?> salvarProdutoMestre({
+    Produto? anterior,
+    required Produto produto,
+  }) async {
+    final action = anterior == null
+        ? 'upsert'
+        : anterior.nome == produto.nome
+        ? 'upsert'
+        : 'rename';
     final error = await _cloud.saveCatalog(
       entity: 'produto',
       action: action,
@@ -383,14 +467,20 @@ class AppState extends ChangeNotifier {
       format: produto.formato,
     );
     if (error != null) return error;
-    if (anterior != null && anterior.nome != produto.nome) await repo.excluirProduto(anterior.nome);
+    if (anterior != null && anterior.nome != produto.nome) {
+      await repo.excluirProduto(anterior.nome);
+    }
     await repo.salvarProduto(produto);
     await carregarCatalogoDaNuvem();
     return null;
   }
 
   Future<String?> excluirProdutoMestre(String nome) async {
-    final error = await _cloud.saveCatalog(entity: 'produto', action: 'delete', name: nome);
+    final error = await _cloud.saveCatalog(
+      entity: 'produto',
+      action: 'delete',
+      name: nome,
+    );
     if (error != null) return error;
     // O produto permanece no catálogo local como inativo para preservar
     // históricos; a sincronização recarrega o estado ativo/inativo da nuvem.
@@ -399,8 +489,15 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
-  Future<String?> salvarConvenioMestre({Convenio? anterior, required Convenio convenio}) async {
-    final action = anterior == null ? 'upsert' : anterior.nome == convenio.nome ? 'upsert' : 'rename';
+  Future<String?> salvarConvenioMestre({
+    Convenio? anterior,
+    required Convenio convenio,
+  }) async {
+    final action = anterior == null
+        ? 'upsert'
+        : anterior.nome == convenio.nome
+        ? 'upsert'
+        : 'rename';
     final error = await _cloud.saveCatalog(
       entity: 'convenio',
       action: action,
@@ -409,14 +506,20 @@ class AppState extends ChangeNotifier {
       code: convenio.codigo,
     );
     if (error != null) return error;
-    if (anterior != null && anterior.nome != convenio.nome) await repo.excluirConvenio(anterior.nome);
+    if (anterior != null && anterior.nome != convenio.nome) {
+      await repo.excluirConvenio(anterior.nome);
+    }
     await repo.salvarConvenio(convenio);
     await carregarCatalogoDaNuvem();
     return null;
   }
 
   Future<String?> excluirConvenioMestre(String nome) async {
-    final error = await _cloud.saveCatalog(entity: 'convenio', action: 'delete', name: nome);
+    final error = await _cloud.saveCatalog(
+      entity: 'convenio',
+      action: 'delete',
+      name: nome,
+    );
     if (error != null) return error;
     await repo.excluirConvenio(nome);
     _versaoCatalogo = null;
@@ -430,7 +533,11 @@ class AppState extends ChangeNotifier {
     unawaited(sincronizarNuvem());
   }
 
-  Future<void> salvarMetaMensal(String produto, String mes, double valor) async {
+  Future<void> salvarMetaMensal(
+    String produto,
+    String mes,
+    double valor,
+  ) async {
     await repo.salvarMetaMensal(produto, mes, valor);
     notifyListeners();
     unawaited(sincronizarNuvem());
@@ -464,7 +571,14 @@ class AppState extends ChangeNotifier {
     final json = await _cloud.load();
     if (json == null) return;
     final mapa = jsonDecode(json) as Map<String, dynamic>;
-    final temDados = (mapa['vendas'] as List? ?? []).isNotEmpty ||
+    final rawMarcador = mapa['limpezaGlobal'];
+    final marcador = rawMarcador is Map
+        ? Map<String, dynamic>.from(rawMarcador)
+        : null;
+    final mudouLimpeza = await _aplicarMarcadorLimpezaGlobal(marcador);
+    if (mudouLimpeza) notifyListeners();
+    final temDados =
+        (mapa['vendas'] as List? ?? []).isNotEmpty ||
         (mapa['produtos'] as List? ?? []).isNotEmpty ||
         (mapa['portabilidades'] as List? ?? []).isNotEmpty ||
         (mapa['prospeccoes'] as List? ?? []).isNotEmpty ||
@@ -554,7 +668,9 @@ class AppState extends ChangeNotifier {
     final diasUteis = diasUteisRestantes(hoje);
     final diasDecorridos = _diasUteisDecorridos(hoje);
     final diasTotais = _diasUteisNoMes(hoje);
-    final percentualEsperado = diasTotais > 0 ? diasDecorridos / diasTotais : 0.0;
+    final percentualEsperado = diasTotais > 0
+        ? diasDecorridos / diasTotais
+        : 0.0;
     final linhas = <LinhaMeta>[];
     for (final p in produtos) {
       final metaIndiv = metaDoProduto(p.nome);
@@ -564,11 +680,17 @@ class AppState extends ChangeNotifier {
       final perc = metaIndiv > 0 ? realMes / metaIndiv : 0.0;
       final gap = metaIndiv > 0 ? (metaIndiv - realMes) : 0.0;
       final gapPositivo = gap > 0 ? gap : 0.0;
-      final metaDia = (metaIndiv > 0 && diasUteis > 0) ? gapPositivo / diasUteis : 0.0;
+      final metaDia = (metaIndiv > 0 && diasUteis > 0)
+          ? gapPositivo / diasUteis
+          : 0.0;
       final ritmoAtual = diasDecorridos > 0 ? realMes / diasDecorridos : 0.0;
-      final percentualProjecao = percentualEsperado > 0 ? perc / percentualEsperado : 0.0;
+      final percentualProjecao = percentualEsperado > 0
+          ? perc / percentualEsperado
+          : 0.0;
       final projecaoMes = percentualProjecao * metaIndiv;
-      final eficiencia = percentualEsperado > 0 ? perc / percentualEsperado : 0.0;
+      final eficiencia = percentualEsperado > 0
+          ? perc / percentualEsperado
+          : 0.0;
 
       linhas.add(
         LinhaMeta(

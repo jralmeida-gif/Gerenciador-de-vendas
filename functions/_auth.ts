@@ -8,6 +8,7 @@ export interface AuthEnv {
   mailjetsecretkey?: string;
   Mailjetapikey?: string;
   Mailjetsecretkey?: string;
+  GLOBAL_CLEANUP_MASTER_PASSWORD?: string;
 }
 
 export interface AuthUser {
@@ -86,8 +87,9 @@ export function createRecoveryToken(): string {
 export async function hashPassword(password: string, salt?: Uint8Array): Promise<{ hash: string; salt: string }> {
   const actualSalt = salt ?? crypto.getRandomValues(new Uint8Array(16));
   const baseKey = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const saltBytes = Uint8Array.from(actualSalt);
   const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt: actualSalt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: saltBytes.buffer as ArrayBuffer, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
     baseKey,
     256,
   );

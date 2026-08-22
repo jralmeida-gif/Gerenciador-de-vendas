@@ -8,15 +8,20 @@ class AuthUser {
   final String role;
   final bool mustChangePassword;
 
-  const AuthUser({required this.id, required this.username, required this.role, required this.mustChangePassword});
+  const AuthUser({
+    required this.id,
+    required this.username,
+    required this.role,
+    required this.mustChangePassword,
+  });
   bool get isAdmin => role == 'admin';
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
-        id: json['id'] as String,
-        username: json['username'] as String,
-        role: json['role'] as String,
-        mustChangePassword: json['mustChangePassword'] as bool? ?? false,
-      );
+    id: json['id'] as String,
+    username: json['username'] as String,
+    role: json['role'] as String,
+    mustChangePassword: json['mustChangePassword'] as bool? ?? false,
+  );
 }
 
 class AuthResult {
@@ -38,7 +43,13 @@ class PasswordResetResult {
   final String? recipient;
   final String? deliveryStatus;
   final String? deliveryReason;
-  const PasswordResetResult({required this.accepted, required this.message, this.recipient, this.deliveryStatus, this.deliveryReason});
+  const PasswordResetResult({
+    required this.accepted,
+    required this.message,
+    this.recipient,
+    this.deliveryStatus,
+    this.deliveryReason,
+  });
 }
 
 class AuthClient {
@@ -48,7 +59,8 @@ class AuthClient {
   Future<bool> setupRequired() async {
     try {
       final response = await _client.get(Uri.parse('$_origin/api/auth/status'));
-      return response.statusCode == 200 && (jsonDecode(response.body)['setupRequired'] == true);
+      return response.statusCode == 200 &&
+          (jsonDecode(response.body)['setupRequired'] == true);
     } catch (_) {
       return false;
     }
@@ -57,12 +69,18 @@ class AuthClient {
   Future<SessionCheckResult> checkSession() async {
     try {
       final response = await _client.get(
-        Uri.parse('$_origin/api/auth/session?t=${DateTime.now().millisecondsSinceEpoch}'),
+        Uri.parse(
+          '$_origin/api/auth/session?t=${DateTime.now().millisecondsSinceEpoch}',
+        ),
         headers: {'Cache-Control': 'no-cache'},
       );
-      if (response.statusCode != 200) return const SessionCheckResult(reachable: false);
+      if (response.statusCode != 200) {
+        return const SessionCheckResult(reachable: false);
+      }
       final body = jsonDecode(response.body) as Map<String, dynamic>;
-      if (body['authenticated'] != true) return const SessionCheckResult(reachable: true);
+      if (body['authenticated'] != true) {
+        return const SessionCheckResult(reachable: true);
+      }
       return SessionCheckResult(
         reachable: true,
         user: AuthUser.fromJson(body['user'] as Map<String, dynamic>),
@@ -75,11 +93,17 @@ class AuthClient {
   Future<AuthUser?> session() async => (await checkSession()).user;
 
   Future<AuthResult> login(String username, String password) async {
-    return _postUser('/api/auth/login', {'username': username, 'password': password});
+    return _postUser('/api/auth/login', {
+      'username': username,
+      'password': password,
+    });
   }
 
   Future<AuthResult> registerFirst(String username, String password) async {
-    return _postUser('/api/auth/register-first', {'username': username, 'password': password});
+    return _postUser('/api/auth/register-first', {
+      'username': username,
+      'password': password,
+    });
   }
 
   Future<PasswordResetResult> requestPasswordReset(String username) async {
@@ -89,10 +113,14 @@ class AuthClient {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': username.trim()}),
       );
-      final body = response.body.trim().isEmpty ? <String, dynamic>{} : jsonDecode(response.body) as Map<String, dynamic>;
+      final body = response.body.trim().isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(response.body) as Map<String, dynamic>;
       final message = (body['message'] ?? body['error'])?.toString();
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final delivery = body['delivery'] is Map<String, dynamic> ? body['delivery'] as Map<String, dynamic> : const <String, dynamic>{};
+        final delivery = body['delivery'] is Map<String, dynamic>
+            ? body['delivery'] as Map<String, dynamic>
+            : const <String, dynamic>{};
         return PasswordResetResult(
           accepted: true,
           message: message ?? 'A solicitação foi aceita pela Mailjet.',
@@ -101,9 +129,15 @@ class AuthClient {
           deliveryReason: delivery['reason']?.toString(),
         );
       }
-      return PasswordResetResult(accepted: false, message: message ?? 'Não foi possível solicitar a recuperação.');
+      return PasswordResetResult(
+        accepted: false,
+        message: message ?? 'Não foi possível solicitar a recuperação.',
+      );
     } catch (_) {
-      return const PasswordResetResult(accepted: false, message: 'Não foi possível conectar ao servidor.');
+      return const PasswordResetResult(
+        accepted: false,
+        message: 'Não foi possível conectar ao servidor.',
+      );
     }
   }
 
@@ -122,15 +156,23 @@ class AuthClient {
     }
   }
 
-  Future<String?> changePassword(String currentPassword, String newPassword) async {
+  Future<String?> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
     try {
       final response = await _client.post(
         Uri.parse('$_origin/api/auth/change-password'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'currentPassword': currentPassword, 'newPassword': newPassword}),
+        body: jsonEncode({
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        }),
       );
       if (response.statusCode >= 200 && response.statusCode < 300) return null;
-      return (jsonDecode(response.body) as Map<String, dynamic>)['error']?.toString() ?? 'Não foi possível trocar a senha.';
+      return (jsonDecode(response.body) as Map<String, dynamic>)['error']
+              ?.toString() ??
+          'Não foi possível trocar a senha.';
     } catch (_) {
       return 'Não foi possível conectar ao servidor.';
     }
@@ -153,47 +195,117 @@ class AuthClient {
     }
   }
 
+  Future<String?> executarLimpezaGlobal({
+    required String password,
+    required String masterPassword,
+    required bool catalogo,
+    required bool dadosUsuario,
+  }) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$_origin/api/admin/global-cleanup'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'password': password,
+          'masterPassword': masterPassword,
+          'catalogo': catalogo,
+          'dadosUsuario': dadosUsuario,
+        }),
+      );
+      final body = response.body.trim().isEmpty
+          ? const <String, dynamic>{}
+          : jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 200 && response.statusCode < 300) return null;
+      return body['error']?.toString() ??
+          'Não foi possível executar a limpeza global.';
+    } catch (_) {
+      return 'Não foi possível conectar ao servidor.';
+    }
+  }
+
   Future<List<Map<String, dynamic>>> listUsers() async {
     final response = await _client.get(Uri.parse('$_origin/api/auth/users'));
-    if (response.statusCode != 200) throw Exception('Não foi possível carregar os usuários.');
+    if (response.statusCode != 200) {
+      throw Exception('Não foi possível carregar os usuários.');
+    }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     return (body['users'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
   }
 
-  Future<String?> createUser({required String username, required String password, required String role}) async {
+  Future<String?> createUser({
+    required String username,
+    required String password,
+    required String role,
+  }) async {
     try {
-      final response = await _client.post(Uri.parse('$_origin/api/auth/users'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'username': username, 'password': password, 'role': role}));
+      final response = await _client.post(
+        Uri.parse('$_origin/api/auth/users'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+          'role': role,
+        }),
+      );
       if (response.statusCode >= 200 && response.statusCode < 300) return null;
-      return (jsonDecode(response.body) as Map<String, dynamic>)['error']?.toString() ?? 'Não foi possível cadastrar o usuário.';
-    } catch (_) { return 'Não foi possível conectar ao servidor.'; }
+      return (jsonDecode(response.body) as Map<String, dynamic>)['error']
+              ?.toString() ??
+          'Não foi possível cadastrar o usuário.';
+    } catch (_) {
+      return 'Não foi possível conectar ao servidor.';
+    }
   }
 
-  Future<String?> updateUser({required String id, String? displayName, String? role, bool? active, String? password}) async {
+  Future<String?> updateUser({
+    required String id,
+    String? displayName,
+    String? role,
+    bool? active,
+    String? password,
+  }) async {
     try {
       final body = <String, dynamic>{'id': id};
       if (displayName != null) body['displayName'] = displayName;
       if (role != null) body['role'] = role;
       if (active != null) body['active'] = active;
       if (password != null) body['password'] = password;
-      final response = await _client.patch(Uri.parse('$_origin/api/auth/users'), headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+      final response = await _client.patch(
+        Uri.parse('$_origin/api/auth/users'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
       if (response.statusCode >= 200 && response.statusCode < 300) return null;
-      return (jsonDecode(response.body) as Map<String, dynamic>)['error']?.toString() ?? 'Não foi possível alterar o usuário.';
-    } catch (_) { return 'Não foi possível conectar ao servidor.'; }
+      return (jsonDecode(response.body) as Map<String, dynamic>)['error']
+              ?.toString() ??
+          'Não foi possível alterar o usuário.';
+    } catch (_) {
+      return 'Não foi possível conectar ao servidor.';
+    }
   }
 
   Future<String?> deleteUser(String id) async {
     try {
-      final response = await _client.delete(Uri.parse('$_origin/api/auth/users'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'id': id}));
+      final response = await _client.delete(
+        Uri.parse('$_origin/api/auth/users'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id': id}),
+      );
       if (response.statusCode >= 200 && response.statusCode < 300) return null;
-      return (jsonDecode(response.body) as Map<String, dynamic>)['error']?.toString() ?? 'Não foi possível excluir o usuário.';
-    } catch (_) { return 'Não foi possível conectar ao servidor.'; }
+      return (jsonDecode(response.body) as Map<String, dynamic>)['error']
+              ?.toString() ??
+          'Não foi possível excluir o usuário.';
+    } catch (_) {
+      return 'Não foi possível conectar ao servidor.';
+    }
   }
 
   Future<void> logout({Duration timeout = const Duration(seconds: 4)}) async {
     try {
       await _client
           .post(
-            Uri.parse('$_origin/api/auth/logout?t=${DateTime.now().millisecondsSinceEpoch}'),
+            Uri.parse(
+              '$_origin/api/auth/logout?t=${DateTime.now().millisecondsSinceEpoch}',
+            ),
             headers: {'Cache-Control': 'no-cache'},
           )
           .timeout(timeout);
@@ -204,14 +316,31 @@ class AuthClient {
 
   Future<AuthResult> _postUser(String path, Map<String, String> body) async {
     try {
-      final response = await _client.post(Uri.parse('$_origin$path'), headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+      final response = await _client.post(
+        Uri.parse('$_origin$path'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      if (response.statusCode >= 200 && response.statusCode < 300 && decoded['user'] is Map<String, dynamic>) {
-        return AuthResult(ok: true, user: AuthUser.fromJson(decoded['user'] as Map<String, dynamic>));
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          decoded['user'] is Map<String, dynamic>) {
+        return AuthResult(
+          ok: true,
+          user: AuthUser.fromJson(decoded['user'] as Map<String, dynamic>),
+        );
       }
-      return AuthResult(ok: false, error: decoded['error']?.toString() ?? 'Não foi possível concluir a operação.');
+      return AuthResult(
+        ok: false,
+        error:
+            decoded['error']?.toString() ??
+            'Não foi possível concluir a operação.',
+      );
     } catch (_) {
-      return const AuthResult(ok: false, error: 'Não foi possível conectar ao servidor.');
+      return const AuthResult(
+        ok: false,
+        error: 'Não foi possível conectar ao servidor.',
+      );
     }
   }
 }
