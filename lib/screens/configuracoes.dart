@@ -1193,7 +1193,9 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       ),
     );
     senhaMestra.dispose();
-    if (mestraInformada == null || mestraInformada.isEmpty || !context.mounted) {
+    if (mestraInformada == null ||
+        mestraInformada.isEmpty ||
+        !context.mounted) {
       return;
     }
 
