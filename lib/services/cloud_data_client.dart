@@ -32,6 +32,19 @@ class CloudDataClient {
     }
   }
 
+  Future<Map<String, dynamic>?> loadCleanupStatus() async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$_origin/api/cleanup-status'),
+      );
+      if (response.statusCode != 200) return null;
+      final body = jsonDecode(response.body);
+      return body is Map<String, dynamic> && body['ok'] == true ? body : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> loadCatalog() async {
     try {
       final response = await _client.get(Uri.parse('$_origin/api/catalog'));

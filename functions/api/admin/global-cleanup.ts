@@ -19,21 +19,23 @@ type GlobalCleanupMarker = {
   dadosNegocio: true;
   catalogo: boolean;
   dadosUsuario: boolean;
+  usuariosRemovidos: string[];
 };
 
-const text = (value: unknown) => value == null ? '' : String(value);
+const text = (value: unknown) => value == null ? '' : String(value).trim();
 
 async function requireAdmin(request: Request, env: AuthEnv) {
   const user = await getSession(request, env);
   return isAdmin(user) ? user : null;
 }
 
-function marker(versao: string, catalogo: boolean, dadosUsuario: boolean): GlobalCleanupMarker {
+function marker(versao: string, catalogo: boolean, dadosUsuario: boolean, usuariosRemovidos: string[]): GlobalCleanupMarker {
   return {
     versao,
     dadosNegocio: true,
     catalogo,
     dadosUsuario,
+    usuariosRemovidos,
   };
 }
 
@@ -66,8 +68,11 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     return json(request, { error: 'Senha mestra inválida.' }, 401);
   }
 
+  const usuariosRemovidos = dadosUsuario
+    ? ((await env.DB.prepare("SELECT id FROM users WHERE role = 'user'").all<{ id: string }>()).results ?? []).map((row) => row.id)
+    : [];
   const versao = `${new Date().toISOString()}-${crypto.randomUUID()}`;
-  const globalMarker = marker(versao, catalogo, dadosUsuario);
+  const globalMarker = marker(versao, catalogo, dadosUsuario, usuariosRemovidos);
   const statements: D1PreparedStatement[] = [];
 
   // Dados de negócio: esta categoria é obrigatória e sempre vem incluída.

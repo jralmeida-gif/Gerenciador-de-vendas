@@ -32,13 +32,16 @@ class Repositorio {
   late Box _clientes;
   late Box _config;
   late Box _backupsInternos;
+  late Box _profileRegistry;
 
   String _profile = 'guest';
 
-  String _name(String base) => 'gv_${_profile}_$base';
+  String _profileBoxName(String profile, String base) => 'gv_${profile}_$base';
+  String _name(String base) => _profileBoxName(_profile, base);
 
   Future<void> init({String profile = 'guest'}) async {
     await Hive.initFlutter();
+    _profileRegistry = await Hive.openBox('gv_profile_registry');
     await _openProfile(profile);
   }
 
@@ -59,6 +62,98 @@ class Repositorio {
     // Caixas antigas sem namespace nunca são migradas automaticamente. A
     // restauração de uma base legada deve ser explícita pelo backup externo,
     // para impedir que um novo perfil receba dados de outro usuário.
+  }
+
+  Future<void> registrarPerfilAutenticado({
+    required String userId,
+    required String username,
+  }) async {
+    final perfil = username.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    await _profileRegistry.put(userId, {'profile': perfil});
+  }
+
+  Future<void> limparPerfisRemovidos(
+    Iterable<String> userIds, {
+    required bool dadosNegocio,
+    required bool catalogo,
+    required bool dadosUsuario,
+  }) async {
+    final basesNegocio = <String>[
+      _bVendas,
+      _bPort,
+      _bProsp,
+      _bCampanhas,
+      _bMetas,
+      _bMetasMensais,
+      _bClientes,
+    ];
+    final basesCatalogo = <String>[_bProdutos, _bConvenios];
+    for (final userId in userIds) {
+      final registro = _profileRegistry.get(userId);
+      final perfil = registro is Map ? registro['profile']?.toString() : null;
+      if (perfil == null || perfil.isEmpty) continue;
+      final bases = dadosUsuario
+          ? <String>[
+              ...basesNegocio,
+              ...basesCatalogo,
+              _bConfig,
+              _bBackupsInternos,
+            ]
+          : <String>[
+              if (dadosNegocio) ...basesNegocio,
+              if (catalogo) ...basesCatalogo,
+              if (dadosNegocio || catalogo) _bBackupsInternos,
+            ];
+      for (final base in bases.toSet()) {
+        final nome = _profileBoxName(perfil, base);
+        if (perfil == _profile) {
+          final box = _boxForBase(base);
+          await box.clear();
+        } else {
+          final box = await Hive.openBox(nome);
+          await box.clear();
+          await box.close();
+        }
+      }
+      if (!dadosUsuario && (dadosNegocio || catalogo)) {
+        final configNome = _profileBoxName(perfil, _bConfig);
+        if (perfil == _profile) {
+          await _config.delete('ultimoBackup');
+        } else {
+          final config = await Hive.openBox(configNome);
+          await config.delete('ultimoBackup');
+          await config.close();
+        }
+      }
+      await _profileRegistry.delete(userId);
+    }
+  }
+
+  Box _boxForBase(String base) {
+    switch (base) {
+      case _bVendas:
+        return _vendas;
+      case _bPort:
+        return _port;
+      case _bProsp:
+        return _prosp;
+      case _bCampanhas:
+        return _campanhas;
+      case _bMetas:
+        return _metas;
+      case _bMetasMensais:
+        return _metasMensais;
+      case _bClientes:
+        return _clientes;
+      case _bProdutos:
+        return _produtos;
+      case _bConvenios:
+        return _convenios;
+      case _bBackupsInternos:
+        return _backupsInternos;
+      default:
+        return _config;
+    }
   }
 
   Future<void> switchProfile(String profile) async {

@@ -397,6 +397,32 @@ class AppState extends ChangeNotifier {
     unawaited(sincronizarNuvem());
   }
 
+  Future<void> reconciliarLimpezaGlobalSemSessao() async {
+    final body = await _cloud.loadCleanupStatus();
+    final rawMarcador = body?['marker'];
+    if (rawMarcador is! Map) return;
+    final marcador = Map<String, dynamic>.from(rawMarcador);
+    final versao = marcador['versao']?.toString() ?? '';
+    if (versao.isEmpty || repo.marcadorLimpezaGlobal == versao) return;
+    final dadosNegocio = marcador['dadosNegocio'] == true;
+    final catalogo = marcador['catalogo'] == true;
+    final dadosUsuario = marcador['dadosUsuario'] == true;
+    final usuariosRemovidos =
+        (marcador['usuariosRemovidos'] as List<dynamic>? ?? [])
+            .whereType<String>();
+    await repo.limparPerfisRemovidos(
+      usuariosRemovidos,
+      dadosNegocio: dadosNegocio,
+      catalogo: catalogo,
+      dadosUsuario: dadosUsuario,
+    );
+    await repo.aplicarLimpezaGlobalLocal(
+      dadosNegocio: dadosNegocio,
+      catalogo: catalogo,
+    );
+    await repo.salvarMarcadorLimpezaGlobal(versao);
+  }
+
   Future<bool> _aplicarMarcadorLimpezaGlobal(
     Map<String, dynamic>? marcador,
   ) async {
@@ -405,6 +431,16 @@ class AppState extends ChangeNotifier {
     if (versao.isEmpty || repo.marcadorLimpezaGlobal == versao) return false;
     final dadosNegocio = marcador['dadosNegocio'] == true;
     final catalogo = marcador['catalogo'] == true;
+    final dadosUsuario = marcador['dadosUsuario'] == true;
+    final usuariosRemovidos =
+        (marcador['usuariosRemovidos'] as List<dynamic>? ?? [])
+            .whereType<String>();
+    await repo.limparPerfisRemovidos(
+      usuariosRemovidos,
+      dadosNegocio: dadosNegocio,
+      catalogo: catalogo,
+      dadosUsuario: dadosUsuario,
+    );
     await repo.aplicarLimpezaGlobalLocal(
       dadosNegocio: dadosNegocio,
       catalogo: catalogo,
