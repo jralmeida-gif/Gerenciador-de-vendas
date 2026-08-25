@@ -731,9 +731,17 @@ class _CampoDataOpcionalState extends State<CampoDataOpcional> {
   }
 
   void _ativarEdicao() {
+    if (_editando) return;
     setState(() => _editando = true);
-    Future<void>.delayed(Duration.zero, () {
-      if (mounted) _focusNode.requestFocus();
+    // No iOS, solicitar o foco no mesmo ciclo do setState pode ocorrer antes
+    // de o TextFormField deixar de ser readOnly. O callback pós-frame garante
+    // que o campo já esteja editável quando o teclado for solicitado.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_editando) return;
+      _controller.selection = TextSelection.collapsed(
+        offset: _controller.text.length,
+      );
+      _focusNode.requestFocus();
     });
   }
 
