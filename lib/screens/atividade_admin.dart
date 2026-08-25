@@ -49,6 +49,30 @@ class _TelaAtividadeAdminState extends State<TelaAtividadeAdmin> {
         return 'Saiu do aplicativo';
       case 'dados_sincronizados':
         return 'Sincronizou os dados';
+      case 'venda_criada':
+        return 'Cadastrou venda';
+      case 'venda_alterada':
+        return 'Alterou venda';
+      case 'venda_excluida':
+        return 'Excluiu venda';
+      case 'portabilidade_criada':
+        return 'Cadastrou portabilidade';
+      case 'portabilidade_alterada':
+        return 'Alterou portabilidade';
+      case 'portabilidade_excluida':
+        return 'Excluiu portabilidade';
+      case 'prospeccao_criada':
+        return 'Cadastrou prospecção';
+      case 'prospeccao_alterada':
+        return 'Alterou prospecção';
+      case 'prospeccao_excluida':
+        return 'Excluiu prospecção';
+      case 'cliente_criado':
+        return 'Cadastrou ficha de cliente';
+      case 'cliente_alterado':
+        return 'Alterou ficha de cliente';
+      case 'cliente_excluido':
+        return 'Excluiu ficha de cliente';
       case 'usuario_criado':
         return 'Cadastrou um usuário';
       case 'usuario_alterado':
@@ -74,6 +98,10 @@ class _TelaAtividadeAdminState extends State<TelaAtividadeAdmin> {
     if (value == 'login') return Icons.login_outlined;
     if (value == 'logout') return Icons.logout_outlined;
     if (value == 'dados_sincronizados') return Icons.sync_outlined;
+    if (value.startsWith('venda_')) return Icons.point_of_sale_outlined;
+    if (value.startsWith('portabilidade_')) return Icons.swap_horiz_outlined;
+    if (value.startsWith('prospeccao_')) return Icons.person_search_outlined;
+    if (value.startsWith('cliente_')) return Icons.person_outline;
     if (value.startsWith('usuario_')) return Icons.manage_accounts_outlined;
     if (value.startsWith('catalogo_')) return Icons.inventory_2_outlined;
     if (value == 'limpeza_global') return Icons.delete_forever_outlined;
@@ -84,7 +112,9 @@ class _TelaAtividadeAdminState extends State<TelaAtividadeAdmin> {
     if (value == 'limpeza_global' || value.endsWith('_excluido')) {
       return AppColors.danger;
     }
-    if (value == 'login') return AppColors.success;
+    if (value.endsWith('_criada') || value.endsWith('_criado') || value == 'login') {
+      return AppColors.success;
+    }
     return AppColors.primary;
   }
 
@@ -97,6 +127,10 @@ class _TelaAtividadeAdminState extends State<TelaAtividadeAdmin> {
     final parsed = DateTime.tryParse(item['created_at']?.toString() ?? '')?.toLocal();
     final date = parsed == null ? 'Data não disponível' : Fmt.dataHora(parsed);
     final result = item['result']?.toString() ?? 'success';
+    final quantity = int.tryParse(item['details']?.toString().replaceFirst('quantidade=', '') ?? '');
+    final quantityLabel = quantity == null
+        ? ''
+        : ' · $quantity ${quantity == 1 ? 'registro' : 'registros'}';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -108,7 +142,7 @@ class _TelaAtividadeAdminState extends State<TelaAtividadeAdmin> {
           child: Icon(_icon(activity), color: _color(activity), size: 20),
         ),
         title: Text(
-          _label(activity),
+          '${_label(activity)}$quantityLabel',
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         subtitle: Text('$username · $role\n$date'),
@@ -155,9 +189,9 @@ class _TelaAtividadeAdminState extends State<TelaAtividadeAdmin> {
             mostrarAcoesGlobais: false,
             ajudaContextualTitulo: 'Acessos e atividades',
             ajudaContextualTexto:
-                'Mostra quem acessou o sistema e quais operações técnicas foram realizadas.',
+                'Mostra quem acessou o sistema e quais operações técnicas e operacionais foram realizadas.',
             ajudaContextualComoUsar:
-                'Use o histórico para acompanhar acessos, sincronizações e alterações administrativas.',
+                'Use o histórico para acompanhar acessos e o volume de operações realizadas no aplicativo.',
             ajudaContextualAtencao:
                 'O histórico não exibe CPF, nome, telefone, produto, valor ou conteúdo de cliente.',
           ),
@@ -177,7 +211,7 @@ class _TelaAtividadeAdminState extends State<TelaAtividadeAdmin> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Text(
-                            'São exibidos até 200 registros recentes. O histórico registra somente a atividade técnica, o perfil que a executou e o horário.',
+                            'São exibidos até 200 registros recentes. O histórico registra a atividade técnica ou operacional, o perfil que a executou, a quantidade afetada e o horário.',
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12.5,

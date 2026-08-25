@@ -1,4 +1,10 @@
-import { getSession, type AuthEnv, json, optionsResponse } from '../_auth';
+import {
+  getSession,
+  type AuthEnv,
+  json,
+  optionsResponse,
+  recordActivity,
+} from '../_auth';
 
 type DataBody = {
   config?: { nomeUsuario?: string; modeloMeta?: string; avatarData?: string; avatarScale?: number; avatarOffsetX?: number; avatarOffsetY?: number; idleTimeoutMinutes?: number; recoveryEmail?: string };
@@ -16,6 +22,53 @@ type DataBody = {
 const text = (value: unknown) => value == null ? '' : String(value);
 const num = (value: unknown) => typeof value === 'number' ? value : Number(value ?? 0);
 const bool = (value: unknown) => value === true || value === 1;
+type SnapshotItem = Record<string, unknown>;
+
+type ChangeCounts = {
+  created: number;
+  updated: number;
+  deleted: number;
+};
+
+const comparable = (value: unknown) => {
+  if (value == null) return '';
+  if (typeof value === 'boolean') return value ? '1' : '0';
+  return String(value);
+};
+
+function countChanges(
+  before: SnapshotItem[],
+  after: SnapshotItem[],
+  key: string,
+  fields: string[],
+): ChangeCounts {
+  const previous = new Map(
+    before
+      .map((row) => [text(row[key]), row] as const)
+      .filter(([id]) => id),
+  );
+  const current = new Map(
+    after
+      .map((row) => [text(row[key]), row] as const)
+      .filter(([id]) => id),
+  );
+  let created = 0;
+  let updated = 0;
+  let deleted = 0;
+  for (const [id, row] of current) {
+    const old = previous.get(id);
+    if (!old) {
+      created++;
+    } else if (fields.some((field) => comparable(old[field]) !== comparable(row[field]))) {
+      updated++;
+    }
+  }
+  for (const id of previous.keys()) {
+    if (!current.has(id)) deleted++;
+  }
+  return { created, updated, deleted };
+}
+
 
 export const onRequestOptions: PagesFunction<AuthEnv> = ({ request }) => optionsResponse(request);
 
@@ -87,6 +140,48 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   const recoveryEmail = cfg.recoveryEmail == null
     ? ((await env.DB.prepare('SELECT recovery_email FROM user_settings WHERE user_id = ?').bind(user.id).first<{ recovery_email?: string }>())?.recovery_email ?? '')
     : text(cfg.recoveryEmail).trim().toLowerCase();
+
+  // O app envia um snapshot completo. Comparamos somente campos operacionais
+  // para registrar a ação sem copiar qualquer conteúdo para o histórico.
+  const [previousSales, previousPortabilidades, previousProspeccoes, previousClientes] =
+    await env.DB.batch([
+      env.DB.prepare('SELECT id, data, cpf, name AS nome, phone AS telefone, birth_date AS dataNascimento, product AS produto, realized AS valorRealizado, notes AS observacoes FROM user_sales WHERE user_id = ?').bind(user.id),
+      env.DB.prepare('SELECT id, data, cpf, name AS nome, phone AS telefone, birth_date AS dataNascimento, convenio, saldo_devedor AS saldoDevedor, valor_prestacao AS valorPrestacao, qtd_prestacoes AS qtdPrestacoes, confirmado, numero_contrato AS numeroContrato, data_confirmacao AS dataConfirmacao, observacoes FROM user_portabilidades WHERE user_id = ?').bind(user.id),
+      env.DB.prepare('SELECT id, data, cpf, name AS nome, phone AS telefone, birth_date AS dataNascimento, product AS produto, data_retorno AS dataRetorno, observacao, concluida FROM user_prospeccoes WHERE user_id = ?').bind(user.id),
+      env.DB.prepare('SELECT cpf, name AS nome, phone AS telefone, birth_date AS dataNascimento, notes AS observacoes FROM user_clients WHERE user_id = ?').bind(user.id),
+    ]);
+  const previous = (result: { results?: unknown[] }) =>
+    (result.results ?? []) as SnapshotItem[];
+  const currentSales = (body.vendas ?? []) as unknown as SnapshotItem[];
+  const currentPortabilidades = (body.portabilidades ?? []) as unknown as SnapshotItem[];
+  const currentProspeccoes = (body.prospeccoes ?? []) as unknown as SnapshotItem[];
+  const currentClientes = (body.clientes ?? []) as unknown as SnapshotItem[];
+  const changes = {
+    vendas: countChanges(
+      previous(previousSales),
+      currentSales,
+      'id',
+      ['data', 'cpf', 'nome', 'telefone', 'dataNascimento', 'produto', 'valorRealizado', 'observacoes'],
+    ),
+    portabilidades: countChanges(
+      previous(previousPortabilidades),
+      currentPortabilidades,
+      'id',
+      ['data', 'cpf', 'nome', 'telefone', 'dataNascimento', 'convenio', 'saldoDevedor', 'valorPrestacao', 'qtdPrestacoes', 'confirmado', 'numeroContrato', 'dataConfirmacao', 'observacoes'],
+    ),
+    prospeccoes: countChanges(
+      previous(previousProspeccoes),
+      currentProspeccoes,
+      'id',
+      ['data', 'cpf', 'nome', 'telefone', 'dataNascimento', 'produto', 'dataRetorno', 'observacao', 'concluida'],
+    ),
+    clientes: countChanges(
+      previous(previousClientes),
+      currentClientes,
+      'cpf',
+      ['cpf', 'nome', 'telefone', 'dataNascimento', 'observacoes'],
+    ),
+  };
   const batch: D1PreparedStatement[] = [
     env.DB.prepare('DELETE FROM user_metas WHERE user_id = ?').bind(user.id),
     env.DB.prepare('DELETE FROM user_monthly_metas WHERE user_id = ?').bind(user.id),
@@ -109,5 +204,24 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   for (const p of body.prospeccoes ?? []) if (text(p.id) && text(p.data)) batch.push(env.DB.prepare('INSERT INTO user_prospeccoes (user_id, id, data, cpf, name, phone, birth_date, product, data_retorno, observacao, concluida) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(user.id, text(p.id), text(p.data), text(p.cpf), text(p.nome), text(p.telefone), p.dataNascimento == null ? null : text(p.dataNascimento), text(p.produto), p.dataRetorno == null ? null : text(p.dataRetorno), text(p.observacao), bool(p.concluida) ? 1 : 0));
   for (const c of body.clientes ?? []) if (text(c.cpf)) batch.push(env.DB.prepare('INSERT INTO user_clients (user_id, cpf, name, phone, birth_date, notes) VALUES (?, ?, ?, ?, ?, ?)').bind(user.id, text(c.cpf), text(c.nome), text(c.telefone), c.dataNascimento == null ? null : text(c.dataNascimento), text(c.observacoes)));
   await env.DB.batch(batch);
+  const activities: Array<[string, number]> = [
+    ['venda_criada', changes.vendas.created],
+    ['venda_alterada', changes.vendas.updated],
+    ['venda_excluida', changes.vendas.deleted],
+    ['portabilidade_criada', changes.portabilidades.created],
+    ['portabilidade_alterada', changes.portabilidades.updated],
+    ['portabilidade_excluida', changes.portabilidades.deleted],
+    ['prospeccao_criada', changes.prospeccoes.created],
+    ['prospeccao_alterada', changes.prospeccoes.updated],
+    ['prospeccao_excluida', changes.prospeccoes.deleted],
+    ['cliente_criado', changes.clientes.created],
+    ['cliente_alterado', changes.clientes.updated],
+    ['cliente_excluido', changes.clientes.deleted],
+  ];
+  for (const [activity, quantity] of activities) {
+    if (quantity > 0) {
+      await recordActivity(env, user, activity, `quantidade=${quantity}`);
+    }
+  }
   return json(request, { ok: true, userId: user.id });
 };

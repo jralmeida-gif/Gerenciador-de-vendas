@@ -25,7 +25,9 @@ export const onRequestGet: PagesFunction<AuthEnv> = async ({ request, env }) => 
     : 100;
   const rows = await env.DB.prepare(
     `SELECT id, actor_username, actor_role,
-            activity, result, created_at
+            activity, result,
+            CASE WHEN details LIKE 'quantidade=%' THEN details ELSE '' END AS details,
+            replace(created_at, ' ', 'T') || 'Z' AS created_at
        FROM admin_activity_log
       ORDER BY created_at DESC
       LIMIT ?`,
