@@ -156,3 +156,35 @@ export async function removeSession(request: Request, env: AuthEnv): Promise<voi
 export function isAdmin(user: AuthUser | null): boolean {
   return user?.role === 'admin';
 }
+
+/**
+ * Registra uma atividade operacional sem aceitar conteúdo de negócio.
+ * Os detalhes devem ser uma etiqueta técnica curta, nunca dados de cliente.
+ * Falha no log não deve bloquear a autenticação ou a operação original.
+ */
+export async function recordActivity(
+  env: AuthEnv,
+  actor: AuthUser | null,
+  activity: string,
+  details = '',
+  result = 'success',
+): Promise<void> {
+  if (!actor) return;
+  try {
+    await env.DB.prepare(
+      `INSERT INTO admin_activity_log
+       (id, actor_user_id, actor_username, actor_role, activity, result, details)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      crypto.randomUUID(),
+      actor.id,
+      actor.username,
+      actor.role,
+      activity.slice(0, 80),
+      result.slice(0, 24),
+      details.slice(0, 240),
+    ).run();
+  } catch (error) {
+    console.error('[activity-log] failed to record activity', error);
+  }
+}

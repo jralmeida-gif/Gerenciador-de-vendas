@@ -4,6 +4,7 @@ import {
   json,
   normalizeUsername,
   optionsResponse,
+  recordActivity,
   verifyPassword,
 } from '../../_auth';
 
@@ -33,6 +34,12 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   }
 
   const headers = await createSession(request, env, user.id);
+  await recordActivity(
+    env,
+    user,
+    'login',
+    user.must_change_password === 1 ? 'senha_temporaria' : '',
+  );
   headers.set('Content-Type', 'application/json; charset=utf-8');
   return new Response(JSON.stringify({
     ok: true,

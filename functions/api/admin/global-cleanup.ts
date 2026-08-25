@@ -4,6 +4,7 @@ import {
   type AuthEnv,
   json,
   optionsResponse,
+  recordActivity,
   verifyPassword,
 } from '../../_auth';
 
@@ -133,6 +134,12 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   );
 
   await env.DB.batch(statements);
+  await recordActivity(
+    env,
+    admin,
+    'limpeza_global',
+    `negocio=true;catalogo=${catalogo};usuarios=${dadosUsuario}`,
+  );
   return json(request, {
     ok: true,
     marker: globalMarker,

@@ -6,6 +6,7 @@ import {
   json,
   normalizeUsername,
   optionsResponse,
+  recordActivity,
   validPassword,
 } from '../../_auth';
 
@@ -41,6 +42,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
       `INSERT INTO users (id, username, role, password_hash, password_salt, must_change_password)
        VALUES (?, ?, ?, ?, ?, 1)`,
     ).bind(id, username, role, password.hash, password.salt).run();
+    await recordActivity(env, admin, 'usuario_criado', `alvo=${username};perfil=${role}`);
     return json(request, { ok: true, user: { id, username, role, mustChangePassword: true } }, 201);
   } catch (error) {
     const message = String(error).toLowerCase().includes('unique')
@@ -63,6 +65,7 @@ export const onRequestDelete: PagesFunction<AuthEnv> = async ({ request, env }) 
     if ((admins?.count ?? 0) <= 1) return json(request, { error: 'Não é possível excluir o último administrador ativo.' }, 400);
   }
   await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(body.id).run();
+  await recordActivity(env, admin, 'usuario_excluido', `alvo_id=${target.id};perfil=${target.role}`);
   return json(request, { ok: true });
 };
 
@@ -87,5 +90,11 @@ export const onRequestPatch: PagesFunction<AuthEnv> = async ({ request, env }) =
   }
   if (statements.length === 0) return json(request, { error: 'Nenhuma alteração informada.' }, 400);
   await env.DB.batch(statements);
+  await recordActivity(
+    env,
+    admin,
+    'usuario_alterado',
+    `alvo_id=${target.id};campos=${statements.length}`,
+  );
   return json(request, { ok: true });
 };

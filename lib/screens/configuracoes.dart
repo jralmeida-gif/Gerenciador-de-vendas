@@ -18,6 +18,7 @@ import '../widgets/comuns.dart';
 import 'campanhas.dart';
 import 'metas_editar.dart';
 import 'ajuda.dart';
+import 'atividade_admin.dart';
 
 /// Configurações: equipe, produtos, convênios, campanhas, backup e limpeza.
 class _AvatarPerfil extends StatelessWidget {
@@ -139,8 +140,10 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                         icone: Icons.manage_accounts_outlined,
                         titulo: 'Editar perfil',
                         valor: 'Alias, foto, e-mail e telefone',
-                        onTap: () =>
-                            _editarPerfil(context, widget.user.username),
+                        onTap: () => _editarPerfil(
+                          context,
+                          context.read<AppState>().authUser?.username ?? widget.user.username,
+                        ),
                       ),
                       _Item(
                         icone: Icons.timer_outlined,
@@ -177,19 +180,34 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                if (widget.user.isAdmin) ...[
+                if (estado.authUser?.isAdmin ?? false) ...[
                   CartaoSecao(
                     titulo: 'Administração',
-                    child: _Item(
-                      icone: Icons.admin_panel_settings_outlined,
-                      titulo: 'Usuários do sistema',
-                      valor: 'Cadastrar, ativar e definir perfis',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const TelaUsuariosAdmin(),
+                    child: Column(
+                      children: [
+                        _Item(
+                          icone: Icons.admin_panel_settings_outlined,
+                          titulo: 'Usuários do sistema',
+                          valor: 'Cadastrar, ativar e definir perfis',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TelaUsuariosAdmin(),
+                            ),
+                          ),
                         ),
-                      ),
+                        _Item(
+                          icone: Icons.history_outlined,
+                          titulo: 'Acessos e atividades',
+                          valor: 'Acompanhar uso e operações técnicas',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TelaAtividadeAdmin(),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -224,7 +242,7 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                if (widget.user.isAdmin) ...[
+                if (estado.authUser?.isAdmin ?? false) ...[
                   CartaoSecao(
                     titulo: 'Cadastros mestres',
                     child: Column(
@@ -279,7 +297,8 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                             Expanded(
                               child: Text(
                                 'O backup automático fica dentro do aplicativo e pode ser restaurado pela lista interna. Ele pode ser perdido se os dados do PWA forem apagados. Para proteção adicional, use também Salvar arquivo de backup e guarde uma cópia externa. No iPhone, escolha Mais → Salvar em Arquivos; no WhatsApp ou e-mail, confirme que o backup foi enviado como documento anexado, não como texto.'
-                                '${estado.ultimoBackup != null ? '\n\nÚltimo backup: ${Fmt.data(estado.ultimoBackup!)}' : ''}',
+                                '\n\nÚltimo backup automático: ${estado.ultimoBackupAutomatico == null ? 'ainda não realizado' : Fmt.dataHora(estado.ultimoBackupAutomatico!)}'
+                                '\nÚltimo arquivo externo preparado: ${estado.ultimoArquivoBackup == null ? 'ainda não solicitado' : Fmt.dataHora(estado.ultimoArquivoBackup!)}',
                                 style: const TextStyle(
                                   fontSize: 12.5,
                                   color: AppColors.textSecondary,
@@ -478,7 +497,7 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                     ],
                   ),
                 ),
-                if (widget.user.isAdmin) ...[
+                if (estado.authUser?.isAdmin ?? false) ...[
                   const SizedBox(height: 14),
                   CartaoSecao(
                     titulo: 'Limpeza global de dados',
@@ -871,7 +890,7 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       );
       return;
     }
-    await estado.marcarBackup();
+    await estado.marcarArquivoBackup();
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
@@ -1078,6 +1097,8 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   }
 
   Future<void> _limparGlobalmente(BuildContext context) async {
+    if (context.read<AppState>().authUser?.isAdmin != true) return;
+
     final resumo = <String>[
       'Dados de negócio de todos os usuários',
       if (_limpezaGlobalCatalogo) 'Catálogo de produtos e convênios',

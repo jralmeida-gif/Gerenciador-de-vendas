@@ -223,6 +223,24 @@ class AuthClient {
     }
   }
 
+  Future<List<Map<String, dynamic>>> listAdminActivities({int limit = 100}) async {
+    final safeLimit = limit.clamp(1, 200);
+    final response = await _client.get(
+      Uri.parse('$_origin/api/admin/activity?limit=$safeLimit'),
+    );
+    if (response.statusCode != 200) {
+      final body = response.body.trim().isEmpty
+          ? const <String, dynamic>{}
+          : jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(
+        body['error']?.toString() ?? 'Não foi possível carregar o histórico.',
+      );
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return (body['activities'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
+  }
+
   Future<List<Map<String, dynamic>>> listUsers() async {
     final response = await _client.get(Uri.parse('$_origin/api/auth/users'));
     if (response.statusCode != 200) {

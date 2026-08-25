@@ -68,7 +68,8 @@ class AppState extends ChangeNotifier {
   double get avatarOffsetY => repo.avatarOffsetY;
   int get idleTimeoutMinutes => repo.idleTimeoutMinutes;
   DateTime? get ultimaAtividadeSessao => repo.ultimaAtividadeSessao;
-  DateTime? get ultimoBackup => repo.ultimoBackup;
+  DateTime? get ultimoBackupAutomatico => repo.ultimoBackupAutomatico;
+  DateTime? get ultimoArquivoBackup => repo.ultimoArquivoBackup;
   List<Map<String, dynamic>> get backupsInternos => repo.backupsInternos;
 
   Future<void> mudarPerfilLocal(String profile) async {
@@ -632,19 +633,21 @@ class AppState extends ChangeNotifier {
   Future<void> sincronizarNuvem() async {
     final backup = exportarBackup();
     await repo.salvarBackupInterno(backup);
+    await repo.marcarBackupAutomatico();
     await _cloud.save(backup);
+    notifyListeners();
   }
 
   String exportarBackup() => repo.exportarJson();
 
-  Future<void> marcarBackup() async {
-    await repo.marcarBackup();
+  Future<void> marcarArquivoBackup() async {
+    await repo.marcarArquivoBackup();
     notifyListeners();
   }
 
   Future<void> criarBackupInterno() async {
     await repo.salvarBackupInterno(exportarBackup());
-    await repo.marcarBackup();
+    await repo.marcarBackupAutomatico();
     notifyListeners();
   }
 

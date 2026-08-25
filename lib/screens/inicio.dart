@@ -72,7 +72,10 @@ class _TelaInicioState extends State<TelaInicio> {
     context.read<AppState>().configurarNavegacaoGlobal(
       agenda: () => _abrirGlobal(const TelaAgenda()),
       clientes: () => _abrirGlobal(TelaRelatorios.fichaConsolidada()),
-      configuracoes: () => _abrirGlobal(TelaConfiguracoes(user: widget.user, onLogout: widget.onLogout)),
+      configuracoes: () {
+        final user = context.read<AppState>().authUser ?? widget.user;
+        _abrirGlobal(TelaConfiguracoes(user: user, onLogout: widget.onLogout));
+      },
       ajuda: () => _abrirGlobal(const TelaAjuda()),
       voltar: _fecharGlobal,
       relatorio: _abrirGlobal,
@@ -84,7 +87,10 @@ class _TelaInicioState extends State<TelaInicio> {
         onNavigate: _selecionarAba,
         onLogout: widget.onLogout,
         onAgenda: () => _abrirGlobal(const TelaAgenda()),
-        onConfig: () => _abrirGlobal(TelaConfiguracoes(user: widget.user, onLogout: widget.onLogout)),
+        onConfig: () {
+          final user = context.read<AppState>().authUser ?? widget.user;
+          _abrirGlobal(TelaConfiguracoes(user: user, onLogout: widget.onLogout));
+        },
       ),
       const TelaVendasLista(),
       const TelaPortabilidadeLista(),

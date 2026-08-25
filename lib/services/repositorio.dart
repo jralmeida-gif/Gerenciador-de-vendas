@@ -119,9 +119,13 @@ class Repositorio {
         final configNome = _profileBoxName(perfil, _bConfig);
         if (perfil == _profile) {
           await _config.delete('ultimoBackup');
+          await _config.delete('ultimoBackupAutomatico');
+          await _config.delete('ultimoArquivoBackup');
         } else {
           final config = await Hive.openBox(configNome);
           await config.delete('ultimoBackup');
+          await config.delete('ultimoBackupAutomatico');
+          await config.delete('ultimoArquivoBackup');
           await config.close();
         }
       }
@@ -213,9 +217,14 @@ class Repositorio {
       ((_config.get('avatarOffsetX') as num?) ?? 0.0).toDouble();
   double get avatarOffsetY =>
       ((_config.get('avatarOffsetY') as num?) ?? 0.0).toDouble();
-  DateTime? get ultimoBackup {
-    final s = _config.get('ultimoBackup');
-    return s == null ? null : DateTime.tryParse(s as String);
+  DateTime? get ultimoBackupAutomatico {
+    final value = _config.get('ultimoBackupAutomatico') ?? _config.get('ultimoBackup');
+    return value is String ? DateTime.tryParse(value) : null;
+  }
+
+  DateTime? get ultimoArquivoBackup {
+    final value = _config.get('ultimoArquivoBackup');
+    return value is String ? DateTime.tryParse(value) : null;
   }
 
   Future<void> salvarEquipe({
@@ -282,11 +291,20 @@ class Repositorio {
     if (dadosNegocio || catalogo) {
       await _backupsInternos.clear();
       await _config.delete('ultimoBackup');
+      await _config.delete('ultimoBackupAutomatico');
+      await _config.delete('ultimoArquivoBackup');
     }
   }
 
-  Future<void> marcarBackup() =>
-      _config.put('ultimoBackup', DateTime.now().toIso8601String());
+  Future<void> marcarBackupAutomatico() async {
+    final agora = DateTime.now().toIso8601String();
+    await _config.put('ultimoBackupAutomatico', agora);
+    // Mantém compatibilidade com versões que só conheciam esta chave.
+    await _config.put('ultimoBackup', agora);
+  }
+
+  Future<void> marcarArquivoBackup() =>
+      _config.put('ultimoArquivoBackup', DateTime.now().toIso8601String());
 
   List<Map<String, dynamic>> get backupsInternos {
     final lista = _backupsInternos.values

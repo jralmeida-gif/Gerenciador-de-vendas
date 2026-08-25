@@ -62,8 +62,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       if (!mounted || !resultado.reachable) return;
       _ultimaRevalidacao = DateTime.now();
       if (resultado.user != null) {
-        unawaited(context.read<AppState>().carregarCatalogoDaNuvem());
+        final appState = context.read<AppState>();
+        appState.definirUsuarioAutenticado(resultado.user);
+        unawaited(appState.carregarCatalogoDaNuvem());
         if (resultado.user!.id != _user!.id ||
+            resultado.user!.role != _user!.role ||
             resultado.user!.mustChangePassword != _user!.mustChangePassword) {
           setState(() => _user = resultado.user);
         }

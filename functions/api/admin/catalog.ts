@@ -4,6 +4,7 @@ import {
   type AuthEnv,
   json,
   optionsResponse,
+  recordActivity,
 } from '../../_auth';
 
 type CatalogEntity = 'produto' | 'convenio';
@@ -68,6 +69,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
       env.DB.prepare(`UPDATE ${table} SET ${inactiveUpdate}updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE name = ?`).bind(name),
       env.DB.prepare(`UPDATE ${mirror} SET ${inactiveUpdate}updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE name = ?`).bind(name),
     ]);
+    await recordActivity(env, admin, 'catalogo_excluido', `entidade=${entity}`);
     return json(request, { ok: true, action: 'delete', name });
   }
 
@@ -123,6 +125,7 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     }
 
     await env.DB.batch(statements);
+    await recordActivity(env, admin, 'catalogo_renomeado', `entidade=${entity}`);
     return json(request, { ok: true, action: 'rename', oldName, name });
   }
 
@@ -136,5 +139,11 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
       SELECT id, ?, ?${activeValue}, strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM users`).bind(name, value),
   ];
   await env.DB.batch(statements);
+  await recordActivity(
+    env,
+    admin,
+    existing ? 'catalogo_atualizado' : 'catalogo_criado',
+    `entidade=${entity}`,
+  );
   return json(request, { ok: true, action: existing ? 'update' : 'create', name });
 };
