@@ -51,7 +51,8 @@ const categoriasAjuda = <CategoriaAjuda>[
     ItemFaq('Como concluo uma prospecção?', 'Abra as ações do registro e escolha Marcar como concluída. O histórico permanece preservado.', Icons.check_circle_outline),
   ]),
   CategoriaAjuda('Agenda e notificações', 'Pendências, retornos e aniversários.', Icons.notifications_none, [
-    ItemFaq('O que aparece na Agenda?', 'A Agenda reúne pendências de hoje, retornos futuros e aniversários próximos dos clientes.', Icons.calendar_month_outlined),
+    ItemFaq('O que aparece na Agenda?', 'A Agenda reúne compromissos do dia escolhido, do dia seguinte e de uma janela maior, incluindo retornos, portabilidades pendentes e aniversários.', Icons.calendar_month_outlined),
+    ItemFaq('Como consulto os próximos 30 dias?', 'Escolha uma data no calendário e selecione Próximos 30 dias na janela de visualização. O tipo de cada compromisso aparece destacado abaixo do nome.', Icons.date_range_outlined),
     ItemFaq('Por que não recebi uma notificação?', 'Confira a permissão de notificações, a conexão do dispositivo e se o cliente possui uma data válida cadastrada.', Icons.notifications_off_outlined),
     ItemFaq('Como reativo as notificações?', 'Reative a permissão nas configurações do navegador ou aparelho e abra novamente o PWA para atualizar a inscrição.', Icons.notification_add_outlined),
   ]),

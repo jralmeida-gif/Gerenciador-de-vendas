@@ -6,66 +6,189 @@ import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/comuns.dart';
 
-class TelaAgenda extends StatelessWidget {
+class TelaAgenda extends StatefulWidget {
   const TelaAgenda({super.key});
+
+  @override
+  State<TelaAgenda> createState() => _TelaAgendaState();
+}
+
+class _TelaAgendaState extends State<TelaAgenda> {
+  late DateTime _diaSelecionado = _dia(DateTime.now());
+  String _janela = '7';
+
+  static DateTime _dia(DateTime data) =>
+      DateTime(data.year, data.month, data.day);
+
+  int get _quantidadeDias => int.tryParse(_janela) ?? 7;
+
+  List<_AgendaItem> _montarItens(AppState estado) {
+    final itens = <_AgendaItem>[];
+    for (final p in estado.prospeccoes) {
+      if (!p.concluida && p.dataRetorno != null) {
+        itens.add(
+          _AgendaItem(
+            nome: p.nome,
+            tipo: 'Retorno de prospecção',
+            detalhe: 'Próximo contato',
+            data: _dia(p.dataRetorno!),
+            icone: Icons.phone_in_talk_outlined,
+            cor: AppColors.accent,
+          ),
+        );
+      }
+    }
+    for (final p in estado.portPendentes) {
+      itens.add(
+        _AgendaItem(
+          nome: p.nome,
+          tipo: 'Portabilidade pendente',
+          detalhe: 'Acompanhamento da portabilidade',
+          data: _dia(p.data),
+          icone: Icons.swap_horiz_outlined,
+          cor: AppColors.warning,
+        ),
+      );
+    }
+
+    final ano = _diaSelecionado.year;
+    for (final cliente in estado.clientes) {
+      final nascimento = cliente.dataNascimento;
+      if (nascimento == null) continue;
+      for (final anoAniversario in [ano, ano + 1]) {
+        if (nascimento.month == 2 && nascimento.day == 29 &&
+            !_ehBissexto(anoAniversario)) {
+          continue;
+        }
+        itens.add(
+          _AgendaItem(
+            nome: cliente.nome,
+            tipo: 'Aniversário',
+            detalhe: 'Data de nascimento informada',
+            data: DateTime(anoAniversario, nascimento.month, nascimento.day),
+            icone: Icons.cake_outlined,
+            cor: AppColors.success,
+          ),
+        );
+      }
+    }
+
+    itens.sort((a, b) {
+      final porData = a.data.compareTo(b.data);
+      return porData != 0 ? porData : a.nome.toLowerCase().compareTo(b.nome.toLowerCase());
+    });
+    return itens;
+  }
+
+  bool _ehBissexto(int ano) =>
+      ano % 4 == 0 && (ano % 100 != 0 || ano % 400 == 0);
+
+  bool _mesmoDia(DateTime a, DateTime b) => _dia(a) == _dia(b);
 
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<AppState>();
-    final hoje = DateTime.now();
-    final limiteHoje = DateTime(hoje.year, hoje.month, hoje.day);
-    final retornos = estado.prospeccoes
-        .where((p) => !p.concluida && p.dataRetorno != null)
-        .map((p) => _AgendaItem(nome: p.nome, detalhe: 'Retorno em ${Fmt.data(p.dataRetorno!)}', data: p.dataRetorno!))
-        .toList()
-      ..sort((a, b) => a.data.compareTo(b.data));
-    final portabilidades = estado.portPendentes
-        .map((p) => _AgendaItem(nome: p.nome, detalhe: 'Portabilidade pendente', data: p.data))
+    final todos = _montarItens(estado);
+    final inicio = _diaSelecionado;
+    final seguinte = inicio.add(const Duration(days: 1));
+    final limite = inicio.add(Duration(days: _quantidadeDias - 1));
+    final periodo = todos
+        .where((item) =>
+            !item.data.isBefore(inicio) && !item.data.isAfter(limite))
         .toList();
-    final aniversarios = estado.clientes
-        .where((c) => c.dataNascimento != null)
-        .map((c) {
-          final nascimento = c.dataNascimento!;
-          var data = DateTime(hoje.year, nascimento.month, nascimento.day);
-          if (data.isBefore(limiteHoje)) data = DateTime(hoje.year + 1, nascimento.month, nascimento.day);
-          return _AgendaItem(nome: c.nome, detalhe: 'Aniversário em ${Fmt.data(data)}', data: data);
-        })
-        .where((item) => item.data.difference(limiteHoje).inDays <= 30)
-        .toList()
-      ..sort((a, b) => a.data.compareTo(b.data));
+    final doDia = periodo.where((item) => _mesmoDia(item.data, inicio)).toList();
+    final doDiaSeguinte =
+        periodo.where((item) => _mesmoDia(item.data, seguinte)).toList();
+    final demais = periodo
+        .where((item) => item.data.isAfter(seguinte))
+        .toList();
 
     return Scaffold(
       body: Column(
         children: [
-          const HeaderCurvo(titulo: 'Agenda', subtitulo: 'Pendências, retornos e aniversários', mostrarVoltar: true, voltarGlobal: true, mostrarAcoesGlobais: false, ajudaContextualTitulo: 'Agenda de pendências', ajudaContextualTexto: 'Reúne o que exige atenção hoje, nos próximos dias e os aniversários próximos.', ajudaContextualComoUsar: 'Use cada seção para abrir o registro correspondente e agir sobre a pendência.'),
-          Expanded(child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          _SecaoAgenda(
-            titulo: 'Pendências de hoje',
-            icone: Icons.today_outlined,
-            itens: [
-              ...retornos.where((item) => !item.data.isAfter(limiteHoje)),
-              ...portabilidades,
-            ],
-            vazio: 'Nenhuma pendência para hoje.',
+          const HeaderCurvo(
+            titulo: 'Agenda',
+            subtitulo: 'Calendário, retornos e aniversários',
+            mostrarVoltar: true,
+            voltarGlobal: true,
+            mostrarAcoesGlobais: false,
+            ajudaContextualTitulo: 'Agenda de pendências',
+            ajudaContextualTexto:
+                'Escolha uma data no calendário e consulte os compromissos do dia, do dia seguinte ou de uma janela maior.',
+            ajudaContextualComoUsar:
+                'O tipo de cada compromisso aparece destacado abaixo do nome. A janela de visualização não altera as regras de notificação.',
           ),
-          const SizedBox(height: 16),
-          _SecaoAgenda(
-            titulo: 'Próximos retornos',
-            icone: Icons.event_available_outlined,
-            itens: retornos.where((item) => item.data.isAfter(limiteHoje)).toList(),
-            vazio: 'Nenhum retorno futuro cadastrado.',
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                CartaoSecao(
+                  titulo: 'Calendário',
+                  child: CalendarDatePicker(
+                    initialDate: _diaSelecionado,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                    onDateChanged: (data) =>
+                        setState(() => _diaSelecionado = _dia(data)),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                CartaoSecao(
+                  titulo: 'Janela de visualização',
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _janela,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.date_range_outlined, size: 20),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: '2',
+                        child: Text('Dia selecionado e dia seguinte'),
+                      ),
+                      DropdownMenuItem(
+                        value: '7',
+                        child: Text('Próximos 7 dias'),
+                      ),
+                      DropdownMenuItem(
+                        value: '30',
+                        child: Text('Próximos 30 dias'),
+                      ),
+                      DropdownMenuItem(
+                        value: '60',
+                        child: Text('Próximos 60 dias'),
+                      ),
+                    ],
+                    onChanged: (valor) {
+                      if (valor != null) setState(() => _janela = valor);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _SecaoAgenda(
+                  titulo: 'Dia selecionado · ${Fmt.data(inicio)}',
+                  itens: doDia,
+                  vazio: 'Nenhum compromisso para esta data.',
+                ),
+                const SizedBox(height: 14),
+                _SecaoAgenda(
+                  titulo: 'Dia seguinte · ${Fmt.data(seguinte)}',
+                  itens: doDiaSeguinte,
+                  vazio: 'Nenhum compromisso para o dia seguinte.',
+                ),
+                if (_quantidadeDias > 2) ...[
+                  const SizedBox(height: 14),
+                  _SecaoAgenda(
+                    titulo:
+                        'Demais compromissos até ${Fmt.data(limite)}',
+                    itens: demais,
+                    mostrarData: true,
+                    vazio: 'Nenhum compromisso adicional neste período.',
+                  ),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          _SecaoAgenda(
-            titulo: 'Aniversários nos próximos 30 dias',
-            icone: Icons.cake_outlined,
-            itens: aniversarios,
-            vazio: 'Nenhum aniversário informado para os próximos 30 dias.',
-          ),
-          ],
-          )),
         ],
       ),
     );
@@ -74,33 +197,104 @@ class TelaAgenda extends StatelessWidget {
 
 class _AgendaItem {
   final String nome;
+  final String tipo;
   final String detalhe;
   final DateTime data;
-  const _AgendaItem({required this.nome, required this.detalhe, required this.data});
+  final IconData icone;
+  final Color cor;
+
+  const _AgendaItem({
+    required this.nome,
+    required this.tipo,
+    required this.detalhe,
+    required this.data,
+    required this.icone,
+    required this.cor,
+  });
 }
 
 class _SecaoAgenda extends StatelessWidget {
   final String titulo;
-  final IconData icone;
   final List<_AgendaItem> itens;
   final String vazio;
-  const _SecaoAgenda({required this.titulo, required this.icone, required this.itens, required this.vazio});
+  final bool mostrarData;
+
+  const _SecaoAgenda({
+    required this.titulo,
+    required this.itens,
+    required this.vazio,
+    this.mostrarData = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [Icon(icone, color: AppColors.primary), const SizedBox(width: 8), Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16))]),
-            const SizedBox(height: 10),
-            if (itens.isEmpty) Text(vazio, style: const TextStyle(color: AppColors.textSecondary))
-            else ...itens.map((item) => ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.person_outline), title: Text(item.nome), subtitle: Text(item.detalhe))),
-          ],
-        ),
-      ),
+    return CartaoSecao(
+      titulo: titulo,
+      child: itens.isEmpty
+          ? Text(vazio, style: const TextStyle(color: AppColors.textSecondary))
+          : Column(
+              children: itens.map((item) {
+                final complemento = mostrarData
+                    ? '${Fmt.data(item.data)} · ${item.detalhe}'
+                    : item.detalhe;
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: item.cor.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(item.icone, color: item.cor, size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.nome,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              item.tipo,
+                              style: TextStyle(
+                                color: item.cor,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              complemento,
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
     );
   }
 }

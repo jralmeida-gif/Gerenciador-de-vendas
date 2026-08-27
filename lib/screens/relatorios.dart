@@ -223,6 +223,7 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
   String? _produto;
   String _foco = 'cliente';
   String _periodoHistorico = 'mensal';
+  String _grupoClientes = 'todos';
   final _cliente = TextEditingController();
   bool _gerando = false;
 
@@ -235,6 +236,19 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
       _tipoId == 'contatos' || _tipoId == 'venda_produto';
   bool get _precisaCliente => _tipoId == 'venda_cliente' || _tipoId == 'clientes';
   bool get _precisaFoco => _tipoId == 'venda_foco';
+
+  String get _rotuloGrupoClientes {
+    switch (_grupoClientes) {
+      case 'negocios':
+        return 'Negócios';
+      case 'cadastro':
+        return 'Cadastro direto';
+      case 'prospeccao':
+        return 'Prospecção';
+      default:
+        return 'Todos os grupos';
+    }
+  }
 
   @override
   void dispose() {
@@ -624,7 +638,15 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
           final somenteCadastro = lista.where((c) =>
               !temHistoricoComercial(c) && !estado.prospeccoes.any((p) => p.cpf == c.cpf)).toList()
             ..sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
-          lista = [...comerciais, ...somenteProspec, ...somenteCadastro];
+          if (_grupoClientes == 'negocios') {
+            lista = comerciais;
+          } else if (_grupoClientes == 'cadastro') {
+            lista = somenteCadastro;
+          } else if (_grupoClientes == 'prospeccao') {
+            lista = somenteProspec;
+          } else {
+            lista = [...comerciais, ...somenteCadastro, ...somenteProspec];
+          }
           final linhas = lista.map((c) {
             final produtos = <String>{
               ...estado.vendas.where((v) => v.cpf == c.cpf).map((v) => v.produto),
@@ -640,7 +662,7 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
             ];
           }).toList();
           return _DadosRel(
-            periodo: 'Clientes do usuário${q.isEmpty ? '' : ' · Filtro: ${_cliente.text.trim()}'}',
+            periodo: 'Clientes do usuário · Grupo: $_rotuloGrupoClientes${q.isEmpty ? '' : ' · Filtro: ${_cliente.text.trim()}'}',
             colunas: const ['Cliente', 'CPF', 'Telefone', 'Nascimento', 'Produtos / processos'],
             linhas: linhas,
             direita: const [],
@@ -824,6 +846,48 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
                           ),
                         ),
                       ],
+                      if (_tipoId == 'clientes') ...[
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Grupo de clientes',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<String>(
+                          initialValue: _grupoClientes,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.group_outlined, size: 20),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'todos',
+                              child: Text('Todos os grupos'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'negocios',
+                              child: Text('Negócios'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'cadastro',
+                              child: Text('Cadastro direto'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'prospeccao',
+                              child: Text('Prospecção'),
+                            ),
+                          ],
+                          onChanged: (valor) {
+                            if (valor != null) {
+                              setState(() => _grupoClientes = valor);
+                            }
+                          },
+                        ),
+                      ],
                       if (_precisaProduto) ...[
                         const SizedBox(height: 14),
                         const Text(
@@ -928,7 +992,7 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
   );
 }
 
-class _EditorDatasNascimento extends StatelessWidget {
+class _EditorDatasNascimento extends StatefulWidget {
   final List<Cliente> clientes;
   final List<Cliente> somenteProspec;
   final List<Cliente> somenteCadastro;
@@ -938,6 +1002,13 @@ class _EditorDatasNascimento extends StatelessWidget {
     required this.somenteProspec,
     required this.somenteCadastro,
   });
+
+  @override
+  State<_EditorDatasNascimento> createState() => _EditorDatasNascimentoState();
+}
+
+class _EditorDatasNascimentoState extends State<_EditorDatasNascimento> {
+  int _aba = 0;
 
   Future<void> _editar(BuildContext context, Cliente cliente) async {
     await Navigator.of(context).push(
@@ -1037,30 +1108,67 @@ class _EditorDatasNascimento extends StatelessWidget {
     );
   }
 
+  Widget _listaAba(
+    BuildContext context,
+    List<Cliente> clientes,
+    String vazio, {
+    bool apenasProspec = false,
+    bool apenasCadastro = false,
+  }) {
+    if (clientes.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Text(vazio, style: const TextStyle(color: AppColors.textSecondary)),
+      );
+    }
+    return Column(
+      children: clientes
+          .map(
+            (cliente) => _card(
+              context,
+              cliente,
+              apenasProspec: apenasProspec,
+              apenasCadastro: apenasCadastro,
+            ),
+          )
+          .toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final todos = [
-      if (clientes.isNotEmpty) TituloSecaoLista('Com histórico comercial'),
-      ...clientes.map((cliente) => _card(context, cliente, apenasProspec: false)),
-      if (somenteProspec.isNotEmpty) ...[
-        TituloSecaoLista('Prospecção'),
-        ...somenteProspec.map((cliente) => _card(context, cliente, apenasProspec: true)),
-      ],
-      if (somenteCadastro.isNotEmpty) ...[
-        TituloSecaoLista('Cadastro direto'),
-        ...somenteCadastro.map(
-          (cliente) => _card(
-            context,
-            cliente,
-            apenasProspec: false,
-            apenasCadastro: true,
-          ),
-        ),
-      ],
-    ];
+    final grupos = [widget.clientes, widget.somenteCadastro, widget.somenteProspec];
+    final contagens = grupos.map((grupo) => grupo.length).toList();
+    final Widget conteudoAba;
+    if (_aba == 0) {
+      conteudoAba = _listaAba(
+        context,
+        widget.clientes,
+        'Nenhum cliente com histórico comercial.',
+      );
+    } else if (_aba == 1) {
+      conteudoAba = _listaAba(
+        context,
+        widget.somenteCadastro,
+        'Nenhum cliente cadastrado diretamente.',
+        apenasCadastro: true,
+      );
+    } else {
+      conteudoAba = _listaAba(
+        context,
+        widget.somenteProspec,
+        'Nenhum cliente somente em prospecção.',
+        apenasProspec: true,
+      );
+    }
     return CartaoSecao(
       titulo: 'Clientes',
-      acao: TextButton.icon(
+      acao: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.accent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const TelaClienteForm()),
@@ -1069,9 +1177,28 @@ class _EditorDatasNascimento extends StatelessWidget {
         icon: const Icon(Icons.person_add_alt_1_outlined, size: 17),
         label: const Text('Cadastrar'),
       ),
-      child: todos.isEmpty
-          ? const Text('Nenhum cliente encontrado.', style: TextStyle(color: AppColors.textSecondary))
-          : Column(children: todos),
+      child: Column(
+        children: [
+          DefaultTabController(
+            length: 3,
+            initialIndex: _aba,
+            child: TabBar(
+              isScrollable: true,
+              onTap: (index) => setState(() => _aba = index),
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.textSecondary,
+              indicatorColor: AppColors.accent,
+              tabs: [
+                Tab(text: 'Negócios (${contagens[0]})'),
+                Tab(text: 'Cadastro (${contagens[1]})'),
+                Tab(text: 'Prospecção (${contagens[2]})'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          conteudoAba,
+        ],
+      ),
     );
   }
 }
