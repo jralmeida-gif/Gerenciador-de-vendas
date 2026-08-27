@@ -160,7 +160,14 @@ class HeaderCurvo extends StatelessWidget {
                         _AtalhoCabecalho(
                           rotulo: 'Ajuda',
                           icone: Icons.help_outline,
-                          onTap: () => _mostrarAjudaContextual(context),
+                          onTap: () {
+                            final abrir = estado.onAbrirAjuda;
+                            if (abrir != null) {
+                              abrir();
+                            } else {
+                              _mostrarAjudaContextual(context);
+                            }
+                          },
                         ),
                       if (mostrarAcoesGlobais && usuario != null && titulo != 'Configurações')
                         _AtalhoCabecalho(
