@@ -29,6 +29,32 @@ class _TelaAjudaState extends State<TelaAjuda> {
 
   List<CategoriaAjuda> get _categoriasVisiveis => categoriasAjuda.where((categoria) => _itensFiltrados(categoria).isNotEmpty).toList();
 
+  List<RecursoAjuda> get _recursosVisiveis {
+    final termo = _filtro.trim().toLowerCase();
+    if (termo.isEmpty) return recursosAjuda;
+    return recursosAjuda.where((recurso) {
+      final texto = [
+        recurso.nome,
+        recurso.descricao ?? '',
+        recurso.explicacao,
+        ...recurso.passos,
+      ].join(' ').toLowerCase();
+      return texto.contains(termo);
+    }).toList();
+  }
+
+  void _abrirRecursos(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TelaRecursosAjuda()),
+    );
+  }
+
+  void _abrirRecurso(BuildContext context, RecursoAjuda recurso) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => TelaRecursoAjuda(recurso: recurso)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final temBusca = _filtro.trim().isNotEmpty;
@@ -59,13 +85,31 @@ class _TelaAjudaState extends State<TelaAjuda> {
                     const SizedBox(width: 10),
                     Expanded(child: _AtalhoAjuda(titulo: 'Problemas comuns', icone: Icons.build_outlined, onTap: () => _abrirProblemas(context))),
                   ]),
+                  const SizedBox(height: 10),
+                  _AtalhoAjuda(titulo: 'Recursos do sistema', icone: Icons.menu_book_outlined, onTap: () => _abrirRecursos(context)),
                   const SizedBox(height: 18),
+                  const Text('Recursos do sistema', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  const Text('Veja o que o sistema oferece e abra o passo a passo de cada recurso.', style: TextStyle(color: AppColors.textSecondary)),
+                  const SizedBox(height: 12),
+                  ..._recursosVisiveis.map((recurso) => _RecursoCard(recurso: recurso, onTap: () => _abrirRecurso(context, recurso))),
+                  const SizedBox(height: 8),
                   const Text('Perguntas frequentes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
                   const Text('Escolha uma categoria para encontrar orientações rápidas.', style: TextStyle(color: AppColors.textSecondary)),
                   const SizedBox(height: 12),
                 ],
-                if (temBusca && _categoriasVisiveis.isEmpty) const EstadoVazio(icone: Icons.search_off, titulo: 'Nenhuma resposta encontrada', mensagem: 'Tente outra palavra ou escolha uma categoria.'),
+                if (temBusca && _recursosVisiveis.isNotEmpty) ...[
+                  const Text('Recursos do sistema', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 8),
+                  ..._recursosVisiveis.map((recurso) => _RecursoCard(recurso: recurso, onTap: () => _abrirRecurso(context, recurso))),
+                  const SizedBox(height: 8),
+                ],
+                if (temBusca && _categoriasVisiveis.isNotEmpty) ...[
+                  const Text('Perguntas frequentes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 8),
+                ],
+                if (temBusca && _categoriasVisiveis.isEmpty && _recursosVisiveis.isEmpty) const EstadoVazio(icone: Icons.search_off, titulo: 'Nenhuma resposta encontrada', mensagem: 'Tente outra palavra ou escolha uma categoria.'),
                 ..._categoriasVisiveis.map((categoria) => _CategoriaCard(categoria: categoria, filtro: _filtro)),
                 if (!temBusca) ...[
                   const SizedBox(height: 18),
@@ -161,4 +205,208 @@ class _AtalhoAjuda extends StatelessWidget {
       child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13), child: Column(children: [Icon(icone, color: AppColors.primary, size: 26), const SizedBox(height: 6), Text(titulo, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700))])),
     ),
   );
+}
+
+class TelaRecursosAjuda extends StatelessWidget {
+  const TelaRecursosAjuda({super.key});
+
+  void _abrirRecurso(BuildContext context, RecursoAjuda recurso) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => TelaRecursoAjuda(recurso: recurso)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          const HeaderCurvo(
+            titulo: 'Recursos do sistema',
+            subtitulo: 'Veja o que o app oferece e como usar',
+            mostrarVoltar: true,
+            voltarGlobal: true,
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Text(
+                    'Toque em um recurso para ver um passo a passo simples. Os recursos estão organizados em ordem alfabética.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ...recursosAjuda.map(
+                  (recurso) => _RecursoCard(
+                    recurso: recurso,
+                    onTap: () => _abrirRecurso(context, recurso),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecursoCard extends StatelessWidget {
+  final RecursoAjuda recurso;
+  final VoidCallback onTap;
+
+  const _RecursoCard({required this.recurso, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+        leading: CircleAvatar(
+          backgroundColor: AppColors.primary.withValues(alpha: 0.10),
+          foregroundColor: AppColors.primary,
+          child: Icon(recurso.icone, size: 21),
+        ),
+        title: Text(
+          recurso.nome,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+        ),
+        subtitle: recurso.descricao == null
+            ? null
+            : Text(
+                recurso.descricao!,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+        trailing: const Icon(Icons.chevron_right),
+      ),
+    );
+  }
+}
+
+class TelaRecursoAjuda extends StatelessWidget {
+  final RecursoAjuda recurso;
+
+  const TelaRecursoAjuda({super.key, required this.recurso});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          HeaderCurvo(
+            titulo: recurso.nome,
+            subtitulo: 'Passo a passo',
+            mostrarVoltar: true,
+            voltarGlobal: true,
+            ajudaContextualTitulo: recurso.nome,
+            ajudaContextualTexto: recurso.explicacao,
+            ajudaContextualComoUsar:
+                'Siga os passos abaixo e use a seta do cabeçalho para voltar aos recursos.',
+            ajudaContextualAtencao: recurso.atencao,
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                CartaoSecao(
+                  titulo: 'O que este recurso faz',
+                  child: Text(
+                    recurso.explicacao,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                CartaoSecao(
+                  titulo: 'Como usar',
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < recurso.passos.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CircleAvatar(
+                                radius: 13,
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                child: Text(
+                                  '${i + 1}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  recurso.passos[i],
+                                  style: const TextStyle(
+                                    fontSize: 13.5,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (recurso.atencao != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.warning_amber_outlined, color: AppColors.warning),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            recurso.atencao!,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
