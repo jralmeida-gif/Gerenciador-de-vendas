@@ -52,7 +52,7 @@ class _TelaAjudaState extends State<TelaAjuda> {
     });
   }
 
-  void _abrirRecurso(BuildContext context, RecursoAjuda recurso) {
+  void _abrirRecurso(RecursoAjuda recurso) {
     setState(() {
       _exibindoRecursos = false;
       _recursoAberto = recurso;
@@ -126,7 +126,7 @@ class _TelaAjudaState extends State<TelaAjuda> {
                   const SizedBox(height: 4),
                   const Text('Veja o que o sistema oferece e abra o passo a passo de cada recurso.', style: TextStyle(color: AppColors.textSecondary)),
                   const SizedBox(height: 12),
-                  ..._recursosVisiveis.map((recurso) => _RecursoCard(recurso: recurso, onTap: () => _abrirRecurso(context, recurso))),
+                  ..._recursosVisiveis.map((recurso) => _RecursoCard(recurso: recurso, onTap: () => _abrirRecurso(recurso))),
                   const SizedBox(height: 8),
                   const Text('Perguntas frequentes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
@@ -136,7 +136,7 @@ class _TelaAjudaState extends State<TelaAjuda> {
                 if (temBusca && _recursosVisiveis.isNotEmpty) ...[
                   const Text('Recursos do sistema', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 8),
-                  ..._recursosVisiveis.map((recurso) => _RecursoCard(recurso: recurso, onTap: () => _abrirRecurso(context, recurso))),
+                  ..._recursosVisiveis.map((recurso) => _RecursoCard(recurso: recurso, onTap: () => _abrirRecurso(recurso))),
                   const SizedBox(height: 8),
                 ],
                 if (temBusca && _categoriasVisiveis.isNotEmpty) ...[
