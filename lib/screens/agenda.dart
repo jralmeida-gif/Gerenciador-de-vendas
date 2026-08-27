@@ -124,10 +124,10 @@ class _TelaAgendaState extends State<TelaAgenda> {
               children: [
                 CartaoSecao(
                   titulo: 'Calendário',
-                  child: CalendarDatePicker(
-                    initialDate: _diaSelecionado,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2100),
+                  child: _CalendarioFixo(
+                    dataInicial: _diaSelecionado,
+                    primeiraData: DateTime(2020),
+                    ultimaData: DateTime(2100, 12, 31),
                     onDateChanged: (data) =>
                         setState(() => _diaSelecionado = _dia(data)),
                   ),
@@ -191,6 +191,190 @@ class _TelaAgendaState extends State<TelaAgenda> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CalendarioFixo extends StatefulWidget {
+  final DateTime dataInicial;
+  final DateTime primeiraData;
+  final DateTime ultimaData;
+  final ValueChanged<DateTime> onDateChanged;
+
+  const _CalendarioFixo({
+    required this.dataInicial,
+    required this.primeiraData,
+    required this.ultimaData,
+    required this.onDateChanged,
+  });
+
+  @override
+  State<_CalendarioFixo> createState() => _CalendarioFixoState();
+}
+
+class _CalendarioFixoState extends State<_CalendarioFixo> {
+  static const _meses = [
+    'janeiro',
+    'fevereiro',
+    'março',
+    'abril',
+    'maio',
+    'junho',
+    'julho',
+    'agosto',
+    'setembro',
+    'outubro',
+    'novembro',
+    'dezembro',
+  ];
+  static const _diasSemana = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+  late DateTime _mesExibido;
+
+  @override
+  void initState() {
+    super.initState();
+    _mesExibido = DateTime(widget.dataInicial.year, widget.dataInicial.month);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CalendarioFixo oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!DateUtils.isSameMonth(oldWidget.dataInicial, widget.dataInicial)) {
+      _mesExibido = DateTime(widget.dataInicial.year, widget.dataInicial.month);
+    }
+  }
+
+  bool get _podeVoltar => _mesExibido.isAfter(
+        DateTime(widget.primeiraData.year, widget.primeiraData.month),
+      );
+
+  bool get _podeAvancar => _mesExibido.isBefore(
+        DateTime(widget.ultimaData.year, widget.ultimaData.month),
+      );
+
+  void _mudarMes(int delta) {
+    if (delta < 0 && !_podeVoltar) return;
+    if (delta > 0 && !_podeAvancar) return;
+    setState(() {
+      _mesExibido = DateTime(_mesExibido.year, _mesExibido.month + delta);
+    });
+  }
+
+  List<DateTime?> _diasDoMes() {
+    final primeiro = DateTime(_mesExibido.year, _mesExibido.month, 1);
+    final quantidade = DateTime(_mesExibido.year, _mesExibido.month + 1, 0).day;
+    final vaziosAntes = primeiro.weekday - 1;
+    final dias = <DateTime?>[
+      ...List<DateTime?>.filled(vaziosAntes, null),
+      for (var dia = 1; dia <= quantidade; dia++)
+        DateTime(_mesExibido.year, _mesExibido.month, dia),
+    ];
+    while (dias.length % 7 != 0) {
+      dias.add(null);
+    }
+    return dias;
+  }
+
+  bool _permitida(DateTime data) =>
+      !data.isBefore(widget.primeiraData) && !data.isAfter(widget.ultimaData);
+
+  @override
+  Widget build(BuildContext context) {
+    final dias = _diasDoMes();
+    return Column(
+      children: [
+        Row(
+          children: [
+            IconButton(
+              tooltip: 'Mês anterior',
+              onPressed: _podeVoltar ? () => _mudarMes(-1) : null,
+              icon: const Icon(Icons.chevron_left),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  '${_meses[_mesExibido.month - 1]} de ${_mesExibido.year}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Próximo mês',
+              onPressed: _podeAvancar ? () => _mudarMes(1) : null,
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+        Row(
+          children: _diasSemana
+              .map(
+                (dia) => Expanded(
+                  child: Center(
+                    child: Text(
+                      dia,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+        const SizedBox(height: 6),
+        ...List.generate(dias.length ~/ 7, (semana) {
+          final diasDaSemana = dias.sublist(semana * 7, semana * 7 + 7);
+          return Row(
+            children: diasDaSemana.map((data) {
+              if (data == null) {
+                return const Expanded(child: SizedBox(height: 42));
+              }
+              final selecionada = DateUtils.isSameDay(data, widget.dataInicial);
+              final hoje = DateUtils.isSameDay(data, DateTime.now());
+              final permitida = _permitida(data);
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: InkWell(
+                    onTap: permitida ? () => widget.onDateChanged(data) : null,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      height: 42,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: selecionada
+                            ? AppColors.primary
+                            : hoje
+                                ? AppColors.accent.withValues(alpha: 0.12)
+                                : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: hoje && !selecionada
+                            ? Border.all(color: AppColors.accent)
+                            : null,
+                      ),
+                      child: Text(
+                        '${data.day}',
+                        style: TextStyle(
+                          color: selecionada
+                              ? Colors.white
+                              : permitida
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                          fontWeight: selecionada || hoje
+                              ? FontWeight.w800
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        }),
+      ],
     );
   }
 }

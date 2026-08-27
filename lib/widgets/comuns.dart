@@ -1,8 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../screens/agenda.dart';
@@ -733,15 +734,22 @@ class _CampoDataOpcionalState extends State<CampoDataOpcional> {
   void _ativarEdicao() {
     if (_editando) return;
     setState(() => _editando = true);
-    // No iOS, solicitar o foco no mesmo ciclo do setState pode ocorrer antes
-    // de o TextFormField deixar de ser readOnly. O callback pós-frame garante
-    // que o campo já esteja editável quando o teclado for solicitado.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+
+    // No iOS, o foco solicitado no mesmo ciclo do setState pode ocorrer antes
+    // de o TextFormField deixar de ser readOnly. O primeiro callback espera a
+    // nova árvore e a segunda tentativa cobre o atraso do teclado nativo.
+    void solicitarFoco() {
       if (!mounted || !_editando) return;
       _controller.selection = TextSelection.collapsed(
         offset: _controller.text.length,
       );
-      _focusNode.requestFocus();
+      FocusScope.of(context).requestFocus(_focusNode);
+      unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.show'));
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      solicitarFoco();
+      Future<void>.delayed(const Duration(milliseconds: 100), solicitarFoco);
     });
   }
 
