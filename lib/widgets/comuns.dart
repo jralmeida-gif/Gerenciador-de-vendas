@@ -19,6 +19,7 @@ class HeaderCurvo extends StatelessWidget {
   final bool voltarGlobal;
   final Widget? rodape;
   final bool mostrarVoltar;
+  final VoidCallback? onVoltar;
   final String? ajudaContextualTitulo;
   final String? ajudaContextualTexto;
   final String? ajudaContextualComoUsar;
@@ -33,6 +34,7 @@ class HeaderCurvo extends StatelessWidget {
     this.voltarGlobal = false,
     this.rodape,
     this.mostrarVoltar = false,
+    this.onVoltar,
     this.ajudaContextualTitulo,
     this.ajudaContextualTexto,
     this.ajudaContextualComoUsar,
@@ -90,7 +92,7 @@ class HeaderCurvo extends StatelessWidget {
                       child: IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () {
-                          final voltar = voltarGlobal ? estado.onVoltarGlobal : null;
+                          final voltar = onVoltar ?? (voltarGlobal ? estado.onVoltarGlobal : null);
                           if (voltar != null) {
                             voltar();
                           } else {

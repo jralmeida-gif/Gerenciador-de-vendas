@@ -14,6 +14,8 @@ class TelaAjuda extends StatefulWidget {
 class _TelaAjudaState extends State<TelaAjuda> {
   final _busca = TextEditingController();
   String _filtro = '';
+  bool _exibindoRecursos = false;
+  RecursoAjuda? _recursoAberto;
 
   @override
   void dispose() {
@@ -44,24 +46,56 @@ class _TelaAjudaState extends State<TelaAjuda> {
   }
 
   void _abrirRecursos(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const TelaRecursosAjuda()),
-    );
+    setState(() {
+      _exibindoRecursos = true;
+      _recursoAberto = null;
+    });
   }
 
   void _abrirRecurso(BuildContext context, RecursoAjuda recurso) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => TelaRecursoAjuda(recurso: recurso)),
-    );
+    setState(() {
+      _exibindoRecursos = false;
+      _recursoAberto = recurso;
+    });
+  }
+
+  void _voltarParaInicio() {
+    setState(() {
+      _exibindoRecursos = false;
+      _recursoAberto = null;
+    });
+  }
+
+  void _voltarParaRecursos() {
+    setState(() {
+      _exibindoRecursos = true;
+      _recursoAberto = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_recursoAberto != null) {
+      return _RecursoAjudaConteudo(
+        recurso: _recursoAberto!,
+        onVoltar: _voltarParaRecursos,
+      );
+    }
+    if (_exibindoRecursos) {
+      return _RecursosAjudaConteudo(
+        onVoltar: _voltarParaInicio,
+        onAbrirRecurso: _abrirRecurso,
+      );
+    }
+    return _buildInicio(context);
+  }
+
+  Widget _buildInicio(BuildContext context) {
     final temBusca = _filtro.trim().isNotEmpty;
     return Scaffold(
       body: Column(
         children: [
-          const HeaderCurvo(titulo: 'Central de Ajuda', subtitulo: 'FAQ, dicas e solução de problemas', mostrarVoltar: true, voltarGlobal: true),
+          const HeaderCurvo(titulo: 'Central de Ajuda', subtitulo: 'FAQ, dicas e solução de problemas', mostrarVoltar: false),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -207,61 +241,6 @@ class _AtalhoAjuda extends StatelessWidget {
   );
 }
 
-class TelaRecursosAjuda extends StatelessWidget {
-  const TelaRecursosAjuda({super.key});
-
-  void _abrirRecurso(BuildContext context, RecursoAjuda recurso) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => TelaRecursoAjuda(recurso: recurso)),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          const HeaderCurvo(
-            titulo: 'Recursos do sistema',
-            subtitulo: 'Veja o que o app oferece e como usar',
-            mostrarVoltar: true,
-            voltarGlobal: true,
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Text(
-                    'Toque em um recurso para ver um passo a passo simples. Os recursos estão organizados em ordem alfabética.',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                ...recursosAjuda.map(
-                  (recurso) => _RecursoCard(
-                    recurso: recurso,
-                    onTap: () => _abrirRecurso(context, recurso),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _RecursoCard extends StatelessWidget {
   final RecursoAjuda recurso;
   final VoidCallback onTap;
@@ -301,10 +280,14 @@ class _RecursoCard extends StatelessWidget {
   }
 }
 
-class TelaRecursoAjuda extends StatelessWidget {
+class _RecursoAjudaConteudo extends StatelessWidget {
   final RecursoAjuda recurso;
+  final VoidCallback onVoltar;
 
-  const TelaRecursoAjuda({super.key, required this.recurso});
+  const _RecursoAjudaConteudo({
+    required this.recurso,
+    required this.onVoltar,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -315,7 +298,7 @@ class TelaRecursoAjuda extends StatelessWidget {
             titulo: recurso.nome,
             subtitulo: 'Passo a passo',
             mostrarVoltar: true,
-            voltarGlobal: true,
+            onVoltar: onVoltar,
             ajudaContextualTitulo: recurso.nome,
             ajudaContextualTexto: recurso.explicacao,
             ajudaContextualComoUsar:
@@ -402,6 +385,64 @@ class TelaRecursoAjuda extends StatelessWidget {
                     ),
                   ),
                 ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecursosAjudaConteudo extends StatelessWidget {
+  final VoidCallback onVoltar;
+  final ValueChanged<RecursoAjuda> onAbrirRecurso;
+
+  const _RecursosAjudaConteudo({
+    required this.onVoltar,
+    required this.onAbrirRecurso,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          HeaderCurvo(
+            titulo: 'Recursos do sistema',
+            subtitulo: 'Veja o que o app oferece e como usar',
+            mostrarVoltar: true,
+            onVoltar: onVoltar,
+            ajudaContextualTitulo: 'Recursos do sistema',
+            ajudaContextualTexto: 'Consulte cada recurso e abra seu passo a passo.',
+            ajudaContextualComoUsar: 'Toque em um cartão para ver as orientações detalhadas.',
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Text(
+                    'Toque em um recurso para ver um passo a passo simples. Os recursos estão organizados em ordem alfabética.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ...recursosAjuda.map(
+                  (recurso) => _RecursoCard(
+                    recurso: recurso,
+                    onTap: () => onAbrirRecurso(recurso),
+                  ),
+                ),
               ],
             ),
           ),
