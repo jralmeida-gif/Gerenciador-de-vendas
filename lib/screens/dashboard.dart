@@ -10,7 +10,6 @@ import '../utils/formatters.dart';
 import '../widgets/comuns.dart';
 import 'campanhas.dart';
 import 'metas_editar.dart';
-import 'venda_form.dart';
 
 class TelaDashboard extends StatelessWidget {
   final AuthUser user;
@@ -60,17 +59,6 @@ class TelaDashboard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const TelaVendaForm()),
-        ),
-        icon: const Icon(Icons.add),
-        label: const Text(
-          'Nova venda',
-          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
     );

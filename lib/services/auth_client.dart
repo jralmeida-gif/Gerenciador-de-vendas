@@ -223,6 +223,31 @@ class AuthClient {
     }
   }
 
+  Future<String?> enviarFeedback({
+    required String tipo,
+    String assunto = '',
+    required String mensagem,
+  }) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$_origin/api/feedback'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'tipo': tipo,
+          'assunto': assunto.trim(),
+          'mensagem': mensagem.trim(),
+        }),
+      );
+      final body = response.body.trim().isEmpty
+          ? const <String, dynamic>{}
+          : jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 200 && response.statusCode < 300) return null;
+      return body['error']?.toString() ?? 'Não foi possível enviar a mensagem.';
+    } catch (_) {
+      return 'Não foi possível conectar ao servidor.';
+    }
+  }
+
   Future<List<Map<String, dynamic>>> listAdminActivities({int limit = 100}) async {
     final safeLimit = limit.clamp(1, 200);
     final response = await _client.get(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/ajuda_conteudo.dart';
+import '../services/auth_client.dart';
 import '../theme/app_theme.dart';
 import '../widgets/comuns.dart';
 
@@ -16,6 +17,9 @@ class _TelaAjudaState extends State<TelaAjuda> {
   String _filtro = '';
   bool _exibindoRecursos = false;
   RecursoAjuda? _recursoAberto;
+  CategoriaAjuda? _categoriaAberta;
+  bool _problemasAbertos = false;
+  bool _feedbackAberto = false;
 
   @override
   void dispose() {
@@ -45,10 +49,43 @@ class _TelaAjudaState extends State<TelaAjuda> {
     }).toList();
   }
 
-  void _abrirRecursos(BuildContext context) {
+  void _abrirRecursos() {
     setState(() {
       _exibindoRecursos = true;
       _recursoAberto = null;
+      _categoriaAberta = null;
+      _problemasAbertos = false;
+      _feedbackAberto = false;
+    });
+  }
+
+  void _abrirCategoria(CategoriaAjuda categoria) {
+    setState(() {
+      _categoriaAberta = categoria;
+      _exibindoRecursos = false;
+      _recursoAberto = null;
+      _problemasAbertos = false;
+      _feedbackAberto = false;
+    });
+  }
+
+  void _abrirProblemas() {
+    setState(() {
+      _problemasAbertos = true;
+      _exibindoRecursos = false;
+      _recursoAberto = null;
+      _categoriaAberta = null;
+      _feedbackAberto = false;
+    });
+  }
+
+  void _abrirFeedback() {
+    setState(() {
+      _feedbackAberto = true;
+      _exibindoRecursos = false;
+      _recursoAberto = null;
+      _categoriaAberta = null;
+      _problemasAbertos = false;
     });
   }
 
@@ -56,6 +93,9 @@ class _TelaAjudaState extends State<TelaAjuda> {
     setState(() {
       _exibindoRecursos = false;
       _recursoAberto = recurso;
+      _categoriaAberta = null;
+      _problemasAbertos = false;
+      _feedbackAberto = false;
     });
   }
 
@@ -63,6 +103,9 @@ class _TelaAjudaState extends State<TelaAjuda> {
     setState(() {
       _exibindoRecursos = false;
       _recursoAberto = null;
+      _categoriaAberta = null;
+      _problemasAbertos = false;
+      _feedbackAberto = false;
     });
   }
 
@@ -70,16 +113,31 @@ class _TelaAjudaState extends State<TelaAjuda> {
     setState(() {
       _exibindoRecursos = true;
       _recursoAberto = null;
+      _categoriaAberta = null;
+      _problemasAbertos = false;
+      _feedbackAberto = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_feedbackAberto) {
+      return _FeedbackAjudaConteudo(onVoltar: _voltarParaInicio);
+    }
     if (_recursoAberto != null) {
       return _RecursoAjudaConteudo(
         recurso: _recursoAberto!,
         onVoltar: _voltarParaRecursos,
       );
+    }
+    if (_categoriaAberta != null) {
+      return _SecaoAjudaConteudo(
+        categoria: _categoriaAberta!,
+        onVoltar: _voltarParaInicio,
+      );
+    }
+    if (_problemasAbertos) {
+      return _ProblemasAjudaConteudo(onVoltar: _voltarParaInicio);
     }
     if (_exibindoRecursos) {
       return _RecursosAjudaConteudo(
@@ -115,23 +173,18 @@ class _TelaAjudaState extends State<TelaAjuda> {
                 const SizedBox(height: 14),
                 if (!temBusca) ...[
                   Row(children: [
-                    Expanded(child: _AtalhoAjuda(titulo: 'Primeiros passos', icone: Icons.play_circle_outline, onTap: () => _abrirCategoria(context, categoriasAjuda.first))),
+                    Expanded(child: _AtalhoAjuda(titulo: 'Primeiros passos', icone: Icons.play_circle_outline, onTap: () => _abrirCategoria(categoriasAjuda.first))),
                     const SizedBox(width: 10),
-                    Expanded(child: _AtalhoAjuda(titulo: 'Problemas comuns', icone: Icons.build_outlined, onTap: () => _abrirProblemas(context))),
+                    Expanded(child: _AtalhoAjuda(titulo: 'Problemas comuns', icone: Icons.build_outlined, onTap: () => _abrirProblemas())),
                   ]),
                   const SizedBox(height: 10),
-                  _AtalhoAjuda(titulo: 'Recursos do sistema', icone: Icons.menu_book_outlined, onTap: () => _abrirRecursos(context)),
+                  Row(children: [
+                    Expanded(child: _AtalhoAjuda(titulo: 'Recursos do sistema', icone: Icons.menu_book_outlined, onTap: () => _abrirRecursos())),
+                    const SizedBox(width: 10),
+                    Expanded(child: _AtalhoAjuda(titulo: 'Sugestões e falhas', icone: Icons.feedback_outlined, onTap: () => _abrirFeedback())),
+                  ]),
                   const SizedBox(height: 18),
-                  const Text('Recursos do sistema', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  const Text('Veja o que o sistema oferece e abra o passo a passo de cada recurso.', style: TextStyle(color: AppColors.textSecondary)),
-                  const SizedBox(height: 12),
-                  ..._recursosVisiveis.map((recurso) => _RecursoCard(recurso: recurso, onTap: () => _abrirRecurso(recurso))),
-                  const SizedBox(height: 8),
-                  const Text('Perguntas frequentes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  const Text('Escolha uma categoria para encontrar orientações rápidas.', style: TextStyle(color: AppColors.textSecondary)),
-                  const SizedBox(height: 12),
+                  const Text('Escolha uma opção para continuar.', style: TextStyle(color: AppColors.textSecondary)),
                 ],
                 if (temBusca && _recursosVisiveis.isNotEmpty) ...[
                   const Text('Recursos do sistema', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
@@ -144,13 +197,7 @@ class _TelaAjudaState extends State<TelaAjuda> {
                   const SizedBox(height: 8),
                 ],
                 if (temBusca && _categoriasVisiveis.isEmpty && _recursosVisiveis.isEmpty) const EstadoVazio(icone: Icons.search_off, titulo: 'Nenhuma resposta encontrada', mensagem: 'Tente outra palavra ou escolha uma categoria.'),
-                ..._categoriasVisiveis.map((categoria) => _CategoriaCard(categoria: categoria, filtro: _filtro)),
-                if (!temBusca) ...[
-                  const SizedBox(height: 18),
-                  const Text('Solução de problemas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 8),
-                  ...problemasAjuda.map((item) => _FaqTile(item: item)),
-                ],
+                if (temBusca) ..._categoriasVisiveis.map((categoria) => _CategoriaCard(categoria: categoria, filtro: _filtro)),
               ],
             ),
           ),
@@ -159,31 +206,6 @@ class _TelaAjudaState extends State<TelaAjuda> {
     );
   }
 
-  void _abrirCategoria(BuildContext context, CategoriaAjuda categoria) => showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-    builder: (_) => SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(16, 18, 16, 24), shrinkWrap: true, children: [
-      Text(categoria.titulo, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-      const SizedBox(height: 4),
-      Text(categoria.descricao, style: const TextStyle(color: AppColors.textSecondary)),
-      const SizedBox(height: 12),
-      ...categoria.itens.map((item) => _FaqTile(item: item)),
-    ])),
-  );
-
-  void _abrirProblemas(BuildContext context) => showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-    builder: (_) => SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(16, 18, 16, 24), shrinkWrap: true, children: [
-      const Text('Solução de problemas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-      const SizedBox(height: 12),
-      ...problemasAjuda.map((item) => _FaqTile(item: item)),
-    ])),
-  );
 }
 
 class _CategoriaCard extends StatelessWidget {
@@ -441,6 +463,245 @@ class _RecursosAjudaConteudo extends StatelessWidget {
                   (recurso) => _RecursoCard(
                     recurso: recurso,
                     onTap: () => onAbrirRecurso(recurso),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SecaoAjudaConteudo extends StatelessWidget {
+  final CategoriaAjuda categoria;
+  final VoidCallback onVoltar;
+
+  const _SecaoAjudaConteudo({
+    required this.categoria,
+    required this.onVoltar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          HeaderCurvo(
+            titulo: categoria.titulo == 'Acesso e segurança' ? 'Primeiros passos' : categoria.titulo,
+            subtitulo: 'Perguntas frequentes',
+            mostrarVoltar: true,
+            onVoltar: onVoltar,
+            ajudaContextualTitulo: categoria.titulo,
+            ajudaContextualTexto: categoria.descricao,
+            ajudaContextualComoUsar: 'Abra uma pergunta para ver a orientação completa.',
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                Text(
+                  categoria.descricao,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ...categoria.itens.map((item) => _FaqTile(item: item)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProblemasAjudaConteudo extends StatelessWidget {
+  final VoidCallback onVoltar;
+
+  const _ProblemasAjudaConteudo({required this.onVoltar});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          HeaderCurvo(
+            titulo: 'Problemas comuns',
+            subtitulo: 'Solução de problemas',
+            mostrarVoltar: true,
+            onVoltar: onVoltar,
+            ajudaContextualTitulo: 'Problemas comuns',
+            ajudaContextualTexto: 'Consulte orientações para dificuldades conhecidas no uso do aplicativo.',
+            ajudaContextualComoUsar: 'Abra um item para ler a orientação correspondente.',
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                const Text(
+                  'Encontre orientações para dificuldades conhecidas no uso do Gestor de Vendas.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ...problemasAjuda.map((item) => _FaqTile(item: item)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeedbackAjudaConteudo extends StatefulWidget {
+  final VoidCallback onVoltar;
+
+  const _FeedbackAjudaConteudo({required this.onVoltar});
+
+  @override
+  State<_FeedbackAjudaConteudo> createState() => _FeedbackAjudaConteudoState();
+}
+
+class _FeedbackAjudaConteudoState extends State<_FeedbackAjudaConteudo> {
+  final _auth = AuthClient();
+  final _assunto = TextEditingController();
+  final _descricao = TextEditingController();
+  String _tipo = 'sugestao';
+  bool _enviando = false;
+
+  @override
+  void dispose() {
+    _assunto.dispose();
+    _descricao.dispose();
+    super.dispose();
+  }
+
+  Future<void> _enviar() async {
+    final assunto = _assunto.text.trim();
+    final descricao = _descricao.text.trim();
+    if (descricao.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Descreva a sugestão ou o problema com um pouco mais de detalhes.')),
+      );
+      return;
+    }
+
+    setState(() => _enviando = true);
+    final erro = await _auth.enviarFeedback(
+      tipo: _tipo,
+      assunto: assunto,
+      mensagem: descricao,
+    );
+    if (!mounted) return;
+    setState(() => _enviando = false);
+    if (erro != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(erro)),
+      );
+      return;
+    }
+    _assunto.clear();
+    _descricao.clear();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Mensagem enviada com sucesso. Obrigado por contribuir.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          HeaderCurvo(
+            titulo: 'Sugestões e falhas',
+            subtitulo: 'Ajude a melhorar o sistema',
+            mostrarVoltar: true,
+            onVoltar: widget.onVoltar,
+            ajudaContextualTitulo: 'Sugestões e falhas',
+            ajudaContextualTexto: 'Use este espaço para enviar uma ideia de melhoria ou relatar um comportamento inesperado.',
+            ajudaContextualComoUsar: 'Descreva o que aconteceu, em qual tela e o que você esperava que acontecesse.',
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Text(
+                    'Sua mensagem será guardada no sistema para análise. Não inclua CPF, nome, telefone, dados de clientes, senha, token, chave ou senha mestra.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: _tipo,
+                  decoration: const InputDecoration(
+                    labelText: 'Tipo de mensagem',
+                    prefixIcon: Icon(Icons.category_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'sugestao', child: Text('Sugestão de melhoria')),
+                    DropdownMenuItem(value: 'falha', child: Text('Relato de falha')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => _tipo = value);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _assunto,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Assunto (opcional)',
+                    prefixIcon: Icon(Icons.short_text),
+                    counterText: '',
+                  ),
+                  maxLength: 120,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _descricao,
+                  minLines: 6,
+                  maxLines: 10,
+                  maxLength: 2000,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Descreva a sugestão ou a falha',
+                    alignLabelWithHint: true,
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.only(bottom: 78),
+                      child: Icon(Icons.edit_note_outlined),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _enviando ? null : _enviar,
+                    icon: _enviando
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send_outlined),
+                    label: Text(_enviando ? 'Enviando...' : 'Enviar mensagem'),
                   ),
                 ),
               ],
