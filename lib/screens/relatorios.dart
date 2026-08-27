@@ -1186,7 +1186,7 @@ class _EditorDatasNascimentoState extends State<_EditorDatasNascimento> {
           );
         },
         icon: const Icon(Icons.person_add_alt_1_outlined, size: 17),
-        label: const Text('Cadastrar'),
+        label: const Text('Cadastrar cliente'),
       ),
       child: Column(
         children: [

@@ -190,7 +190,7 @@ class _TelaProspeccaoListaState extends State<TelaProspeccaoLista>
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text(
-          'Nova',
+          'Nova prospecção',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
