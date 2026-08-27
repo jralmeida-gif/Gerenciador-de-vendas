@@ -157,14 +157,25 @@ class AppState extends ChangeNotifier {
       required String nome,
       required String telefone,
       DateTime? dataNascimento,
+      bool priorizarDados = false,
     }) {
       if (cpf.isEmpty) return;
       final atual = mapa[cpf];
       mapa[cpf] = Cliente(
         cpf: cpf,
-        nome: nome.trim().isEmpty ? (atual?.nome ?? '') : nome.trim(),
-        telefone: telefone.isEmpty ? (atual?.telefone ?? '') : telefone,
-        dataNascimento: dataNascimento ?? atual?.dataNascimento,
+        nome: atual != null && !priorizarDados && atual.nome.trim().isNotEmpty
+            ? atual.nome
+            : nome.trim().isEmpty
+                ? (atual?.nome ?? '')
+                : nome.trim(),
+        telefone: atual != null && !priorizarDados && atual.telefone.isNotEmpty
+            ? atual.telefone
+            : telefone.isEmpty
+                ? (atual?.telefone ?? '')
+                : telefone,
+        dataNascimento: atual != null && !priorizarDados && atual.dataNascimento != null
+            ? atual.dataNascimento
+            : dataNascimento ?? atual?.dataNascimento,
         observacoes: atual?.observacoes ?? '',
       );
     }
@@ -175,6 +186,7 @@ class AppState extends ChangeNotifier {
         nome: c.nome,
         telefone: c.telefone,
         dataNascimento: c.dataNascimento,
+        priorizarDados: true,
       );
     }
     for (final v in repo.vendas) {

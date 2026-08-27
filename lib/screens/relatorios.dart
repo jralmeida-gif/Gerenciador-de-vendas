@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../models/models.dart';
 import '../services/app_state.dart';
+import 'cliente_form.dart';
 import '../services/relatorios_pdf.dart';
 import '../services/whatsapp.dart';
 import '../theme/app_theme.dart';
@@ -620,7 +621,10 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
           final somenteProspec = lista.where((c) =>
               !temHistoricoComercial(c) && estado.prospeccoes.any((p) => p.cpf == c.cpf)).toList()
             ..sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
-          lista = [...comerciais, ...somenteProspec];
+          final somenteCadastro = lista.where((c) =>
+              !temHistoricoComercial(c) && !estado.prospeccoes.any((p) => p.cpf == c.cpf)).toList()
+            ..sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
+          lista = [...comerciais, ...somenteProspec, ...somenteCadastro];
           final linhas = lista.map((c) {
             final produtos = <String>{
               ...estado.vendas.where((v) => v.cpf == c.cpf).map((v) => v.produto),
@@ -687,6 +691,8 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
     final clientesComerciais = clientesFiltrados.where(temHistoricoComercial).toList();
     final clientesSomenteProspec = clientesFiltrados.where((c) =>
         !temHistoricoComercial(c) && estado.prospeccoes.any((p) => p.cpf == c.cpf)).toList();
+    final clientesSomenteCadastro = clientesFiltrados.where((c) =>
+        !temHistoricoComercial(c) && !estado.prospeccoes.any((p) => p.cpf == c.cpf)).toList();
 
     return Scaffold(
       body: Column(
@@ -878,6 +884,7 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
                   _EditorDatasNascimento(
                     clientes: clientesComerciais,
                     somenteProspec: clientesSomenteProspec,
+                    somenteCadastro: clientesSomenteCadastro,
                   ),
                 ],
                 const SizedBox(height: 14),
@@ -924,42 +931,18 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
 class _EditorDatasNascimento extends StatelessWidget {
   final List<Cliente> clientes;
   final List<Cliente> somenteProspec;
+  final List<Cliente> somenteCadastro;
 
   const _EditorDatasNascimento({
     required this.clientes,
     required this.somenteProspec,
+    required this.somenteCadastro,
   });
 
   Future<void> _editar(BuildContext context, Cliente cliente) async {
-    final nome = TextEditingController(text: cliente.nome);
-    final telefone = TextEditingController(text: cliente.telefone);
-    final observacoes = TextEditingController(text: cliente.observacoes);
-    final salvo = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Editar cliente'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nome, decoration: const InputDecoration(labelText: 'Nome')),
-              TextField(controller: telefone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Telefone')),
-              TextField(controller: observacoes, maxLines: 2, decoration: const InputDecoration(labelText: 'Observações')),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Salvar')),
-        ],
-      ),
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => TelaClienteForm(cliente: cliente)),
     );
-    if (salvo != true || !context.mounted) return;
-    await context.read<AppState>().salvarCliente(cliente.copyWith(
-      nome: nome.text.trim(),
-      telefone: Fmt.somenteDigitos(telefone.text),
-      observacoes: observacoes.text.trim(),
-    ));
   }
 
   Future<void> _produtos(BuildContext context, Cliente cliente) async {
@@ -1003,7 +986,12 @@ class _EditorDatasNascimento extends StatelessWidget {
     await context.read<AppState>().salvarCliente(cliente.copyWith(dataNascimento: data));
   }
 
-  Widget _card(BuildContext context, Cliente cliente, {required bool apenasProspec}) {
+  Widget _card(
+    BuildContext context,
+    Cliente cliente, {
+    required bool apenasProspec,
+    bool apenasCadastro = false,
+  }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 0,
@@ -1016,7 +1004,18 @@ class _EditorDatasNascimento extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: Text(cliente.nome, style: const TextStyle(fontWeight: FontWeight.w800))),
-                if (apenasProspec) const Etiqueta(texto: 'Somente prospecção', cor: AppColors.accent, icone: Icons.phone_in_talk_outlined),
+                if (apenasProspec)
+                  const Etiqueta(
+                    texto: 'Somente prospecção',
+                    cor: AppColors.accent,
+                    icone: Icons.phone_in_talk_outlined,
+                  ),
+                if (apenasCadastro)
+                  const Etiqueta(
+                    texto: 'Cadastro direto',
+                    cor: AppColors.primaryLight,
+                    icone: Icons.person_add_alt_1_outlined,
+                  ),
               ],
             ),
             const SizedBox(height: 3),
@@ -1041,14 +1040,35 @@ class _EditorDatasNascimento extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final todos = [
+      if (clientes.isNotEmpty) TituloSecaoLista('Com histórico comercial'),
       ...clientes.map((cliente) => _card(context, cliente, apenasProspec: false)),
       if (somenteProspec.isNotEmpty) ...[
         TituloSecaoLista('Prospecção'),
         ...somenteProspec.map((cliente) => _card(context, cliente, apenasProspec: true)),
       ],
+      if (somenteCadastro.isNotEmpty) ...[
+        TituloSecaoLista('Cadastro direto'),
+        ...somenteCadastro.map(
+          (cliente) => _card(
+            context,
+            cliente,
+            apenasProspec: false,
+            apenasCadastro: true,
+          ),
+        ),
+      ],
     ];
     return CartaoSecao(
       titulo: 'Clientes',
+      acao: TextButton.icon(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const TelaClienteForm()),
+          );
+        },
+        icon: const Icon(Icons.person_add_alt_1_outlined, size: 17),
+        label: const Text('Cadastrar'),
+      ),
       child: todos.isEmpty
           ? const Text('Nenhum cliente encontrado.', style: TextStyle(color: AppColors.textSecondary))
           : Column(children: todos),

@@ -32,6 +32,7 @@ const categoriasAjuda = <CategoriaAjuda>[
   ]),
   CategoriaAjuda('Clientes', 'Cadastro consolidado, CPF e nascimento.', Icons.badge_outlined, [
     ItemFaq('Como o cliente é identificado?', 'O CPF é o principal identificador. Confira os dados antes de criar um novo cadastro.', Icons.fingerprint),
+    ItemFaq('Posso cadastrar um cliente sem fazer uma venda?', 'Sim. Na Ficha Consolidada de Clientes, toque em Cadastrar. Informe o CPF, nome, telefone e, se quiser, a data de nascimento para acompanhar o aniversário.', Icons.person_add_alt_1_outlined),
     ItemFaq('Como corrijo a data de nascimento?', 'Abra Relatórios, entre na Ficha Consolidada de Clientes, localize o cliente e use a ação de edição da data.', Icons.cake_outlined),
     ItemFaq('O que faço quando há divergência de CPF ou telefone?', 'Pare antes de duplicar o cadastro. Revise a ficha consolidada e corrija os dados do cliente.', Icons.warning_amber_outlined),
   ]),

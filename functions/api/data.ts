@@ -69,6 +69,24 @@ function countChanges(
   return { created, updated, deleted };
 }
 
+function consolidateClients(sources: SnapshotItem[][]): SnapshotItem[] {
+  const clients = new Map<string, SnapshotItem>();
+  for (const source of sources) {
+    for (const row of source) {
+      const cpf = text(row.cpf);
+      if (!cpf) continue;
+      const current = clients.get(cpf);
+      clients.set(cpf, {
+        cpf,
+        nome: text(current?.nome) || text(row.nome),
+        telefone: text(current?.telefone) || text(row.telefone),
+        dataNascimento: current?.dataNascimento || row.dataNascimento,
+        observacoes: text(current?.observacoes),
+      });
+    }
+  }
+  return [...clients.values()];
+}
 
 export const onRequestOptions: PagesFunction<AuthEnv> = ({ request }) => optionsResponse(request);
 
@@ -176,7 +194,12 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
       ['data', 'cpf', 'nome', 'telefone', 'dataNascimento', 'produto', 'dataRetorno', 'observacao', 'concluida'],
     ),
     clientes: countChanges(
-      previous(previousClientes),
+      consolidateClients([
+        previous(previousClientes),
+        previous(previousSales),
+        previous(previousPortabilidades),
+        previous(previousProspeccoes),
+      ]),
       currentClientes,
       'cpf',
       ['cpf', 'nome', 'telefone', 'dataNascimento', 'observacoes'],
@@ -216,7 +239,6 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     ['prospeccao_excluida', changes.prospeccoes.deleted],
     ['cliente_criado', changes.clientes.created],
     ['cliente_alterado', changes.clientes.updated],
-    ['cliente_excluido', changes.clientes.deleted],
   ];
   for (const [activity, quantity] of activities) {
     if (quantity > 0) {

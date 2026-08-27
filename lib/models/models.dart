@@ -288,7 +288,7 @@ class Convenio {
       Convenio(nome: _s(j['nome']), codigo: _s(j['codigo']));
 }
 
-/// Cadastro consolidado do cliente, compartilhado pelos três processos do usuário.
+/// Cadastro consolidado do cliente, compartilhado pelos processos e pelo cadastro direto do usuário.
 class Cliente {
   final String cpf;
   final String nome;
