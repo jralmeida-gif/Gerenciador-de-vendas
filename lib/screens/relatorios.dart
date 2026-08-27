@@ -1135,6 +1135,17 @@ class _EditorDatasNascimentoState extends State<_EditorDatasNascimento> {
     );
   }
 
+  Widget _rotuloAba(String texto, int quantidade) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        '$texto ($quantidade)',
+        maxLines: 1,
+        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final grupos = [widget.clientes, widget.somenteCadastro, widget.somenteProspec];
@@ -1183,15 +1194,16 @@ class _EditorDatasNascimentoState extends State<_EditorDatasNascimento> {
             length: 3,
             initialIndex: _aba,
             child: TabBar(
-              isScrollable: true,
               onTap: (index) => setState(() => _aba = index),
               labelColor: AppColors.primary,
               unselectedLabelColor: AppColors.textSecondary,
               indicatorColor: AppColors.accent,
+              indicatorWeight: 3,
+              labelPadding: EdgeInsets.zero,
               tabs: [
-                Tab(text: 'Negócios (${contagens[0]})'),
-                Tab(text: 'Cadastro (${contagens[1]})'),
-                Tab(text: 'Prospecção (${contagens[2]})'),
+                Tab(child: _rotuloAba('Negócios', contagens[0])),
+                Tab(child: _rotuloAba('Cadastro', contagens[1])),
+                Tab(child: _rotuloAba('Prospecção', contagens[2])),
               ],
             ),
           ),

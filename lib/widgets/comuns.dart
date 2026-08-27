@@ -1,9 +1,7 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../screens/agenda.dart';
@@ -738,33 +736,15 @@ class _CampoDataOpcionalState extends State<CampoDataOpcional> {
   }
 
   void _ativarEdicao() {
-    if (_editando) return;
+    if (!_editando) setState(() => _editando = true);
 
-    // A primeira solicitação acontece ainda dentro do toque no lápis. Em PWA,
-    // o iOS pode bloquear a abertura do teclado quando o foco só é pedido
-    // depois de um callback assíncrono.
+    // O campo permanece editável desde a primeira renderização. No iOS/PWA,
+    // mudar readOnly e só depois pedir foco não abre o teclado porque o
+    // elemento ainda não era editável durante o gesto original do usuário.
     _controller.selection = TextSelection.collapsed(
       offset: _controller.text.length,
     );
-    setState(() => _editando = true);
     _focusNode.requestFocus();
-
-    // As tentativas pós-renderização cobrem o momento em que o TextFormField
-    // deixa de ser readOnly e o atraso do teclado nativo.
-    void solicitarFoco() {
-      if (!mounted || !_editando) return;
-      _controller.selection = TextSelection.collapsed(
-        offset: _controller.text.length,
-      );
-      FocusScope.of(context).requestFocus(_focusNode);
-      unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.show'));
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      solicitarFoco();
-      unawaited(Future<void>.delayed(const Duration(milliseconds: 100), solicitarFoco));
-      unawaited(Future<void>.delayed(const Duration(milliseconds: 300), solicitarFoco));
-    });
   }
 
   void _textoAlterado(String texto) {
@@ -805,7 +785,10 @@ class _CampoDataOpcionalState extends State<CampoDataOpcional> {
     return TextFormField(
       controller: _controller,
       focusNode: _focusNode,
-      readOnly: !_editando,
+      readOnly: false,
+      onTap: () {
+        if (!_editando) setState(() => _editando = true);
+      },
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.next,
       autovalidateMode: AutovalidateMode.onUserInteraction,
