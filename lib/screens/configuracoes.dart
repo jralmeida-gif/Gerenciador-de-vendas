@@ -121,7 +121,6 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
             subtitulo: 'Ajustes gerais do aplicativo',
             mostrarVoltar: true,
             voltarGlobal: true,
-            mostrarAcoesGlobais: false,
             ajudaContextualTitulo: 'Configurações',
             ajudaContextualTexto:
                 'Administra perfil, foto, notificações, usuários, backup e ajuda.',
@@ -1363,7 +1362,6 @@ class TelaEditarPerfil extends StatelessWidget {
             subtitulo: 'Dados pessoais e preferências',
             mostrarVoltar: true,
             voltarGlobal: false,
-            mostrarAcoesGlobais: false,
           ),
           Expanded(
             child: ListView(

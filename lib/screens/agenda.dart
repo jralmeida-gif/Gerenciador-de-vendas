@@ -111,7 +111,6 @@ class _TelaAgendaState extends State<TelaAgenda> {
             subtitulo: 'Calendário, retornos e aniversários',
             mostrarVoltar: true,
             voltarGlobal: true,
-            mostrarAcoesGlobais: false,
             ajudaContextualTitulo: 'Agenda de pendências',
             ajudaContextualTexto:
                 'Escolha uma data no calendário e consulte os compromissos do dia, do dia seguinte ou de uma janela maior.',

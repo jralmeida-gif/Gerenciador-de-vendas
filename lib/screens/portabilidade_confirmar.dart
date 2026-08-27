@@ -100,6 +100,12 @@ class _TelaPortabilidadeConfirmarState
           const HeaderCurvo(
             titulo: 'Confirmar Portabilidade',
             subtitulo: 'Informe os dados finais do contrato',
+            mostrarVoltar: true,
+            ajudaContextualTitulo: 'Confirmação de portabilidade',
+            ajudaContextualTexto:
+                'Conclui os dados finais de uma portabilidade antes de transformá-la em venda.',
+            ajudaContextualComoUsar:
+                'Confira as informações, preencha o que faltar e use o botão de confirmação ao final da tela.',
           ),
           Expanded(
             child: ListView(

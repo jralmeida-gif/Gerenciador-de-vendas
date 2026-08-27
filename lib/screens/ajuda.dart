@@ -35,7 +35,7 @@ class _TelaAjudaState extends State<TelaAjuda> {
     return Scaffold(
       body: Column(
         children: [
-          const HeaderCurvo(titulo: 'Central de Ajuda', subtitulo: 'FAQ, dicas e solução de problemas', mostrarVoltar: true, voltarGlobal: true, mostrarAcoesGlobais: false),
+          const HeaderCurvo(titulo: 'Central de Ajuda', subtitulo: 'FAQ, dicas e solução de problemas', mostrarVoltar: true, voltarGlobal: true),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),

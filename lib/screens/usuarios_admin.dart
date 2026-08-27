@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_client.dart';
+import '../theme/app_theme.dart';
 import '../widgets/comuns.dart';
 
 class TelaUsuariosAdmin extends StatefulWidget {
@@ -138,13 +139,24 @@ class _TelaUsuariosAdminState extends State<TelaUsuariosAdmin> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Usuários')),
     floatingActionButton: FloatingActionButton.extended(onPressed: _newUser, icon: const Icon(Icons.person_add_alt_1), label: const Text('Novo usuário')),
-    body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), children: [
-            const Text('Somente administradores podem cadastrar, editar, redefinir senhas ou excluir acessos.', style: TextStyle(color: Colors.black54)),
-            const SizedBox(height: 12),
+    body: Column(
+      children: [
+        const HeaderCurvo(
+          titulo: 'Usuários',
+          subtitulo: 'Gerenciamento de acessos e perfis',
+          mostrarVoltar: true,
+          ajudaContextualTitulo: 'Gestão de usuários',
+          ajudaContextualTexto: 'Permite cadastrar novos acessos, editar perfis existentes, redefinir senhas ou excluir usuários.',
+          ajudaContextualComoUsar: 'Use o botão Novo usuário para criar um acesso. Toque nos três pontos de cada cartão para editar ou excluir.',
+          ajudaContextualAtencao: 'Somente administradores possuem acesso a esta tela.',
+        ),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), children: [
+                  const Text('Somente administradores podem cadastrar, editar, redefinir senhas ou excluir acessos.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+                  const SizedBox(height: 12),
             ..._users.map((u) {
               final isSelf = _currentUser?.id == u['id'];
               final alias = (u['display_name'] ?? '').toString().trim();
@@ -164,7 +176,10 @@ class _TelaUsuariosAdminState extends State<TelaUsuariosAdmin> {
                 ),
               );
             }),
-          ],
+                ],
+              ),
         ),
+      ],
+    ),
   );
 }

@@ -165,7 +165,6 @@ class _TelaAtividadeAdminState extends State<TelaAtividadeAdmin> {
               titulo: 'Acesso restrito',
               subtitulo: 'Esta página é exclusiva para administradores',
               mostrarVoltar: true,
-              mostrarAcoesGlobais: false,
             ),
             const Expanded(
               child: EstadoVazio(
@@ -186,7 +185,6 @@ class _TelaAtividadeAdminState extends State<TelaAtividadeAdmin> {
             titulo: 'Acessos e atividades',
             subtitulo: 'Histórico administrativo sem dados de clientes',
             mostrarVoltar: true,
-            mostrarAcoesGlobais: false,
             ajudaContextualTitulo: 'Acessos e atividades',
             ajudaContextualTexto:
                 'Mostra quem acessou o sistema e quais operações técnicas e operacionais foram realizadas.',

@@ -130,7 +130,7 @@ class HeaderCurvo extends StatelessWidget {
                   ),
                 ],
               ),
-              if (acoes.isNotEmpty || ajudaContextualTitulo != null || (mostrarAcoesGlobais && usuario != null)) ...[
+              if (acoes.isNotEmpty || (mostrarAcoesGlobais && usuario != null)) ...[
                 const SizedBox(height: 6),
                 Align(
                   alignment: Alignment.centerRight,
@@ -158,7 +158,7 @@ class HeaderCurvo extends StatelessWidget {
                           icone: Icons.people_outline,
                           onTap: estado.onAbrirClientes!,
                         ),
-                      if (ajudaContextualTitulo != null)
+                      if (mostrarAcoesGlobais && usuario != null && titulo != 'Central de Ajuda')
                         _AtalhoCabecalho(
                           rotulo: 'Ajuda',
                           icone: Icons.help_outline,
@@ -198,15 +198,21 @@ class HeaderCurvo extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [const Icon(Icons.help_outline, color: AppColors.primary), const SizedBox(width: 9), Expanded(child: Text(ajudaContextualTitulo ?? 'Ajuda', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)))]),
+            Row(children: [const Icon(Icons.help_outline, color: AppColors.primary), const SizedBox(width: 9), Expanded(child: Text(ajudaContextualTitulo ?? 'Ajuda desta tela', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)))]),
             const SizedBox(height: 14),
             const Text('O que esta tela faz', style: TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
-            Text(ajudaContextualTexto ?? '', style: const TextStyle(color: AppColors.textSecondary, height: 1.4)),
+            Text(
+              ajudaContextualTexto ?? 'Esta tela reúne recursos do Gestor de Vendas e permite consultar ou atualizar as informações disponíveis para o seu perfil.',
+              style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+            ),
             const SizedBox(height: 12),
             const Text('Como usar', style: TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
-            Text(ajudaContextualComoUsar ?? '', style: const TextStyle(color: AppColors.textSecondary, height: 1.4)),
+            Text(
+              ajudaContextualComoUsar ?? 'Use os botões e os cartões da tela. Para orientações detalhadas, abra a Central de Ajuda pelo menu principal.',
+              style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+            ),
             if (ajudaContextualAtencao != null) ...[
               const SizedBox(height: 12),
               Container(width: double.infinity, padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(10)), child: Text('Atenção: $ajudaContextualAtencao', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600))),
@@ -227,7 +233,7 @@ class _AtalhoCabecalho extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: rotulo == 'Configurações' ? 78 : 62,
+      width: 68,
       height: 56,
       child: Material(
         color: Colors.transparent,
@@ -733,11 +739,18 @@ class _CampoDataOpcionalState extends State<CampoDataOpcional> {
 
   void _ativarEdicao() {
     if (_editando) return;
-    setState(() => _editando = true);
 
-    // No iOS, o foco solicitado no mesmo ciclo do setState pode ocorrer antes
-    // de o TextFormField deixar de ser readOnly. O primeiro callback espera a
-    // nova árvore e a segunda tentativa cobre o atraso do teclado nativo.
+    // A primeira solicitação acontece ainda dentro do toque no lápis. Em PWA,
+    // o iOS pode bloquear a abertura do teclado quando o foco só é pedido
+    // depois de um callback assíncrono.
+    _controller.selection = TextSelection.collapsed(
+      offset: _controller.text.length,
+    );
+    setState(() => _editando = true);
+    _focusNode.requestFocus();
+
+    // As tentativas pós-renderização cobrem o momento em que o TextFormField
+    // deixa de ser readOnly e o atraso do teclado nativo.
     void solicitarFoco() {
       if (!mounted || !_editando) return;
       _controller.selection = TextSelection.collapsed(
@@ -749,7 +762,8 @@ class _CampoDataOpcionalState extends State<CampoDataOpcional> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       solicitarFoco();
-      Future<void>.delayed(const Duration(milliseconds: 100), solicitarFoco);
+      unawaited(Future<void>.delayed(const Duration(milliseconds: 100), solicitarFoco));
+      unawaited(Future<void>.delayed(const Duration(milliseconds: 300), solicitarFoco));
     });
   }
 
