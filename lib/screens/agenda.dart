@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/models.dart';
 import '../services/app_state.dart';
+import '../services/whatsapp.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/comuns.dart';
+import 'cliente_form.dart';
 
 class TelaAgenda extends StatefulWidget {
   const TelaAgenda({super.key});
@@ -29,6 +32,7 @@ class _TelaAgendaState extends State<TelaAgenda> {
         itens.add(
           _AgendaItem(
             nome: p.nome,
+            cpf: p.cpf,
             tipo: 'Retorno de prospecção',
             detalhe: 'Próximo contato',
             data: _dia(p.dataRetorno!),
@@ -42,6 +46,7 @@ class _TelaAgendaState extends State<TelaAgenda> {
       itens.add(
         _AgendaItem(
           nome: p.nome,
+          cpf: p.cpf,
           tipo: 'Portabilidade pendente',
           detalhe: 'Acompanhamento da portabilidade',
           data: _dia(p.data),
@@ -63,6 +68,7 @@ class _TelaAgendaState extends State<TelaAgenda> {
         itens.add(
           _AgendaItem(
             nome: cliente.nome,
+            cpf: cliente.cpf,
             tipo: 'Aniversário',
             detalhe: 'Data de nascimento informada',
             data: DateTime(anoAniversario, nascimento.month, nascimento.day),
@@ -78,6 +84,120 @@ class _TelaAgendaState extends State<TelaAgenda> {
       return porData != 0 ? porData : a.nome.toLowerCase().compareTo(b.nome.toLowerCase());
     });
     return itens;
+  }
+
+  Future<void> _abrirCliente(BuildContext context, _AgendaItem item) async {
+    final estado = context.read<AppState>();
+    Cliente? cliente;
+    for (final candidato in estado.clientes) {
+      if (candidato.cpf == item.cpf) {
+        cliente = candidato;
+        break;
+      }
+    }
+    if (cliente == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('A ficha deste cliente não foi encontrada.')),
+      );
+      return;
+    }
+    final ficha = cliente;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => _AgendaClienteFicha(
+        cliente: ficha,
+        onWhatsApp: () {
+          Navigator.pop(sheetContext);
+          _abrirWhatsApp(ficha);
+        },
+        onProdutos: () {
+          Navigator.pop(sheetContext);
+          _abrirProdutos(ficha);
+        },
+        onEditar: () {
+          Navigator.pop(sheetContext);
+          _editarCliente(ficha);
+        },
+        onNascimento: () {
+          Navigator.pop(sheetContext);
+          _editarNascimento(ficha);
+        },
+      ),
+    );
+  }
+
+  Future<void> _abrirWhatsApp(Cliente cliente) async {
+    final ok = await WhatsApp.abrir(
+      telefone: cliente.telefone,
+      mensagem: WhatsApp.saudacao(cliente.nome),
+    );
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Telefone inválido para abrir o WhatsApp.')),
+      );
+    }
+  }
+
+  Future<void> _abrirProdutos(Cliente cliente) async {
+    final estado = context.read<AppState>();
+    final vendas = estado.vendas.where((v) => v.cpf == cliente.cpf).toList();
+    final portabilidades = estado.portabilidades.where((p) => p.cpf == cliente.cpf).toList();
+    final prospeccoes = estado.prospeccoes.where((p) => p.cpf == cliente.cpf).toList();
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          children: [
+            ListTile(title: Text('Produtos e processos de ${cliente.nome}')),
+            if (vendas.isEmpty && portabilidades.isEmpty && prospeccoes.isEmpty)
+              const ListTile(title: Text('Nenhum produto ou processo encontrado.')),
+            ...vendas.map((v) => ListTile(
+                  leading: const Icon(Icons.shopping_bag_outlined),
+                  title: Text(v.produto),
+                  subtitle: Text('Venda em ${Fmt.data(v.data)}'),
+                )),
+            ...portabilidades.map((p) => const ListTile(
+                  leading: Icon(Icons.swap_horiz),
+                  title: Text('Portabilidade'),
+                )),
+            ...prospeccoes.map((p) => ListTile(
+                  leading: const Icon(Icons.phone_in_talk_outlined),
+                  title: Text('Prospecção: ${p.produto}'),
+                )),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('Fechar'),
+              onTap: () => Navigator.pop(sheetContext),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editarCliente(Cliente cliente) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => TelaClienteForm(cliente: cliente)),
+    );
+  }
+
+  Future<void> _editarNascimento(Cliente cliente) async {
+    final data = await showDatePicker(
+      context: context,
+      initialDate: cliente.dataNascimento ?? DateTime(1980, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      locale: const Locale('pt', 'BR'),
+      helpText: 'Selecione a data de nascimento',
+    );
+    if (data == null || !mounted) return;
+    await context.read<AppState>().salvarCliente(
+          cliente.copyWith(dataNascimento: data),
+        );
   }
 
   bool _ehBissexto(int ano) =>
@@ -115,7 +235,7 @@ class _TelaAgendaState extends State<TelaAgenda> {
             ajudaContextualTexto:
                 'Escolha uma data no calendário e consulte os compromissos do dia, do dia seguinte ou de uma janela maior.',
             ajudaContextualComoUsar:
-                'O tipo de cada compromisso aparece destacado abaixo do nome. A janela de visualização não altera as regras de notificação.',
+                'Toque em um compromisso para abrir a ficha do cliente e usar as ações disponíveis, como WhatsApp. A janela de visualização não altera as regras de notificação.',
           ),
           Expanded(
             child: ListView(
@@ -168,12 +288,14 @@ class _TelaAgendaState extends State<TelaAgenda> {
                   titulo: 'Dia selecionado · ${Fmt.data(inicio)}',
                   itens: doDia,
                   vazio: 'Nenhum compromisso para esta data.',
+                  onItemTap: (item) => _abrirCliente(context, item),
                 ),
                 const SizedBox(height: 14),
                 _SecaoAgenda(
                   titulo: 'Dia seguinte · ${Fmt.data(seguinte)}',
                   itens: doDiaSeguinte,
                   vazio: 'Nenhum compromisso para o dia seguinte.',
+                  onItemTap: (item) => _abrirCliente(context, item),
                 ),
                 if (_quantidadeDias > 2) ...[
                   const SizedBox(height: 14),
@@ -183,6 +305,7 @@ class _TelaAgendaState extends State<TelaAgenda> {
                     itens: demais,
                     mostrarData: true,
                     vazio: 'Nenhum compromisso adicional neste período.',
+                    onItemTap: (item) => _abrirCliente(context, item),
                   ),
                 ],
               ],
@@ -380,6 +503,7 @@ class _CalendarioFixoState extends State<_CalendarioFixo> {
 
 class _AgendaItem {
   final String nome;
+  final String cpf;
   final String tipo;
   final String detalhe;
   final DateTime data;
@@ -388,6 +512,7 @@ class _AgendaItem {
 
   const _AgendaItem({
     required this.nome,
+    required this.cpf,
     required this.tipo,
     required this.detalhe,
     required this.data,
@@ -401,12 +526,14 @@ class _SecaoAgenda extends StatelessWidget {
   final List<_AgendaItem> itens;
   final String vazio;
   final bool mostrarData;
+  final ValueChanged<_AgendaItem>? onItemTap;
 
   const _SecaoAgenda({
     required this.titulo,
     required this.itens,
     required this.vazio,
     this.mostrarData = false,
+    this.onItemTap,
   });
 
   @override
@@ -420,8 +547,11 @@ class _SecaoAgenda extends StatelessWidget {
                 final complemento = mostrarData
                     ? '${Fmt.data(item.data)} · ${item.detalhe}'
                     : item.detalhe;
-                return Container(
-                  width: double.infinity,
+                return InkWell(
+                  onTap: onItemTap == null ? null : () => onItemTap!(item),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -473,11 +603,114 @@ class _SecaoAgenda extends StatelessWidget {
                           ],
                         ),
                       ),
+                      if (onItemTap != null)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 6),
+                          child: Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                        ),
                     ],
                   ),
+                ),
                 );
               }).toList(),
             ),
+    );
+  }
+}
+
+
+class _AgendaClienteFicha extends StatelessWidget {
+  final Cliente cliente;
+  final VoidCallback onWhatsApp;
+  final VoidCallback onProdutos;
+  final VoidCallback onEditar;
+  final VoidCallback onNascimento;
+
+  const _AgendaClienteFicha({
+    required this.cliente,
+    required this.onWhatsApp,
+    required this.onProdutos,
+    required this.onEditar,
+    required this.onNascimento,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final temTelefone = cliente.telefone.trim().isNotEmpty;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Ficha do cliente',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                cliente.nome,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '${Fmt.cpf(cliente.cpf)} · ${Fmt.telefone(cliente.telefone)}',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                cliente.dataNascimento == null
+                    ? 'Nascimento não informado'
+                    : 'Nascimento: ${Fmt.data(cliente.dataNascimento!)}',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+              if (cliente.observacoes.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  cliente.observacoes,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+              ],
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  FilledButton.icon(
+                    onPressed: temTelefone ? onWhatsApp : null,
+                    icon: const Icon(Icons.chat_outlined, size: 18),
+                    label: const Text('WhatsApp'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: onProdutos,
+                    icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                    label: const Text('Produtos comprados'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: onEditar,
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Editar'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: onNascimento,
+                    icon: const Icon(Icons.cake_outlined, size: 18),
+                    label: const Text('Nascimento'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Fechar'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
