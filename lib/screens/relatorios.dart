@@ -223,11 +223,18 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
   String? _produto;
   String _foco = 'cliente';
   String _periodoHistorico = 'mensal';
+  DateTime _mesHistorico = DateTime(DateTime.now().year, DateTime.now().month);
   String _grupoClientes = 'todos';
+  static const _nomesMeses = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  ];
   final _cliente = TextEditingController();
   bool _gerando = false;
 
   String get _tipoId => widget.tipo.id;
+  String get _mesHistoricoLabel =>
+      '${_nomesMeses[_mesHistorico.month - 1]} / ${_mesHistorico.year}';
 
   bool get _precisaData => _tipoId == 'venda_dia';
   bool get _precisaPeriodo => !_precisaData && _tipoId != 'contatos' && _tipoId != 'clientes' && _tipoId != 'historico_desempenho';
@@ -280,6 +287,86 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
         _fim = d;
       }
     });
+  }
+
+  Future<void> _escolherMesHistorico() async {
+    var ano = _mesHistorico.year;
+    var mes = _mesHistorico.month;
+    final anoAtual = DateTime.now().year;
+    final escolha = await showDialog<DateTime>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, atualizar) => AlertDialog(
+          title: const Text('Escolher competência'),
+          content: Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  initialValue: mes,
+                  decoration: const InputDecoration(labelText: 'Mês'),
+                  items: List.generate(
+                    12,
+                    (i) => DropdownMenuItem(
+                      value: i + 1,
+                      child: Text(_nomesMeses[i]),
+                    ),
+                  ),
+                  onChanged: (v) {
+                    if (v != null) atualizar(() => mes = v);
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 110,
+                child: DropdownButtonFormField<int>(
+                  initialValue: ano,
+                  decoration: const InputDecoration(labelText: 'Ano'),
+                  items: List.generate(
+                    anoAtual - 2019 + 2,
+                    (i) => DropdownMenuItem(
+                      value: 2020 + i,
+                      child: Text('${2020 + i}'),
+                    ),
+                  ),
+                  onChanged: (v) {
+                    if (v != null) atualizar(() => ano = v);
+                  },
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, DateTime(ano, mes)),
+              child: const Text('Selecionar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (escolha == null || !mounted) return;
+    setState(() {
+      _mesHistorico = DateTime(escolha.year, escolha.month);
+      _atualizarPeriodoHistorico();
+    });
+  }
+
+  void _atualizarPeriodoHistorico() {
+    if (_periodoHistorico == 'mensal') {
+      _inicio = DateTime(_mesHistorico.year, _mesHistorico.month, 1);
+      _fim = DateTime(_mesHistorico.year, _mesHistorico.month + 1, 0);
+    } else if (_periodoHistorico == 'semestral') {
+      _inicio = DateTime(_mesHistorico.year, _mesHistorico.month - 5, 1);
+      _fim = DateTime(_mesHistorico.year, _mesHistorico.month + 1, 0);
+    } else {
+      _inicio = DateTime(_mesHistorico.year, 1, 1);
+      _fim = DateTime(_mesHistorico.year, 12, 31);
+    }
   }
 
   bool _noPeriodo(DateTime d) {
@@ -336,7 +423,7 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
           for (var cursor = DateTime(_inicio.year, _inicio.month); !cursor.isAfter(DateTime(_fim.year, _fim.month)); cursor = DateTime(cursor.year, cursor.month + 1)) {
             final mesRef = '${cursor.year}-${cursor.month.toString().padLeft(2, '0')}';
             for (final produto in estado.produtos) {
-              final meta = estado.metaMensalDoProduto(produto.nome, mesRef);
+              final meta = estado.metaMensalRegistradaDoProduto(produto.nome, mesRef);
               final realizado = estado.realizadoProduto(produto.nome, DateTime(cursor.year, cursor.month, 1), DateTime(cursor.year, cursor.month + 1, 0));
               if (meta <= 0 && realizado <= 0) continue;
               final atingido = meta > 0 ? realizado / meta : 0.0;
@@ -747,21 +834,35 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
                           ],
                           onChanged: (v) {
                             if (v == null) return;
-                            final n = DateTime.now();
                             setState(() {
                               _periodoHistorico = v;
-                              if (v == 'mensal') {
-                                _inicio = DateTime(n.year, n.month, 1);
-                                _fim = DateTime(n.year, n.month + 1, 0);
-                              } else if (v == 'semestral') {
-                                _inicio = DateTime(n.year, n.month - 5, 1);
-                                _fim = DateTime(n.year, n.month + 1, 0);
-                              } else {
-                                _inicio = DateTime(n.year, 1, 1);
-                                _fim = DateTime(n.year, 12, 31);
-                              }
+                              _atualizarPeriodoHistorico();
                             });
                           },
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Competência de referência',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        OutlinedButton.icon(
+                          onPressed: _escolherMesHistorico,
+                          icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                          label: Text(_mesHistoricoLabel),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Escolha o mês e o ano da meta que deseja consultar. O relatório usa o realizado e a meta cadastrada em cada competência.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            height: 1.35,
+                          ),
                         ),
                       ],
                       if (_precisaData)

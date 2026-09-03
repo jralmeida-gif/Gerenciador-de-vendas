@@ -472,12 +472,19 @@ class Repositorio {
       .map((e) => MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)))
       .toList();
 
+  /// Retorna a meta da competência, usando a meta geral apenas como fallback
+  /// quando ainda não existe registro mensal para o produto.
   double metaMensalDoProduto(String produto, String mes) {
     final e = _metasMensais.get('${produto}_$mes');
-    if (e != null) {
-      return MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)).valor;
-    }
-    return metaDoProduto(produto);
+    if (e == null) return metaDoProduto(produto);
+    return MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)).valor;
+  }
+
+  /// Retorna somente o valor efetivamente salvo para a competência.
+  double metaMensalRegistradaDoProduto(String produto, String mes) {
+    final e = _metasMensais.get('${produto}_$mes');
+    if (e == null) return 0;
+    return MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)).valor;
   }
 
   Future<void> salvarMetaMensal(String produto, String mes, double valor) =>

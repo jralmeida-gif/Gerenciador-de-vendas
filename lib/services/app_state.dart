@@ -231,6 +231,8 @@ class AppState extends ChangeNotifier {
   List<MetaMensal> get metasMensais => repo.metasMensais;
   double metaMensalDoProduto(String produto, String mes) =>
       repo.metaMensalDoProduto(produto, mes);
+  double metaMensalRegistradaDoProduto(String produto, String mes) =>
+      repo.metaMensalRegistradaDoProduto(produto, mes);
 
   Venda? encontrarVendaDuplicada(Venda candidata) {
     for (final existente in vendas) {
