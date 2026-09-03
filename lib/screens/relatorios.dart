@@ -225,6 +225,7 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
   String _periodoHistorico = 'mensal';
   DateTime _mesHistorico = DateTime(DateTime.now().year, DateTime.now().month);
   String _grupoClientes = 'todos';
+  bool _incluirProdutosSemMeta = false;
   static const _nomesMeses = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
@@ -425,7 +426,8 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
             for (final produto in estado.produtos) {
               final meta = estado.metaMensalDoProduto(produto.nome, mesRef);
               final realizado = estado.realizadoProduto(produto.nome, DateTime(cursor.year, cursor.month, 1), DateTime(cursor.year, cursor.month + 1, 0));
-              if (meta <= 0 && realizado <= 0) continue;
+              if (!_incluirProdutosSemMeta && meta <= 0) continue;
+              if (_incluirProdutosSemMeta && !produto.ativo && meta <= 0 && realizado <= 0) continue;
               final atingido = meta > 0 ? realizado / meta : 0.0;
               final atingidoConsolidado = atingido.clamp(0.0, 1.0).toDouble();
               final gap = (1 - atingidoConsolidado).clamp(0.0, 1.0).toDouble();
@@ -862,6 +864,31 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
                             fontSize: 12,
                             color: AppColors.textSecondary,
                             height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        CheckboxListTile(
+                          value: _incluirProdutosSemMeta,
+                          onChanged: (valor) => setState(
+                            () => _incluirProdutosSemMeta = valor ?? false,
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: const Text(
+                            'Incluir produtos sem meta cadastrada',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Desmarcado: mostra somente produtos com meta maior que zero. Marcado: inclui também produtos sem meta.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: AppColors.textSecondary,
+                              height: 1.3,
+                            ),
                           ),
                         ),
                       ],
