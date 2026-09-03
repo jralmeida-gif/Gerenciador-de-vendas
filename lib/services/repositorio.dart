@@ -472,19 +472,23 @@ class Repositorio {
       .map((e) => MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)))
       .toList();
 
-  /// Retorna a meta da competência, usando a meta geral apenas como fallback
-  /// quando ainda não existe registro mensal para o produto.
   double metaMensalDoProduto(String produto, String mes) {
     final e = _metasMensais.get('${produto}_$mes');
-    if (e == null) return metaDoProduto(produto);
-    return MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)).valor;
-  }
+    if (e != null) {
+      return MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)).valor;
+    }
 
-  /// Retorna somente o valor efetivamente salvo para a competência.
-  double metaMensalRegistradaDoProduto(String produto, String mes) {
-    final e = _metasMensais.get('${produto}_$mes');
-    if (e == null) return 0;
-    return MetaMensal.fromJson(Map<dynamic, dynamic>.from(e as Map)).valor;
+    // Registros antigos podem ter sido salvos antes de uma correção de
+    // maiúsculas, minúsculas ou espaços no catálogo. A meta deve continuar
+    // vinculada à mesma competência e ao mesmo produto lógico.
+    final produtoNormalizado = produto.trim().toLowerCase();
+    for (final item in _metasMensais.values) {
+      final mensal = MetaMensal.fromJson(Map<dynamic, dynamic>.from(item as Map));
+      if (mensal.mes == mes && mensal.produto.trim().toLowerCase() == produtoNormalizado) {
+        return mensal.valor;
+      }
+    }
+    return metaDoProduto(produto);
   }
 
   Future<void> salvarMetaMensal(String produto, String mes, double valor) =>
@@ -495,8 +499,17 @@ class Repositorio {
 
   double metaDoProduto(String produto) {
     final e = _metas.get(produto);
-    if (e == null) return 0;
-    return MetaProduto.fromJson(Map<dynamic, dynamic>.from(e as Map)).metaMes;
+    if (e != null) {
+      return MetaProduto.fromJson(Map<dynamic, dynamic>.from(e as Map)).metaMes;
+    }
+    final produtoNormalizado = produto.trim().toLowerCase();
+    for (final item in _metas.values) {
+      final meta = MetaProduto.fromJson(Map<dynamic, dynamic>.from(item as Map));
+      if (meta.produto.trim().toLowerCase() == produtoNormalizado) {
+        return meta.metaMes;
+      }
+    }
+    return 0;
   }
 
   Future<void> salvarMeta(String produto, double valor) => _metas.put(

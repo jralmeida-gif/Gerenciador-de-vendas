@@ -105,16 +105,14 @@ class _TelaMetasEditarState extends State<TelaMetasEditar> {
 
   Future<void> _salvar() async {
     final estado = context.read<AppState>();
+    final valores = <String, double>{};
     for (final e in _ctrls.entries) {
       final produto = estado.produtos.firstWhere((p) => p.nome == e.key);
       final metaAnterior = estado.metaMensalDoProduto(e.key, _mesRef);
       if (!produto.ativo && metaAnterior <= 0) continue;
-      final v = Fmt.parseNumero(e.value.text);
-      await estado.salvarMetaMensal(e.key, _mesRef, v);
-      if (_mesRef == '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}') {
-        await estado.salvarMeta(e.key, v);
-      }
+      valores[e.key] = Fmt.parseNumero(e.value.text);
     }
+    await estado.salvarMetasMensais(_mesRef, valores);
     if (!mounted) return;
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(

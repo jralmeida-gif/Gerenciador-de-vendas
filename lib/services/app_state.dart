@@ -17,6 +17,7 @@ class AppState extends ChangeNotifier {
   final Repositorio repo;
   final _uuid = const Uuid();
   final _cloud = CloudDataClient();
+  Future<void> _filaSincronizacao = Future<void>.value();
   AuthUser? _authUser;
   String? _versaoCatalogo;
   VoidCallback? onAbrirAgenda;
@@ -231,8 +232,6 @@ class AppState extends ChangeNotifier {
   List<MetaMensal> get metasMensais => repo.metasMensais;
   double metaMensalDoProduto(String produto, String mes) =>
       repo.metaMensalDoProduto(produto, mes);
-  double metaMensalRegistradaDoProduto(String produto, String mes) =>
-      repo.metaMensalRegistradaDoProduto(produto, mes);
 
   Venda? encontrarVendaDuplicada(Venda candidata) {
     for (final existente in vendas) {
@@ -594,6 +593,24 @@ class AppState extends ChangeNotifier {
     unawaited(sincronizarNuvem());
   }
 
+  Future<void> salvarMetasMensais(
+    String mes,
+    Map<String, double> valores,
+  ) async {
+    for (final entry in valores.entries) {
+      await repo.salvarMetaMensal(entry.key, mes, entry.value);
+    }
+    final agora = DateTime.now();
+    final mesAtual = '${agora.year}-${agora.month.toString().padLeft(2, '0')}';
+    if (mes == mesAtual) {
+      for (final entry in valores.entries) {
+        await repo.salvarMeta(entry.key, entry.value);
+      }
+    }
+    notifyListeners();
+    await sincronizarNuvem();
+  }
+
   Future<void> salvarCampanha(Campanha c) async {
     await repo.salvarCampanha(c);
     notifyListeners();
@@ -634,7 +651,9 @@ class AppState extends ChangeNotifier {
         (mapa['portabilidades'] as List? ?? []).isNotEmpty ||
         (mapa['prospeccoes'] as List? ?? []).isNotEmpty ||
         (mapa['metas'] as List? ?? []).isNotEmpty ||
-        (mapa['campanhas'] as List? ?? []).isNotEmpty;
+        (mapa['metasMensais'] as List? ?? []).isNotEmpty ||
+        (mapa['campanhas'] as List? ?? []).isNotEmpty ||
+        (mapa['clientes'] as List? ?? []).isNotEmpty;
     if (temDados) {
       await repo.importarJson(json, preservarTimeoutSessao: true);
       notifyListeners();
@@ -644,7 +663,19 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> sincronizarNuvem() async {
+  /// Enfileira snapshots para que gravações rápidas não cheguem fora de
+  /// ordem à nuvem. Cada operação calcula o backup somente quando sua vez
+  /// chega, sempre refletindo o estado mais recente do perfil autenticado.
+  Future<void> sincronizarNuvem() {
+    final proxima = _filaSincronizacao.then<void>(
+      (_) => _sincronizarAgora(),
+      onError: (Object _, StackTrace __) => _sincronizarAgora(),
+    );
+    _filaSincronizacao = proxima;
+    return proxima;
+  }
+
+  Future<void> _sincronizarAgora() async {
     final backup = exportarBackup();
     await repo.salvarBackupInterno(backup);
     await repo.marcarBackupAutomatico();
@@ -718,6 +749,7 @@ class AppState extends ChangeNotifier {
     final hoje = referencia ?? DateTime.now();
     final inicioMes = DateTime(hoje.year, hoje.month, 1);
     final fimMes = DateTime(hoje.year, hoje.month + 1, 0);
+    final mesRef = '${hoje.year}-${hoje.month.toString().padLeft(2, '0')}';
     final diasUteis = diasUteisRestantes(hoje);
     final diasDecorridos = _diasUteisDecorridos(hoje);
     final diasTotais = _diasUteisNoMes(hoje);
@@ -726,7 +758,7 @@ class AppState extends ChangeNotifier {
         : 0.0;
     final linhas = <LinhaMeta>[];
     for (final p in produtos) {
-      final metaIndiv = metaDoProduto(p.nome);
+      final metaIndiv = metaMensalDoProduto(p.nome, mesRef);
       final metaMes = metaIndiv;
       final realMes = realizadoProduto(p.nome, inicioMes, fimMes);
       final realHoje = realizadoProduto(p.nome, hoje, hoje);
