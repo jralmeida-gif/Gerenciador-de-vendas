@@ -423,7 +423,7 @@ class _TelaRelatorioParametrosState extends State<TelaRelatorioParametros> {
           for (var cursor = DateTime(_inicio.year, _inicio.month); !cursor.isAfter(DateTime(_fim.year, _fim.month)); cursor = DateTime(cursor.year, cursor.month + 1)) {
             final mesRef = '${cursor.year}-${cursor.month.toString().padLeft(2, '0')}';
             for (final produto in estado.produtos) {
-              final meta = estado.metaMensalRegistradaDoProduto(produto.nome, mesRef);
+              final meta = estado.metaMensalDoProduto(produto.nome, mesRef);
               final realizado = estado.realizadoProduto(produto.nome, DateTime(cursor.year, cursor.month, 1), DateTime(cursor.year, cursor.month + 1, 0));
               if (meta <= 0 && realizado <= 0) continue;
               final atingido = meta > 0 ? realizado / meta : 0.0;
