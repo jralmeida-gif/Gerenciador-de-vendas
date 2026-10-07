@@ -301,7 +301,7 @@ class AppState extends ChangeNotifier {
     // principal ainda estiver apenas na fila. Se a sessão expirar ou a PWA
     // for fechada nesse intervalo, o registro poderia aparecer somente na
     // tabela auxiliar de notificações e desaparecer ao recarregar o app.
-    await sincronizarNuvem();
+    await sincronizarNuvem(propagarErro: true);
     await sincronizarPrazosPush();
   }
 
@@ -670,20 +670,21 @@ class AppState extends ChangeNotifier {
   /// Enfileira snapshots para que gravações rápidas não cheguem fora de
   /// ordem à nuvem. Cada operação calcula o backup somente quando sua vez
   /// chega, sempre refletindo o estado mais recente do perfil autenticado.
-  Future<void> sincronizarNuvem() {
+  Future<void> sincronizarNuvem({bool propagarErro = false}) {
     final proxima = _filaSincronizacao.then<void>(
       (_) => _sincronizarAgora(),
       onError: (Object _, StackTrace __) => _sincronizarAgora(),
     );
     _filaSincronizacao = proxima;
-    return proxima;
+    return propagarErro ? proxima : proxima.catchError((_) {});
   }
 
   Future<void> _sincronizarAgora() async {
     final backup = exportarBackup();
     await repo.salvarBackupInterno(backup);
     await repo.marcarBackupAutomatico();
-    await _cloud.save(backup);
+    final erro = await _cloud.save(backup);
+    if (erro != null) throw StateError(erro);
     notifyListeners();
   }
 

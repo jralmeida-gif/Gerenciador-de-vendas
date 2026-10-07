@@ -141,7 +141,18 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
       telefone: p.telefone,
       dataNascimento: p.dataNascimento,
     );
-    await estado.salvarPortabilidade(p);
+    try {
+      await estado.salvarPortabilidade(p);
+    } catch (erro) {
+      if (mounted) {
+        _msg(
+          'Não foi possível salvar no servidor. Verifique a conexão e tente novamente.\n'
+          '${erro.toString().replaceFirst('Bad state: ', '')}',
+          AppColors.danger,
+        );
+      }
+      return;
+    }
     if (!mounted) return;
 
     if (_editando) {

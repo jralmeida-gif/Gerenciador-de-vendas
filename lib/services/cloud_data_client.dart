@@ -19,16 +19,24 @@ class CloudDataClient {
     }
   }
 
-  Future<bool> save(String backupJson) async {
+  Future<String?> save(String backupJson) async {
     try {
       final response = await _client.post(
         Uri.parse('$_origin/api/data'),
         headers: {'Content-Type': 'application/json'},
         body: backupJson,
       );
-      return response.statusCode >= 200 && response.statusCode < 300;
+      if (response.statusCode >= 200 && response.statusCode < 300) return null;
+      final decoded = response.body.trim().isEmpty
+          ? const <String, dynamic>{}
+          : jsonDecode(response.body);
+      final body = decoded is Map<String, dynamic>
+          ? decoded
+          : const <String, dynamic>{};
+      return body['error']?.toString() ??
+          'O servidor não confirmou o salvamento dos dados.';
     } catch (_) {
-      return false;
+      return 'Não foi possível conectar ao servidor para salvar os dados.';
     }
   }
 
