@@ -297,7 +297,11 @@ class AppState extends ChangeNotifier {
       await _registrarVendaDaPortabilidade(p);
     }
     notifyListeners();
-    unawaited(sincronizarNuvem());
+    // A portabilidade não pode ser considerada salva enquanto o snapshot
+    // principal ainda estiver apenas na fila. Se a sessão expirar ou a PWA
+    // for fechada nesse intervalo, o registro poderia aparecer somente na
+    // tabela auxiliar de notificações e desaparecer ao recarregar o app.
+    await sincronizarNuvem();
     await sincronizarPrazosPush();
   }
 
