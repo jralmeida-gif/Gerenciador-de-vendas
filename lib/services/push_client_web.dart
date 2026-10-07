@@ -6,6 +6,9 @@ import 'package:http/http.dart' as http;
 @JS('gestorPushEnable')
 external JSPromise<JSBoolean> _gestorPushEnable();
 
+@JS('gestorPushReconcile')
+external JSPromise<JSBoolean> _gestorPushReconcile();
+
 @JS('gestorPushStatus')
 external JSPromise<JSString> _gestorPushStatus();
 
@@ -50,6 +53,18 @@ class PushClient {
     if (!await isSupported()) return false;
     try {
       final result = await _gestorPushEnable().toDart;
+      return result.toDart;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Reinscreve no backend uma assinatura local ainda válida, sem solicitar
+  /// novamente a permissão do navegador.
+  static Future<bool> reconcile() async {
+    if (!await isSupported()) return false;
+    try {
+      final result = await _gestorPushReconcile().toDart;
       return result.toDart;
     } catch (_) {
       return false;

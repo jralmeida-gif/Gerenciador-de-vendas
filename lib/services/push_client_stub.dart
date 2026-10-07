@@ -5,6 +5,8 @@ class PushClient {
 
   static Future<bool> enable() async => false;
 
+  static Future<bool> reconcile() async => false;
+
   static Future<bool> disable() async => false;
 
   static bool openSettings() => false;

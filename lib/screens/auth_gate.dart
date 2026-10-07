@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_client.dart';
 import '../services/repositorio.dart';
 import '../services/app_state.dart';
+import '../services/push_client.dart';
 import '../services/session_guard.dart';
 import '../theme/app_theme.dart';
 import '../widgets/comuns.dart';
@@ -64,6 +65,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       if (resultado.user != null) {
         final appState = context.read<AppState>();
         appState.definirUsuarioAutenticado(resultado.user);
+        unawaited(PushClient.reconcile());
         unawaited(appState.carregarCatalogoDaNuvem());
         if (resultado.user!.id != _user!.id ||
             resultado.user!.role != _user!.role ||
@@ -130,6 +132,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       } else if (mounted) {
         await appState.carregarDaNuvem();
         await appState.carregarCatalogoDaNuvem();
+        unawaited(PushClient.reconcile());
         unawaited(appState.criarBackupInterno());
       }
     } else {
@@ -163,6 +166,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     if (mounted) {
       await appState.carregarDaNuvem();
       await appState.carregarCatalogoDaNuvem();
+      unawaited(PushClient.reconcile());
       unawaited(appState.criarBackupInterno());
     }
     if (!mounted) return;

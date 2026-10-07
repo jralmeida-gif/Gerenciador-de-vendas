@@ -320,6 +320,43 @@
         });
         return response.ok;
       };
+
+      // Repara assinaturas removidas pelo provedor (404/410) ou apagadas pelo
+      // navegador sem abrir novo pedido de permissão. O logout do app não
+      // chama esta função nem remove a inscrição: notificações são entregues
+      // pelo Worker independentemente de a interface estar logada.
+      window.gestorPushReconcile = async function () {
+        if (!window.isSecureContext || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+          return false;
+        }
+        if (Notification.permission !== 'granted') return false;
+
+        try {
+          var configResponse = await fetch('/api/push/config');
+          if (!configResponse.ok) return false;
+          var config = await configResponse.json();
+          var registration = await navigator.serviceWorker.getRegistration('/');
+          if (!registration) {
+            registration = await navigator.serviceWorker.register('/push-sw.js', { scope: '/' });
+          }
+          var subscription = await registration.pushManager.getSubscription();
+          if (!subscription) {
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: base64ToBytes(config.publicKey)
+            });
+          }
+          var payload = subscription.toJSON();
+          var response = await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          return response.ok;
+        } catch (_) {
+          return false;
+        }
+      };
     })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
