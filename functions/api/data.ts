@@ -226,7 +226,19 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   for (const p of body.portabilidades ?? []) if (text(p.id) && text(p.data)) batch.push(env.DB.prepare('INSERT INTO user_portabilidades (user_id, id, data, cpf, name, phone, birth_date, convenio, saldo_devedor, valor_prestacao, qtd_prestacoes, confirmado, numero_contrato, data_confirmacao, observacoes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(user.id, text(p.id), text(p.data), text(p.cpf), text(p.nome), text(p.telefone), p.dataNascimento == null ? null : text(p.dataNascimento), text(p.convenio), num(p.saldoDevedor), num(p.valorPrestacao), Math.trunc(num(p.qtdPrestacoes)), bool(p.confirmado) ? 1 : 0, text(p.numeroContrato), p.dataConfirmacao == null ? null : text(p.dataConfirmacao), text(p.observacoes)));
   for (const p of body.prospeccoes ?? []) if (text(p.id) && text(p.data)) batch.push(env.DB.prepare('INSERT INTO user_prospeccoes (user_id, id, data, cpf, name, phone, birth_date, product, data_retorno, observacao, concluida) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(user.id, text(p.id), text(p.data), text(p.cpf), text(p.nome), text(p.telefone), p.dataNascimento == null ? null : text(p.dataNascimento), text(p.produto), p.dataRetorno == null ? null : text(p.dataRetorno), text(p.observacao), bool(p.concluida) ? 1 : 0));
   for (const c of body.clientes ?? []) if (text(c.cpf)) batch.push(env.DB.prepare('INSERT INTO user_clients (user_id, cpf, name, phone, birth_date, notes) VALUES (?, ?, ?, ?, ?, ?)').bind(user.id, text(c.cpf), text(c.nome), text(c.telefone), c.dataNascimento == null ? null : text(c.dataNascimento), text(c.observacoes)));
-  await env.DB.batch(batch);
+  try {
+    await env.DB.batch(batch);
+  } catch (error) {
+    console.error('Falha ao persistir snapshot do usuário', error);
+    return json(
+      request,
+      {
+        error: 'O banco recusou o salvamento dos dados. Nenhuma alteração foi aplicada.',
+        detail: error instanceof Error ? error.message : String(error),
+      },
+      500,
+    );
+  }
   const activities: Array<[string, number]> = [
     ['venda_criada', changes.vendas.created],
     ['venda_alterada', changes.vendas.updated],

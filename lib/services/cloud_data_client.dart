@@ -29,14 +29,27 @@ class CloudDataClient {
       if (response.statusCode >= 200 && response.statusCode < 300) return null;
       final decoded = response.body.trim().isEmpty
           ? const <String, dynamic>{}
-          : jsonDecode(response.body);
+          : _decodeBody(response.body);
       final body = decoded is Map<String, dynamic>
           ? decoded
           : const <String, dynamic>{};
-      return body['error']?.toString() ??
-          'O servidor não confirmou o salvamento dos dados.';
+      final mensagem = body['error']?.toString();
+      final detalhe = body['detail']?.toString();
+      if (mensagem != null && detalhe != null && detalhe.isNotEmpty) {
+        return '$mensagem\nDetalhe: $detalhe';
+      }
+      return mensagem ??
+          'O servidor não confirmou o salvamento dos dados (HTTP ${response.statusCode}).';
     } catch (_) {
-      return 'Não foi possível conectar ao servidor para salvar os dados.';
+      return 'O servidor recusou o salvamento dos dados. Tente novamente.';
+    }
+  }
+
+  dynamic _decodeBody(String value) {
+    try {
+      return jsonDecode(value);
+    } catch (_) {
+      return const <String, dynamic>{};
     }
   }
 
