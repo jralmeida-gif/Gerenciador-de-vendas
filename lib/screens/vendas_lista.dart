@@ -28,6 +28,9 @@ class _TelaVendasListaState extends State<TelaVendasLista> {
     _ => 'Tudo',
   };
 
+  String _produtoNormalizado(String valor) =>
+      valor.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+
   @override
   void dispose() {
     _busca.dispose();
@@ -49,7 +52,10 @@ class _TelaVendasListaState extends State<TelaVendasLista> {
           .toList();
     }
     if (_filtroProduto != 'Todos') {
-      l = l.where((v) => v.produto == _filtroProduto).toList();
+      final produtoSelecionado = _produtoNormalizado(_filtroProduto);
+      l = l
+          .where((v) => _produtoNormalizado(v.produto) == produtoSelecionado)
+          .toList();
     }
     final termo = _busca.text.trim().toLowerCase();
     if (termo.isNotEmpty) {
