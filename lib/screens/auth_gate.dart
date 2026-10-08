@@ -118,6 +118,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         userId: user.id,
         username: user.username,
       );
+      appState.definirUsuarioAutenticado(user);
       final ultimaAtividade = appState.ultimaAtividadeSessao;
       final expirouPorInatividade =
           ultimaAtividade != null &&
@@ -140,7 +141,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       setup = await _auth.setupRequired();
     }
     if (!mounted) return;
-    if (user != null) appState.definirUsuarioAutenticado(user);
     setState(() {
       _user = user;
       _setup = setup;
@@ -163,6 +163,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       userId: result.user!.id,
       username: result.user!.username,
     );
+    appState.definirUsuarioAutenticado(result.user);
     if (mounted) {
       await appState.carregarDaNuvem();
       await appState.carregarCatalogoDaNuvem();
@@ -170,7 +171,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       unawaited(appState.criarBackupInterno());
     }
     if (!mounted) return;
-    appState.definirUsuarioAutenticado(result.user);
     await appState.salvarUltimaAtividadeSessao(DateTime.now());
     setState(() {
       _cicloSessao++;

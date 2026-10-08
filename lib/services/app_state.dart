@@ -18,6 +18,7 @@ class AppState extends ChangeNotifier {
   final _uuid = const Uuid();
   final _cloud = CloudDataClient();
   Future<void> _filaSincronizacao = Future<void>.value();
+  int _cicloSincronizacao = 0;
   AuthUser? _authUser;
   String? _versaoCatalogo;
   VoidCallback? onAbrirAgenda;
@@ -50,6 +51,7 @@ class AppState extends ChangeNotifier {
   }
 
   void definirUsuarioAutenticado(AuthUser? user) {
+    if (_authUser?.id != user?.id) _cicloSincronizacao++;
     _authUser = user;
     notifyListeners();
   }
@@ -668,21 +670,25 @@ class AppState extends ChangeNotifier {
   }
 
   /// Enfileira snapshots para que gravações rápidas não cheguem fora de
-  /// ordem à nuvem. Cada operação calcula o backup somente quando sua vez
-  /// chega, sempre refletindo o estado mais recente do perfil autenticado.
+  /// ordem à nuvem. O snapshot e o ciclo do usuário são capturados antes de
+  /// entrar na fila: trocar para guest no logout nunca pode transformar uma
+  /// sincronização pendente em um snapshot vazio ou de outro perfil.
   Future<void> sincronizarNuvem({bool propagarErro = false}) {
+    final ciclo = _cicloSincronizacao;
+    final backup = exportarBackup();
     final proxima = _filaSincronizacao.then<void>(
-      (_) => _sincronizarAgora(),
-      onError: (Object _, StackTrace __) => _sincronizarAgora(),
+      (_) => _sincronizarSnapshot(backup, ciclo),
+      onError: (Object _, StackTrace __) => _sincronizarSnapshot(backup, ciclo),
     );
     _filaSincronizacao = proxima;
     return propagarErro ? proxima : proxima.catchError((_) {});
   }
 
-  Future<void> _sincronizarAgora() async {
-    final backup = exportarBackup();
+  Future<void> _sincronizarSnapshot(String backup, int ciclo) async {
+    if (ciclo != _cicloSincronizacao) return;
     await repo.salvarBackupInterno(backup);
     await repo.marcarBackupAutomatico();
+    if (ciclo != _cicloSincronizacao) return;
     final erro = await _cloud.save(backup);
     if (erro != null) throw StateError(erro);
     notifyListeners();
