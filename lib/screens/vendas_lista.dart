@@ -19,7 +19,14 @@ class TelaVendasLista extends StatefulWidget {
 class _TelaVendasListaState extends State<TelaVendasLista> {
   final _busca = TextEditingController();
   String _filtroProduto = 'Todos';
-  int _periodo = 0; // 0=hoje 1=semana 2=mês 3=tudo
+  int _periodo = 3; // 0=hoje 1=semana 2=mês 3=tudo
+
+  String get _rotuloPeriodo => switch (_periodo) {
+    0 => 'Hoje',
+    1 => 'Semana',
+    2 => 'Este mês',
+    _ => 'Tudo',
+  };
 
   @override
   void dispose() {
@@ -70,7 +77,7 @@ class _TelaVendasListaState extends State<TelaVendasLista> {
         children: [
           HeaderCurvo(
             titulo: 'Vendas',
-            subtitulo: '${lista.length} registro(s)',
+            subtitulo: '${lista.length} registro(s) · $_rotuloPeriodo',
             mostrarVoltar: false,
             ajudaContextualTitulo: 'Lista de vendas',
             ajudaContextualTexto: 'As vendas são agrupadas por cliente dentro do período escolhido.',
