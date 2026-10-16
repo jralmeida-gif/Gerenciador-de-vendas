@@ -34,6 +34,7 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
   DateTime _data = DateTime.now();
   String? _convenio;
   bool _jaConfirmado = false;
+  bool _salvando = false;
 
   bool get _editando => widget.port != null;
 
@@ -101,6 +102,7 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
   }
 
   Future<void> _salvar() async {
+    if (_salvando) return;
     if (!_formKey.currentState!.validate()) return;
     if (_convenio == null) {
       _msg('Selecione o convênio.', AppColors.warning);
@@ -114,6 +116,7 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
       return;
     }
 
+    setState(() => _salvando = true);
     final estado = context.read<AppState>();
     final p = Portabilidade(
       id: widget.port?.id ?? estado.novoId(),
@@ -150,14 +153,28 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
           '${erro.toString().replaceFirst('Bad state: ', '')}',
           AppColors.danger,
         );
+        setState(() => _salvando = false);
       }
       return;
     }
     if (!mounted) return;
 
     if (_editando) {
-      Navigator.pop(context);
-      _msg('Portabilidade atualizada!', AppColors.success);
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Portabilidade salva'),
+          content: const Text('Os dados foram gravados com sucesso no servidor.'),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Concluir'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) Navigator.pop(context);
       return;
     }
 
@@ -194,11 +211,11 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
         _obs.clear();
         _contrato.clear();
         _jaConfirmado = false;
+        _salvando = false;
       });
       _msg('Dados do cliente mantidos.', AppColors.success);
     } else {
       Navigator.pop(context);
-      _msg('Portabilidade cadastrada!', AppColors.success);
     }
   }
 
@@ -548,9 +565,19 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
                       Expanded(
                         flex: 3,
                         child: ElevatedButton.icon(
-                          onPressed: _salvar,
-                          icon: const Icon(Icons.check, size: 19),
-                          label: RotuloBotao(_editando ? 'SALVAR' : 'INCLUIR'),
+                          onPressed: _salvando ? null : _salvar,
+                          icon: _salvando
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.check, size: 19),
+                          label: RotuloBotao(
+                            _salvando
+                                ? 'SALVANDO...'
+                                : (_editando ? 'SALVAR' : 'INCLUIR'),
+                          ),
                         ),
                       ),
                     ],
