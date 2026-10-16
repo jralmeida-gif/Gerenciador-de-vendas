@@ -35,6 +35,10 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
   String? _convenio;
   bool _jaConfirmado = false;
   bool _salvando = false;
+  // Mantém o mesmo identificador quando há timeout/erro de resposta. A
+  // primeira requisição pode ter chegado ao servidor mesmo que o aparelho
+  // não tenha recebido a confirmação; repetir deve atualizar, não duplicar.
+  String? _idSalvamento;
 
   bool get _editando => widget.port != null;
 
@@ -119,7 +123,7 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
     setState(() => _salvando = true);
     final estado = context.read<AppState>();
     final p = Portabilidade(
-      id: widget.port?.id ?? estado.novoId(),
+      id: widget.port?.id ?? (_idSalvamento ??= estado.novoId()),
       data: _hoje ? DateTime.now() : _data,
       cpf: Fmt.somenteDigitos(_cpf.text),
       nome: _nome.text.trim(),
@@ -181,9 +185,9 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
     final outro = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Pedido registrado!'),
+        title: const Text('Portabilidade salva'),
         content: Text(
-          'Deseja cadastrar outra portabilidade para ${p.nome.split(' ').first}?',
+          'O servidor confirmou o salvamento. Deseja cadastrar outra portabilidade para ${p.nome.split(' ').first}?',
           style: const TextStyle(height: 1.4),
         ),
         actions: [
@@ -212,6 +216,7 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
         _contrato.clear();
         _jaConfirmado = false;
         _salvando = false;
+        _idSalvamento = null;
       });
       _msg('Dados do cliente mantidos.', AppColors.success);
     } else {
