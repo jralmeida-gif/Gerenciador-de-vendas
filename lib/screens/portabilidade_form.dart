@@ -147,6 +147,9 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
       nome: p.nome,
       telefone: p.telefone,
       dataNascimento: p.dataNascimento,
+      // Cliente e portabilidade devem ser enviados juntos. A sincronização
+      // separada criava uma corrida antes da confirmação do pedido.
+      sincronizar: false,
     );
     try {
       await estado.salvarPortabilidade(p);

@@ -254,11 +254,13 @@ class AppState extends ChangeNotifier {
   }
 
   // ------------------- CRUD -------------------
-  Future<void> salvarCliente(Cliente c) async {
+  Future<void> salvarCliente(Cliente c, {bool sincronizar = true}) async {
     await repo.salvarCliente(c);
     notifyListeners();
-    unawaited(sincronizarNuvem());
-    await sincronizarPrazosPush();
+    if (sincronizar) {
+      unawaited(sincronizarNuvem());
+      await sincronizarPrazosPush();
+    }
   }
 
   /// Cria ou atualiza o cadastro consolidado a partir de qualquer processo.
@@ -268,6 +270,7 @@ class AppState extends ChangeNotifier {
     required String nome,
     required String telefone,
     DateTime? dataNascimento,
+    bool sincronizar = true,
   }) async {
     final atual = clientePorCpf(cpf);
     final cliente = Cliente(
@@ -277,7 +280,7 @@ class AppState extends ChangeNotifier {
       dataNascimento: dataNascimento ?? atual?.dataNascimento,
       observacoes: atual?.observacoes ?? '',
     );
-    await salvarCliente(cliente);
+    await salvarCliente(cliente, sincronizar: sincronizar);
   }
 
   Future<void> salvarVenda(Venda v) async {
