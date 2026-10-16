@@ -120,7 +120,6 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
       return;
     }
 
-    setState(() => _salvando = true);
     final estado = context.read<AppState>();
     final p = Portabilidade(
       id: widget.port?.id ?? (_idSalvamento ??= estado.novoId()),
@@ -142,6 +141,32 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
           : widget.port?.dataConfirmacao,
       observacoes: _obs.text.trim(),
     );
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmar salvamento'),
+        content: Text(
+          'Deseja salvar esta portabilidade para ${p.nome.split(' ').first}?',
+          style: const TextStyle(height: 1.4),
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.check, size: 18),
+            label: const Text('Confirmar e salvar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+
+    setState(() => _salvando = true);
     await estado.atualizarClienteConsolidado(
       cpf: p.cpf,
       nome: p.nome,
@@ -166,65 +191,13 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
     }
     if (!mounted) return;
 
-    if (_editando) {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Portabilidade salva'),
-          content: const Text('Os dados foram gravados com sucesso no servidor.'),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Concluir'),
-            ),
-          ],
-        ),
-      );
-      if (mounted) Navigator.pop(context);
-      return;
-    }
-
-    final outro = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Portabilidade salva'),
-        content: Text(
-          'O servidor confirmou o salvamento. Deseja cadastrar outra portabilidade para ${p.nome.split(' ').first}?',
-          style: const TextStyle(height: 1.4),
-        ),
-        actions: [
-          OutlinedButton.icon(
-            onPressed: () => Navigator.pop(ctx, false),
-            icon: const Icon(Icons.check_circle_outline, size: 18),
-            label: const Text('Salvar e concluir'),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pop(ctx, true),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Cadastrar outro pedido'),
-          ),
-        ],
-      ),
+    Navigator.pop(context);
+    _msg(
+      _editando
+          ? 'Portabilidade atualizada após confirmação do servidor.'
+          : 'Portabilidade cadastrada após confirmação do servidor.',
+      AppColors.success,
     );
-
-    if (!mounted) return;
-    if (outro == true) {
-      setState(() {
-        _saldo.clear();
-        _prestacao.clear();
-        _qtd.clear();
-        _obs.clear();
-        _contrato.clear();
-        _jaConfirmado = false;
-        _salvando = false;
-        _idSalvamento = null;
-      });
-      _msg('Dados do cliente mantidos.', AppColors.success);
-    } else {
-      Navigator.pop(context);
-    }
   }
 
   void _limpar() {
