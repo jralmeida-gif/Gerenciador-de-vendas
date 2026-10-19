@@ -191,13 +191,55 @@ class _TelaPortabilidadeFormState extends State<TelaPortabilidadeForm> {
     }
     if (!mounted) return;
 
-    Navigator.pop(context);
-    _msg(
-      _editando
-          ? 'Portabilidade atualizada após confirmação do servidor.'
-          : 'Portabilidade cadastrada após confirmação do servidor.',
-      AppColors.success,
+    if (_editando) {
+      Navigator.pop(context);
+      _msg(
+        'Portabilidade atualizada após confirmação do servidor.',
+        AppColors.success,
+      );
+      return;
+    }
+
+    final cadastrarOutra = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Portabilidade salva'),
+        content: Text(
+          'O servidor confirmou o salvamento. Deseja cadastrar outra portabilidade para ${p.nome.split(' ').first}?',
+          style: const TextStyle(height: 1.4),
+        ),
+        actions: [
+          OutlinedButton.icon(
+            onPressed: () => Navigator.pop(ctx, false),
+            icon: const Icon(Icons.check_circle_outline, size: 18),
+            label: const Text('Salvar e concluir'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Cadastrar outra'),
+          ),
+        ],
+      ),
     );
+
+    if (!mounted) return;
+    if (cadastrarOutra == true) {
+      setState(() {
+        _saldo.clear();
+        _prestacao.clear();
+        _qtd.clear();
+        _obs.clear();
+        _contrato.clear();
+        _jaConfirmado = false;
+        _salvando = false;
+        _idSalvamento = null;
+      });
+      _msg('Dados do cliente mantidos.', AppColors.success);
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   void _limpar() {
