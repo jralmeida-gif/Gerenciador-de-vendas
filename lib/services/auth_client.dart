@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:http/browser_client.dart';
 
+import 'passkey.dart';
+
 class AuthUser {
   final String id;
   final String username;
@@ -97,6 +99,43 @@ class AuthClient {
       'username': username,
       'password': password,
     });
+  }
+
+  Future<AuthResult> loginWithPasskey(String username) async {
+    try {
+      final raw = await PasskeyService.login(username);
+      if (raw == null || raw.isEmpty) {
+        return const AuthResult(
+          ok: false,
+          error: 'Não foi possível concluir o login biométrico.',
+        );
+      }
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      if (decoded['user'] is Map<String, dynamic>) {
+        return AuthResult(
+          ok: true,
+          user: AuthUser.fromJson(decoded['user'] as Map<String, dynamic>),
+        );
+      }
+      return AuthResult(
+        ok: false,
+        error: decoded['error']?.toString() ?? 'Biometria inválida.',
+      );
+    } catch (error) {
+      return AuthResult(
+        ok: false,
+        error: error.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<String?> registerPasskey({String nickname = 'Este dispositivo'}) async {
+    try {
+      final ok = await PasskeyService.register(nickname: nickname);
+      return ok ? null : 'Não foi possível cadastrar a biometria neste dispositivo.';
+    } catch (error) {
+      return error.toString().replaceFirst('Exception: ', '');
+    }
   }
 
   Future<AuthResult> registerFirst(String username, String password) async {

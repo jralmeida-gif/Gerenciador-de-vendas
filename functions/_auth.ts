@@ -9,6 +9,7 @@ export interface AuthEnv {
   Mailjetapikey?: string;
   Mailjetsecretkey?: string;
   GLOBAL_CLEANUP_MASTER_PASSWORD?: string;
+  WEBAUTHN_RP_ID?: string;
 }
 
 export interface AuthUser {
@@ -82,6 +83,19 @@ export async function digestSha256(value: string): Promise<string> {
 export function createRecoveryToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return bytesToBase64(bytes).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+}
+
+export function randomChallenge(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return bytesToBase64(bytes).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+}
+
+export function webAuthnRpId(request: Request, env: AuthEnv): string {
+  return env.WEBAUTHN_RP_ID?.trim() || new URL(request.url).hostname;
+}
+
+export function webAuthnOrigin(request: Request): string {
+  return new URL(request.url).origin;
 }
 
 export async function hashPassword(password: string, salt?: Uint8Array): Promise<{ hash: string; salt: string }> {

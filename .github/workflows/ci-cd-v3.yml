@@ -28,6 +28,9 @@ jobs:
       - name: Dependências Flutter
         run: flutter pub get
 
+      - name: Dependências das Pages Functions
+        run: npm install --no-audit --no-fund
+
       - name: Análise estática
         run: flutter analyze
 
@@ -73,6 +76,9 @@ jobs:
 
       - name: Dependências Flutter
         run: flutter pub get
+
+      - name: Dependências das Pages Functions
+        run: npm install --no-audit --no-fund
 
       - name: Build web para publicação
         run: flutter build web --release

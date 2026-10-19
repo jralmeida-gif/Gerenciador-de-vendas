@@ -117,6 +117,106 @@
   </div>
 
   <script>
+    // Passkeys exclusivas do Gestor de Vendas. O sistema operacional executa
+    // a biometria; o app nunca recebe ou armazena impressão digital/rosto.
+    (function () {
+      function bytesToBase64Url(value) {
+        var bytes = new Uint8Array(value);
+        var binary = '';
+        for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+      }
+      function base64UrlToBytes(value) {
+        var normalized = (value || '').replace(/-/g, '+').replace(/_/g, '/');
+        normalized += '='.repeat((4 - normalized.length % 4) % 4);
+        var raw = atob(normalized);
+        var bytes = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+        return bytes;
+      }
+      function serializeCredential(credential) {
+        return {
+          id: credential.id,
+          rawId: bytesToBase64Url(credential.rawId),
+          type: credential.type,
+          response: {
+            clientDataJSON: bytesToBase64Url(credential.response.clientDataJSON),
+            attestationObject: credential.response.attestationObject
+              ? bytesToBase64Url(credential.response.attestationObject) : undefined,
+            authenticatorData: credential.response.authenticatorData
+              ? bytesToBase64Url(credential.response.authenticatorData) : undefined,
+            signature: credential.response.signature
+              ? bytesToBase64Url(credential.response.signature) : undefined,
+            userHandle: credential.response.userHandle
+              ? bytesToBase64Url(credential.response.userHandle) : undefined
+          }
+        };
+      }
+      async function ensureSupported() {
+        if (!window.isSecureContext || !navigator.credentials || !window.PublicKeyCredential) {
+          throw new Error('Este dispositivo ou navegador não oferece biometria para o PWA.');
+        }
+      }
+      window.gestorRegisterPasskey = async function (nickname) {
+        await ensureSupported();
+        var optionsResponse = await fetch('/api/auth/webauthn/options', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include'
+        });
+        var options = await optionsResponse.json();
+        if (!optionsResponse.ok) throw new Error(options.error || 'Não foi possível iniciar o cadastro biométrico.');
+        var credential = await navigator.credentials.create({ publicKey: {
+          challenge: base64UrlToBytes(options.challenge),
+          rp: { id: options.rpId, name: 'Gestor de Vendas' },
+          user: {
+            id: new TextEncoder().encode(options.user.id),
+            name: options.user.name,
+            displayName: options.user.displayName
+          },
+          pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+          authenticatorSelection: { residentKey: 'preferred', userVerification: 'required' },
+          timeout: options.timeout,
+          attestation: 'none'
+        }});
+        if (!credential) throw new Error('O cadastro biométrico foi cancelado.');
+        var response = await fetch('/api/auth/webauthn/register', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ challengeId: options.challengeId, nickname: nickname || 'Este dispositivo', registration: serializeCredential(credential) })
+        });
+        var result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Não foi possível cadastrar a biometria.');
+        return true;
+      };
+      window.gestorLoginPasskey = async function (username) {
+        await ensureSupported();
+        var optionsResponse = await fetch('/api/auth/passkey/options', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+          body: JSON.stringify({ username: username })
+        });
+        var options = await optionsResponse.json();
+        if (!optionsResponse.ok) throw new Error(options.error || 'Não foi possível iniciar o login biométrico.');
+        var credential = await navigator.credentials.get({ publicKey: {
+          challenge: base64UrlToBytes(options.challenge),
+          rpId: options.rpId,
+          allowCredentials: (options.allowCredentials || []).map(function (item) {
+            return { id: base64UrlToBytes(item.id), type: 'public-key', transports: item.transports || [] };
+          }),
+          userVerification: 'required',
+          timeout: options.timeout
+        }});
+        if (!credential) throw new Error('O login biométrico foi cancelado.');
+        var response = await fetch('/api/auth/passkey/login', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: username, challengeId: options.challengeId, authentication: serializeCredential(credential) })
+        });
+        var result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Não foi possível validar a biometria.');
+        return JSON.stringify(result);
+      };
+    })();
+  </script>
+  <script>
     // --------------------------------------------------------------------
     // Correção de layout no PWA instalado (iOS / "Adicionar à Tela de Início")
     //

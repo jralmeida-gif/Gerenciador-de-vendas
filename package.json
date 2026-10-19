@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@passwordless-id/webauthn": "2.4.0"
+  }
+}

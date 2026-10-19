@@ -368,6 +368,14 @@ class _LoginViewState extends State<LoginView> {
     await widget.onLoggedIn(result);
   }
 
+  Future<void> _loginBiometria() async {
+    if (_username.text.trim().isEmpty || _busy) return;
+    setState(() => _busy = true);
+    final result = await widget.auth.loginWithPasskey(_username.text);
+    if (mounted) setState(() => _busy = false);
+    await widget.onLoggedIn(result);
+  }
+
   Future<void> _esqueciSenha() async {
     final username = TextEditingController(text: _username.text.trim());
     final resultado = await showDialog<String>(
@@ -461,6 +469,12 @@ class _LoginViewState extends State<LoginView> {
         ),
       ),
       if (!widget.setup) ...[
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _busy ? null : _loginBiometria,
+          icon: const Icon(Icons.fingerprint, size: 19),
+          label: const Text('Entrar com biometria'),
+        ),
         const SizedBox(height: 8),
         TextButton.icon(
           onPressed: _busy ? null : _esqueciSenha,

@@ -109,6 +109,20 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
     if (mounted) setState(() => _statusNotificacoes = status);
   }
 
+  Future<void> _cadastrarBiometria(BuildContext context) async {
+    final erro = await AuthClient().registerPasskey();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          erro ?? 'Biometria cadastrada neste dispositivo para o Gestor de Vendas.',
+        ),
+        backgroundColor: erro == null ? AppColors.success : AppColors.danger,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<AppState>();
@@ -159,6 +173,16 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                     ],
                   ),
                 ),
+                CartaoSecao(
+                  titulo: 'Segurança de acesso',
+                  child: _Item(
+                    icone: Icons.fingerprint,
+                    titulo: 'Cadastrar biometria neste dispositivo',
+                    valor: 'Use Face ID, Touch ID, biometria ou PIN no login',
+                    onTap: () => _cadastrarBiometria(context),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 CartaoSecao(
                   titulo: 'Orientação',
                   child: _Item(
