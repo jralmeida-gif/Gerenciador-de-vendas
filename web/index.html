@@ -166,7 +166,7 @@
         if (!optionsResponse.ok) throw new Error(options.error || 'Não foi possível iniciar o cadastro biométrico.');
         var credential = await navigator.credentials.create({ publicKey: {
           challenge: base64UrlToBytes(options.challenge).buffer,
-          rp: { id: window.location.hostname, name: 'Gestor de Vendas' },
+          rp: { name: 'Gestor de Vendas' },
           user: {
             id: new TextEncoder().encode(options.user.id).buffer,
             name: options.user.name,
@@ -197,7 +197,6 @@
         if (!optionsResponse.ok) throw new Error(options.error || 'Não foi possível iniciar o login biométrico.');
         var credential = await navigator.credentials.get({ publicKey: {
           challenge: base64UrlToBytes(options.challenge).buffer,
-          rpId: window.location.hostname,
           allowCredentials: (options.allowCredentials || []).map(function (item) {
             return { id: base64UrlToBytes(item.id).buffer, type: 'public-key', transports: item.transports || [] };
           }),

@@ -365,7 +365,51 @@ class _LoginViewState extends State<LoginView> {
         ? await widget.auth.registerFirst(_username.text, _password.text)
         : await widget.auth.login(_username.text, _password.text);
     if (mounted) setState(() => _busy = false);
+    if (result.ok && result.user != null && !widget.setup && mounted) {
+      await _oferecerBiometria();
+    }
     await widget.onLoggedIn(result);
+  }
+
+  Future<void> _oferecerBiometria() async {
+    final ativar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ativar biometria?'),
+        content: const Text(
+          'Você poderá entrar no Gestor de Vendas usando Face ID, Touch ID, biometria ou PIN deste dispositivo, sem digitar a senha nas próximas vezes.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Agora não'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ativar biometria'),
+          ),
+        ],
+      ),
+    );
+    if (ativar != true || !mounted) return;
+    setState(() => _busy = true);
+    final erro = await widget.auth.registerPasskey();
+    if (mounted) setState(() => _busy = false);
+    if (erro != null && mounted) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Não foi possível ativar a biometria'),
+          content: Text(erro),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Future<void> _loginBiometria() async {
