@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -94,6 +95,7 @@ class TelaConfiguracoes extends StatefulWidget {
 
 class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   String _statusNotificacoes = 'carregando';
+  String? _passkeyPrepared;
   bool _limpezaGlobalCatalogo = false;
   bool _limpezaGlobalUsuarios = false;
   bool _limpezaGlobalEmAndamento = false;
@@ -102,6 +104,12 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   void initState() {
     super.initState();
     _atualizarStatusNotificacoes();
+    unawaited(_prepararBiometria());
+  }
+
+  Future<void> _prepararBiometria() async {
+    final preparado = await AuthClient().preparePasskeyRegistration();
+    if (mounted) setState(() => _passkeyPrepared = preparado);
   }
 
   Future<void> _atualizarStatusNotificacoes() async {
@@ -110,8 +118,21 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   }
 
   Future<void> _cadastrarBiometria(BuildContext context) async {
-    final erro = await AuthClient().registerPasskey();
+    final preparado = _passkeyPrepared;
+    if (preparado == null || preparado.isEmpty) {
+      await _prepararBiometria();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('A preparação ainda não terminou. Toque novamente em cadastrar biometria.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final erro = await AuthClient().registerPreparedPasskey(preparado);
     if (!context.mounted) return;
+    if (erro == null) unawaited(_prepararBiometria());
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -178,7 +199,9 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                   child: _Item(
                     icone: Icons.fingerprint,
                     titulo: 'Cadastrar biometria neste dispositivo',
-                    valor: 'Use Face ID, Touch ID, biometria ou PIN no login',
+                    valor: _passkeyPrepared == null
+                        ? 'Preparando Face ID, Touch ID, biometria ou PIN...'
+                        : 'Use Face ID, Touch ID, biometria ou PIN no login',
                     onTap: () => _cadastrarBiometria(context),
                   ),
                 ),

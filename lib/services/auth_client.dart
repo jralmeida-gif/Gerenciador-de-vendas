@@ -138,6 +138,26 @@ class AuthClient {
     }
   }
 
+  Future<String?> preparePasskeyRegistration() async {
+    try {
+      return await PasskeyService.prepareRegistration();
+    } catch (error) {
+      return error.toString().replaceFirst('Exception: ', '');
+    }
+  }
+
+  Future<String?> registerPreparedPasskey(
+    String prepared, {
+    String nickname = 'Este dispositivo',
+  }) async {
+    try {
+      final ok = await PasskeyService.registerPrepared(prepared, nickname: nickname);
+      return ok ? null : 'Não foi possível cadastrar a biometria neste dispositivo.';
+    } catch (error) {
+      return error.toString().replaceFirst('Exception: ', '');
+    }
+  }
+
   Future<AuthResult> registerFirst(String username, String password) async {
     return _postUser('/api/auth/register-first', {
       'username': username,

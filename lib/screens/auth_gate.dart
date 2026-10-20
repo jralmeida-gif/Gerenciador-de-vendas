@@ -372,6 +372,8 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _oferecerBiometria() async {
+    final preparado = await widget.auth.preparePasskeyRegistration();
+    if (preparado == null || preparado.isEmpty || !mounted) return;
     final ativar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -393,7 +395,7 @@ class _LoginViewState extends State<LoginView> {
     );
     if (ativar != true || !mounted) return;
     setState(() => _busy = true);
-    final erro = await widget.auth.registerPasskey();
+    final erro = await widget.auth.registerPreparedPasskey(preparado);
     if (mounted) setState(() => _busy = false);
     if (erro != null && mounted) {
       await showDialog<void>(

@@ -160,23 +160,22 @@
           }
         };
       }
-      async function ensureSupported() {
+      function ensureSupported() {
         if (!window.isSecureContext || !navigator.credentials || !window.PublicKeyCredential) {
           throw new Error('Este dispositivo ou navegador não oferece biometria para o PWA.');
         }
       }
-      window.gestorRegisterPasskey = async function (nickname) {
-        await ensureSupported();
-        var optionsResponse;
-        try {
-          optionsResponse = await fetch(apiUrl('/api/auth/webauthn/options'), {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include'
-          });
-        } catch (error) {
-          throw webAuthnError('Não foi possível iniciar a comunicação com o servidor', error);
-        }
-        var options = await optionsResponse.json();
-        if (!optionsResponse.ok) throw new Error(options.error || 'Não foi possível iniciar o cadastro biométrico.');
+      async function prepareRegistration() {
+        ensureSupported();
+        var response = await fetch(apiUrl('/api/auth/webauthn/options'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include'
+        });
+        var options = await response.json();
+        if (!response.ok) throw new Error(options.error || 'Não foi possível iniciar o cadastro biométrico.');
+        return options;
+      }
+      async function createRegistration(options, nickname) {
+        ensureSupported();
         var credential;
         try {
           credential = await navigator.credentials.create({ publicKey: {
@@ -196,19 +195,23 @@
           throw webAuthnError('O Safari não conseguiu iniciar a biometria', error);
         }
         if (!credential) throw new Error('O cadastro biométrico foi cancelado.');
-        var response;
-        try {
-          response = await fetch(apiUrl('/api/auth/webauthn/register'), {
-            method: 'POST', credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ challengeId: options.challengeId, nickname: nickname || 'Este dispositivo', registration: serializeCredential(credential) })
-          });
-        } catch (error) {
-          throw webAuthnError('A biometria foi iniciada, mas não foi possível concluir o cadastro', error);
-        }
+        var response = await fetch(apiUrl('/api/auth/webauthn/register'), {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ challengeId: options.challengeId, nickname: nickname || 'Este dispositivo', registration: serializeCredential(credential) })
+        });
         var result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Não foi possível cadastrar a biometria.');
         return true;
+      }
+      window.gestorPreparePasskeyRegistration = async function () {
+        return JSON.stringify(await prepareRegistration());
+      };
+      window.gestorRegisterPreparedPasskey = async function (prepared, nickname) {
+        return await createRegistration(JSON.parse(prepared), nickname);
+      };
+      window.gestorRegisterPasskey = async function (nickname) {
+        return await createRegistration(await prepareRegistration(), nickname);
       };
       window.gestorLoginPasskey = async function (username) {
         await ensureSupported();
