@@ -134,6 +134,14 @@
         for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
         return bytes;
       }
+      function apiUrl(path) {
+        return new URL(path, window.location.origin).toString();
+      }
+      function webAuthnError(prefix, error) {
+        var detail = error && error.message ? error.message : String(error || 'erro desconhecido');
+        console.error('[Gestor de Vendas][WebAuthn]', prefix, error);
+        return new Error(prefix + ': ' + detail);
+      }
       function serializeCredential(credential) {
         return {
           id: credential.id,
@@ -159,52 +167,77 @@
       }
       window.gestorRegisterPasskey = async function (nickname) {
         await ensureSupported();
-        var optionsResponse = await fetch('/api/auth/webauthn/options', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include'
-        });
+        var optionsResponse;
+        try {
+          optionsResponse = await fetch(apiUrl('/api/auth/webauthn/options'), {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include'
+          });
+        } catch (error) {
+          throw webAuthnError('Não foi possível iniciar a comunicação com o servidor', error);
+        }
         var options = await optionsResponse.json();
         if (!optionsResponse.ok) throw new Error(options.error || 'Não foi possível iniciar o cadastro biométrico.');
-        var credential = await navigator.credentials.create({ publicKey: {
-          challenge: base64UrlToBytes(options.challenge).buffer,
-          rp: { name: 'Gestor de Vendas' },
-          user: {
-            id: new TextEncoder().encode(options.user.id).buffer,
-            name: options.user.name,
-            displayName: options.user.displayName
-          },
-          pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
-          authenticatorSelection: { residentKey: 'preferred', userVerification: 'required' },
-          timeout: options.timeout,
-          attestation: 'none'
-        }});
+        var credential;
+        try {
+          credential = await navigator.credentials.create({ publicKey: {
+            challenge: base64UrlToBytes(options.challenge).buffer,
+            rp: { name: 'Gestor de Vendas' },
+            user: {
+              id: new TextEncoder().encode(options.user.id).buffer,
+              name: options.user.name,
+              displayName: options.user.displayName
+            },
+            pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+            authenticatorSelection: { residentKey: 'preferred', userVerification: 'required' },
+            timeout: options.timeout,
+            attestation: 'none'
+          }});
+        } catch (error) {
+          throw webAuthnError('O Safari não conseguiu iniciar a biometria', error);
+        }
         if (!credential) throw new Error('O cadastro biométrico foi cancelado.');
-        var response = await fetch('/api/auth/webauthn/register', {
-          method: 'POST', credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ challengeId: options.challengeId, nickname: nickname || 'Este dispositivo', registration: serializeCredential(credential) })
-        });
+        var response;
+        try {
+          response = await fetch(apiUrl('/api/auth/webauthn/register'), {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ challengeId: options.challengeId, nickname: nickname || 'Este dispositivo', registration: serializeCredential(credential) })
+          });
+        } catch (error) {
+          throw webAuthnError('A biometria foi iniciada, mas não foi possível concluir o cadastro', error);
+        }
         var result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Não foi possível cadastrar a biometria.');
         return true;
       };
       window.gestorLoginPasskey = async function (username) {
         await ensureSupported();
-        var optionsResponse = await fetch('/api/auth/passkey/options', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-          body: JSON.stringify({ username: username })
-        });
+        var optionsResponse;
+        try {
+          optionsResponse = await fetch(apiUrl('/api/auth/passkey/options'), {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+            body: JSON.stringify({ username: username })
+          });
+        } catch (error) {
+          throw webAuthnError('Não foi possível iniciar a comunicação com o servidor', error);
+        }
         var options = await optionsResponse.json();
         if (!optionsResponse.ok) throw new Error(options.error || 'Não foi possível iniciar o login biométrico.');
-        var credential = await navigator.credentials.get({ publicKey: {
-          challenge: base64UrlToBytes(options.challenge).buffer,
-          allowCredentials: (options.allowCredentials || []).map(function (item) {
-            return { id: base64UrlToBytes(item.id).buffer, type: 'public-key', transports: item.transports || [] };
-          }),
-          userVerification: 'required',
-          timeout: options.timeout
-        }});
+        var credential;
+        try {
+          credential = await navigator.credentials.get({ publicKey: {
+            challenge: base64UrlToBytes(options.challenge).buffer,
+            allowCredentials: (options.allowCredentials || []).map(function (item) {
+              return { id: base64UrlToBytes(item.id).buffer, type: 'public-key', transports: item.transports || [] };
+            }),
+            userVerification: 'required',
+            timeout: options.timeout
+          }});
+        } catch (error) {
+          throw webAuthnError('O Safari não conseguiu iniciar o login biométrico', error);
+        }
         if (!credential) throw new Error('O login biométrico foi cancelado.');
-        var response = await fetch('/api/auth/passkey/login', {
+        var response = await fetch(apiUrl('/api/auth/passkey/login'), {
           method: 'POST', credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: username, challengeId: options.challengeId, authentication: serializeCredential(credential) })
