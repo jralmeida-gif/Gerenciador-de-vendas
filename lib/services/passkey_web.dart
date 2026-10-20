@@ -19,7 +19,7 @@ class PasskeyService {
 
   static Future<String?> login(String username) async {
     try {
-      return (await _loginPasskey(username.trim()).toDart).toDart;
+      return (await _loginPasskey(username.trim().toJS).toDart).toDart;
     } catch (_) {
       rethrow;
     }
