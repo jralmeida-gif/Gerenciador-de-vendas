@@ -54,6 +54,15 @@ class PasswordResetResult {
   });
 }
 
+class PasskeyPreparationResult {
+  final String? prepared;
+  final String? error;
+
+  const PasskeyPreparationResult({this.prepared, this.error});
+
+  bool get ok => prepared != null && prepared!.isNotEmpty && error == null;
+}
+
 class AuthClient {
   final BrowserClient _client = BrowserClient()..withCredentials = true;
   String get _origin => Uri.base.origin;
@@ -138,11 +147,31 @@ class AuthClient {
     }
   }
 
-  Future<String?> preparePasskeyRegistration() async {
+  Future<PasskeyPreparationResult> preparePasskeyRegistration() async {
     try {
-      return await PasskeyService.prepareRegistration();
+      final prepared = await PasskeyService.prepareRegistration();
+      if (prepared.isEmpty) {
+        return const PasskeyPreparationResult(
+          error: 'O servidor não devolveu os dados para ativar a biometria.',
+        );
+      }
+      try {
+        final decoded = jsonDecode(prepared);
+        if (decoded is! Map<String, dynamic>) {
+          return const PasskeyPreparationResult(
+            error: 'A resposta de biometria do servidor está inválida.',
+          );
+        }
+      } on FormatException {
+        return PasskeyPreparationResult(
+          error: prepared.replaceFirst('Exception: ', ''),
+        );
+      }
+      return PasskeyPreparationResult(prepared: prepared);
     } catch (error) {
-      return error.toString().replaceFirst('Exception: ', '');
+      return PasskeyPreparationResult(
+        error: error.toString().replaceFirst('Exception: ', ''),
+      );
     }
   }
 

@@ -372,8 +372,26 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _oferecerBiometria() async {
-    final preparado = await widget.auth.preparePasskeyRegistration();
-    if (preparado == null || preparado.isEmpty || !mounted) return;
+    final preparo = await widget.auth.preparePasskeyRegistration();
+    if (!preparo.ok || !mounted) {
+      if (preparo.error != null && mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Não foi possível preparar a biometria'),
+            content: Text(preparo.error!),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+    final preparado = preparo.prepared!;
     final ativar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

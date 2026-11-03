@@ -151,6 +151,19 @@
         console.error('[Gestor de Vendas][WebAuthn]', prefix, error);
         return new Error(prefix + ': ' + detail);
       }
+      async function readJson(response, fallback) {
+        var text = await response.text();
+        try {
+          return text.trim() ? JSON.parse(text) : {};
+        } catch (error) {
+          console.error('[Gestor de Vendas][WebAuthn] resposta não JSON', {
+            status: response.status,
+            contentType: response.headers.get('content-type'),
+            body: text.slice(0, 240)
+          });
+          throw new Error(fallback + ' (HTTP ' + response.status + ').');
+        }
+      }
       function serializeCredential(credential, registrationUser) {
         var response = credential.response;
         var serialized = {
@@ -201,7 +214,7 @@
         var response = await fetch(apiUrl('/api/auth/webauthn/options'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include'
         });
-        var options = await response.json();
+        var options = await readJson(response, 'O servidor não retornou uma resposta válida para a biometria');
         if (!response.ok) throw new Error(options.error || 'Não foi possível iniciar o cadastro biométrico.');
         validateOptions(options, true);
         return options;
@@ -240,7 +253,7 @@
             })
           })
         });
-        var result = await response.json();
+        var result = await readJson(response, 'O servidor não retornou uma confirmação válida do cadastro biométrico');
         if (!response.ok) throw new Error(result.error || 'Não foi possível cadastrar a biometria.');
         return true;
       }
@@ -264,7 +277,7 @@
         } catch (error) {
           throw webAuthnError('Não foi possível iniciar a comunicação com o servidor', error);
         }
-        var options = await optionsResponse.json();
+        var options = await readJson(optionsResponse, 'O servidor não retornou uma resposta válida para o login biométrico');
         if (!optionsResponse.ok) throw new Error(options.error || 'Não foi possível iniciar o login biométrico.');
         validateOptions(options, false);
         var credential;
@@ -287,7 +300,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: username, challengeId: options.challengeId, authentication: serializeCredential(credential) })
         });
-        var result = await response.json();
+        var result = await readJson(response, 'O servidor não retornou uma confirmação válida do login biométrico');
         if (!response.ok) throw new Error(result.error || 'Não foi possível validar a biometria.');
         return JSON.stringify(result);
       };

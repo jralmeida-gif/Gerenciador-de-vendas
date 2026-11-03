@@ -96,6 +96,7 @@ class TelaConfiguracoes extends StatefulWidget {
 class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   String _statusNotificacoes = 'carregando';
   String? _passkeyPrepared;
+  String? _passkeyPreparationError;
   bool _limpezaGlobalCatalogo = false;
   bool _limpezaGlobalUsuarios = false;
   bool _limpezaGlobalEmAndamento = false;
@@ -108,8 +109,13 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   }
 
   Future<void> _prepararBiometria() async {
-    final preparado = await AuthClient().preparePasskeyRegistration();
-    if (mounted) setState(() => _passkeyPrepared = preparado);
+    final preparo = await AuthClient().preparePasskeyRegistration();
+    if (mounted) {
+      setState(() {
+        _passkeyPrepared = preparo.ok ? preparo.prepared : null;
+        _passkeyPreparationError = preparo.error;
+      });
+    }
   }
 
   Future<void> _atualizarStatusNotificacoes() async {
@@ -123,8 +129,11 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       await _prepararBiometria();
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('A preparação ainda não terminou. Toque novamente em cadastrar biometria.'),
+        SnackBar(
+          content: Text(
+            _passkeyPreparationError ??
+                'Não foi possível preparar a biometria. Tente novamente.',
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
