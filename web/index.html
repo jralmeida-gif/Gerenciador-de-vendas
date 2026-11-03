@@ -135,34 +135,65 @@
         return bytes;
       }
       function apiUrl(path) {
-        return new URL(path, window.location.origin).toString();
+        // Em um PWA iOS a origem continua sendo a mesma, mas alguns ciclos de
+        // retomada podem expor uma origem provisória. Usar baseURI/href evita
+        // que new URL(path, window.location.origin) gere o SyntaxError do
+        // Safari antes mesmo de a requisição chegar à Function.
+        var base = document.baseURI || window.location.href;
+        var url = new URL(path, base);
+        if (url.protocol !== 'https:' && url.hostname !== 'localhost') {
+          throw new Error('A biometria exige uma conexão HTTPS segura.');
+        }
+        return url.toString();
       }
       function webAuthnError(prefix, error) {
         var detail = error && error.message ? error.message : String(error || 'erro desconhecido');
         console.error('[Gestor de Vendas][WebAuthn]', prefix, error);
         return new Error(prefix + ': ' + detail);
       }
-      function serializeCredential(credential) {
-        return {
+      function serializeCredential(credential, registrationUser) {
+        var response = credential.response;
+        var serialized = {
           id: credential.id,
           rawId: bytesToBase64Url(credential.rawId),
           type: credential.type,
+          authenticatorAttachment: credential.authenticatorAttachment || undefined,
+          clientExtensionResults: credential.getClientExtensionResults
+            ? credential.getClientExtensionResults() : {},
           response: {
-            clientDataJSON: bytesToBase64Url(credential.response.clientDataJSON),
-            attestationObject: credential.response.attestationObject
-              ? bytesToBase64Url(credential.response.attestationObject) : undefined,
-            authenticatorData: credential.response.authenticatorData
-              ? bytesToBase64Url(credential.response.authenticatorData) : undefined,
-            signature: credential.response.signature
-              ? bytesToBase64Url(credential.response.signature) : undefined,
-            userHandle: credential.response.userHandle
-              ? bytesToBase64Url(credential.response.userHandle) : undefined
+            clientDataJSON: bytesToBase64Url(response.clientDataJSON),
+            attestationObject: response.attestationObject
+              ? bytesToBase64Url(response.attestationObject) : undefined,
+            authenticatorData: response.authenticatorData
+              ? bytesToBase64Url(response.authenticatorData) : undefined,
+            signature: response.signature
+              ? bytesToBase64Url(response.signature) : undefined,
+            userHandle: response.userHandle
+              ? bytesToBase64Url(response.userHandle) : undefined,
+            publicKey: response.getPublicKey
+              ? bytesToBase64Url(response.getPublicKey()) : undefined,
+            publicKeyAlgorithm: response.getPublicKeyAlgorithm
+              ? response.getPublicKeyAlgorithm() : undefined,
+            transports: response.getTransports ? response.getTransports() : []
           }
         };
+        if (registrationUser) serialized.user = registrationUser;
+        return serialized;
       }
       function ensureSupported() {
         if (!window.isSecureContext || !navigator.credentials || !window.PublicKeyCredential) {
           throw new Error('Este dispositivo ou navegador não oferece biometria para o PWA.');
+        }
+      }
+      function validateOptions(options, requireUser) {
+        if (!options || typeof options.challenge !== 'string' || !options.challenge ||
+            typeof options.rpId !== 'string' || !options.rpId ||
+            (requireUser && (!options.user || typeof options.user.id !== 'string'))) {
+          throw new Error('O servidor devolveu opções de biometria incompletas.');
+        }
+        if (options.rpId !== window.location.hostname &&
+            !window.location.hostname.endsWith('.' + options.rpId)) {
+          throw new Error('A biometria está vinculada a outro domínio. Abra o endereço oficial do Gestor de Vendas.');
         }
       }
       async function prepareRegistration() {
@@ -172,6 +203,7 @@
         });
         var options = await response.json();
         if (!response.ok) throw new Error(options.error || 'Não foi possível iniciar o cadastro biométrico.');
+        validateOptions(options, true);
         return options;
       }
       async function createRegistration(options, nickname) {
@@ -180,7 +212,7 @@
         try {
           credential = await navigator.credentials.create({ publicKey: {
             challenge: base64UrlToBytes(options.challenge).buffer,
-            rp: { name: 'Gestor de Vendas' },
+            rp: { id: options.rpId, name: 'Gestor de Vendas' },
             user: {
               id: new TextEncoder().encode(options.user.id).buffer,
               name: options.user.name,
@@ -198,7 +230,15 @@
         var response = await fetch(apiUrl('/api/auth/webauthn/register'), {
           method: 'POST', credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ challengeId: options.challengeId, nickname: nickname || 'Este dispositivo', registration: serializeCredential(credential) })
+          body: JSON.stringify({
+            challengeId: options.challengeId,
+            nickname: nickname || 'Este dispositivo',
+            registration: serializeCredential(credential, {
+              id: options.user.id,
+              name: options.user.name,
+              displayName: options.user.displayName
+            })
+          })
         });
         var result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Não foi possível cadastrar a biometria.');
@@ -226,9 +266,11 @@
         }
         var options = await optionsResponse.json();
         if (!optionsResponse.ok) throw new Error(options.error || 'Não foi possível iniciar o login biométrico.');
+        validateOptions(options, false);
         var credential;
         try {
           credential = await navigator.credentials.get({ publicKey: {
+            rpId: options.rpId,
             challenge: base64UrlToBytes(options.challenge).buffer,
             allowCredentials: (options.allowCredentials || []).map(function (item) {
               return { id: base64UrlToBytes(item.id).buffer, type: 'public-key', transports: item.transports || [] };
