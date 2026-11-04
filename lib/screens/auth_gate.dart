@@ -458,14 +458,6 @@ class _LoginViewState extends State<LoginView> {
 
   Future<void> _loginBiometria() async {
     if (_busy) return;
-    if (_username.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Informe seu usuário ou e-mail para usar a biometria.'),
-        ),
-      );
-      return;
-    }
     setState(() => _busy = true);
     final result = await widget.auth.loginWithPasskey(_username.text);
     if (mounted) setState(() => _busy = false);

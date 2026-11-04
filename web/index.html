@@ -209,13 +209,15 @@
           throw new Error('A biometria está vinculada a outro domínio. Abra o endereço oficial do Gestor de Vendas.');
         }
       }
-      async function prepareRegistration() {
+      async function prepareRegistration(force) {
         ensureSupported();
         var response = await fetch(apiUrl('/api/auth/webauthn/options'), {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include'
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+          body: JSON.stringify({ force: force === true })
         });
         var options = await readJson(response, 'O servidor não retornou uma resposta válida para a biometria');
         if (!response.ok) throw new Error(options.error || 'Não foi possível iniciar o cadastro biométrico.');
+        if (options.alreadyRegistered === true) return options;
         validateOptions(options, true);
         return options;
       }
@@ -232,7 +234,11 @@
               displayName: options.user.displayName
             },
             pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
-            authenticatorSelection: { residentKey: 'preferred', userVerification: 'required' },
+            authenticatorSelection: {
+              residentKey: 'required',
+              requireResidentKey: true,
+              userVerification: 'required'
+            },
             timeout: options.timeout,
             attestation: 'none'
           }});
@@ -257,22 +263,23 @@
         if (!response.ok) throw new Error(result.error || 'Não foi possível cadastrar a biometria.');
         return true;
       }
-      window.gestorPreparePasskeyRegistration = async function () {
-        return JSON.stringify(await prepareRegistration());
+      window.gestorPreparePasskeyRegistration = async function (force) {
+        return JSON.stringify(await prepareRegistration(force === true));
       };
       window.gestorRegisterPreparedPasskey = async function (prepared, nickname) {
         return await createRegistration(JSON.parse(prepared), nickname);
       };
       window.gestorRegisterPasskey = async function (nickname) {
-        return await createRegistration(await prepareRegistration(), nickname);
+        return await createRegistration(await prepareRegistration(false), nickname);
       };
       window.gestorLoginPasskey = async function (username) {
         await ensureSupported();
+        username = (username || '').trim();
         var optionsResponse;
         try {
           optionsResponse = await fetch(apiUrl('/api/auth/passkey/options'), {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-            body: JSON.stringify({ username: username })
+            body: JSON.stringify({ username: username || null, discoverable: !username })
           });
         } catch (error) {
           throw webAuthnError('Não foi possível iniciar a comunicação com o servidor', error);

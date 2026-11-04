@@ -13,10 +13,11 @@ export const onRequestOptions: PagesFunction<AuthEnv> = ({ request }) => options
 export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) => {
   const user = await getSession(request, env);
   if (!user) return json(request, { error: 'Sessão expirada.' }, 401);
+  const body = await request.json().catch(() => null) as { force?: unknown } | null;
   const existing = await env.DB.prepare(
     'SELECT id FROM webauthn_credentials WHERE user_id = ? AND revoked_at IS NULL LIMIT 1',
   ).bind(user.id).first<{ id: string }>();
-  if (existing) return json(request, { alreadyRegistered: true });
+  if (existing && body?.force !== true) return json(request, { alreadyRegistered: true });
   const challengeId = crypto.randomUUID();
   const challenge = randomChallenge();
   await env.DB.prepare(

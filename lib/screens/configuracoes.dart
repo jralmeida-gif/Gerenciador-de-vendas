@@ -109,8 +109,8 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
     unawaited(_prepararBiometria());
   }
 
-  Future<void> _prepararBiometria() async {
-    final preparo = await AuthClient().preparePasskeyRegistration();
+  Future<void> _prepararBiometria({bool force = false}) async {
+    final preparo = await AuthClient().preparePasskeyRegistration(force: force);
     if (mounted) {
       setState(() {
         _passkeyPrepared = preparo.alreadyRegistered ? null : preparo.prepared;
@@ -126,19 +126,28 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   }
 
   Future<void> _cadastrarBiometria(BuildContext context) async {
+    var preparado = _passkeyPrepared;
     if (_passkeyAlreadyRegistered) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('A biometria deste usuário já está cadastrada neste dispositivo.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
+      final preparo = await AuthClient().preparePasskeyRegistration(force: true);
+      if (preparo.ok && !preparo.alreadyRegistered) {
+        preparado = preparo.prepared;
+      } else {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(preparo.error ?? 'Não foi possível preparar o recadastro biométrico.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
     }
-    final preparado = _passkeyPrepared;
     if (preparado == null || preparado.isEmpty) {
       await _prepararBiometria();
       if (!context.mounted) return;
+      preparado = _passkeyPrepared;
+    }
+    if (preparado == null || preparado.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -218,9 +227,11 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                   titulo: 'Segurança de acesso',
                   child: _Item(
                     icone: Icons.fingerprint,
-                    titulo: 'Cadastrar biometria neste dispositivo',
+                    titulo: _passkeyAlreadyRegistered
+                        ? 'Recadastrar biometria neste dispositivo'
+                        : 'Cadastrar biometria neste dispositivo',
                     valor: _passkeyAlreadyRegistered
-                        ? 'Biometria já ativa neste dispositivo'
+                        ? 'Atualizar para login sem informar usuário'
                         : _passkeyPrepared == null
                         ? 'Preparando Face ID, Touch ID, biometria ou PIN...'
                         : 'Use Face ID, Touch ID, biometria ou PIN no login',

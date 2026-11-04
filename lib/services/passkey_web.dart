@@ -4,7 +4,7 @@ import 'dart:js_interop';
 external JSPromise<JSBoolean> _registerPasskey(JSString nickname);
 
 @JS('gestorPreparePasskeyRegistration')
-external JSPromise<JSString> _preparePasskeyRegistration();
+external JSPromise<JSString> _preparePasskeyRegistration(JSBoolean force);
 
 @JS('gestorRegisterPreparedPasskey')
 external JSPromise<JSBoolean> _registerPreparedPasskey(JSString prepared, JSString nickname);
@@ -15,8 +15,8 @@ external JSPromise<JSString> _loginPasskey(JSString username);
 class PasskeyService {
   static bool get supported => true;
 
-  static Future<String> prepareRegistration() async {
-    return (await _preparePasskeyRegistration().toDart).toDart;
+  static Future<String> prepareRegistration({bool force = false}) async {
+    return (await _preparePasskeyRegistration(force.toJS).toDart).toDart;
   }
 
   static Future<bool> registerPrepared(String prepared, {String nickname = 'Este dispositivo'}) async {

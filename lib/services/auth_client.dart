@@ -153,9 +153,11 @@ class AuthClient {
     }
   }
 
-  Future<PasskeyPreparationResult> preparePasskeyRegistration() async {
+  Future<PasskeyPreparationResult> preparePasskeyRegistration({
+    bool force = false,
+  }) async {
     try {
-      final prepared = await PasskeyService.prepareRegistration();
+      final prepared = await PasskeyService.prepareRegistration(force: force);
       if (prepared.isEmpty) {
         return const PasskeyPreparationResult(
           error: 'O servidor não devolveu os dados para ativar a biometria.',

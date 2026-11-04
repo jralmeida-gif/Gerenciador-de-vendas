@@ -19,24 +19,28 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     authentication?: any;
   } | null;
   const username = normalizeUsername(body?.username);
-  const user = username
-    ? await env.DB.prepare(
-        'SELECT id, username, role, must_change_password, active FROM users WHERE username = ? AND active = 1',
-      ).bind(username).first<{
-        id: string; username: string; role: 'admin' | 'user'; must_change_password: number; active: number;
-      }>()
-    : null;
-  const challenge = user
-    ? await env.DB.prepare(
-        "SELECT id, challenge FROM webauthn_challenges WHERE id = ? AND user_id = ? AND purpose = 'authentication' AND used_at IS NULL AND expires_at > datetime('now')",
-      ).bind(String(body?.challengeId ?? ''), user.id).first<{ id: string; challenge: string }>()
-    : null;
+  const challenge = await env.DB.prepare(
+    username
+      ? "SELECT id, challenge FROM webauthn_challenges WHERE id = ? AND user_id = (SELECT id FROM users WHERE username = ? AND active = 1) AND purpose = 'authentication' AND used_at IS NULL AND expires_at > datetime('now')"
+      : "SELECT id, challenge FROM webauthn_challenges WHERE id = ? AND user_id IS NULL AND purpose = 'authentication' AND used_at IS NULL AND expires_at > datetime('now')",
+  ).bind(...(username ? [String(body?.challengeId ?? ''), username] : [String(body?.challengeId ?? '')])).first<{ id: string; challenge: string }>();
   const authentication = body?.authentication;
   const credentialId = String(authentication?.id ?? authentication?.rawId ?? '');
-  const credential = user && credentialId
+  const credential = credentialId
     ? await env.DB.prepare(
-        'SELECT * FROM webauthn_credentials WHERE user_id = ? AND credential_id = ? AND revoked_at IS NULL',
-      ).bind(user.id, credentialId).first<any>()
+        `SELECT c.*, u.id AS user_id, u.username, u.role, u.must_change_password, u.active
+         FROM webauthn_credentials c JOIN users u ON u.id = c.user_id
+         WHERE c.credential_id = ? AND c.revoked_at IS NULL AND u.active = 1${username ? ' AND u.username = ?' : ''}`,
+      ).bind(...(username ? [credentialId, username] : [credentialId])).first<any>()
+    : null;
+  const user = credential
+    ? {
+        id: credential.user_id as string,
+        username: credential.username as string,
+        role: credential.role as 'admin' | 'user',
+        must_change_password: Number(credential.must_change_password),
+        active: Number(credential.active),
+      }
     : null;
   if (!user || !challenge || !credential || !authentication) {
     return json(request, { error: 'Biometria inválida ou expirada.' }, 401);
