@@ -97,6 +97,7 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   String _statusNotificacoes = 'carregando';
   String? _passkeyPrepared;
   String? _passkeyPreparationError;
+  bool _passkeyAlreadyRegistered = false;
   bool _limpezaGlobalCatalogo = false;
   bool _limpezaGlobalUsuarios = false;
   bool _limpezaGlobalEmAndamento = false;
@@ -112,8 +113,9 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
     final preparo = await AuthClient().preparePasskeyRegistration();
     if (mounted) {
       setState(() {
-        _passkeyPrepared = preparo.ok ? preparo.prepared : null;
+        _passkeyPrepared = preparo.alreadyRegistered ? null : preparo.prepared;
         _passkeyPreparationError = preparo.error;
+        _passkeyAlreadyRegistered = preparo.alreadyRegistered;
       });
     }
   }
@@ -124,6 +126,15 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   }
 
   Future<void> _cadastrarBiometria(BuildContext context) async {
+    if (_passkeyAlreadyRegistered) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('A biometria deste usuário já está cadastrada neste dispositivo.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     final preparado = _passkeyPrepared;
     if (preparado == null || preparado.isEmpty) {
       await _prepararBiometria();
@@ -208,7 +219,9 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
                   child: _Item(
                     icone: Icons.fingerprint,
                     titulo: 'Cadastrar biometria neste dispositivo',
-                    valor: _passkeyPrepared == null
+                    valor: _passkeyAlreadyRegistered
+                        ? 'Biometria já ativa neste dispositivo'
+                        : _passkeyPrepared == null
                         ? 'Preparando Face ID, Touch ID, biometria ou PIN...'
                         : 'Use Face ID, Touch ID, biometria ou PIN no login',
                     onTap: () => _cadastrarBiometria(context),

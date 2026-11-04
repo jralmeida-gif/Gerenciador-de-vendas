@@ -57,10 +57,16 @@ class PasswordResetResult {
 class PasskeyPreparationResult {
   final String? prepared;
   final String? error;
+  final bool alreadyRegistered;
 
-  const PasskeyPreparationResult({this.prepared, this.error});
+  const PasskeyPreparationResult({
+    this.prepared,
+    this.error,
+    this.alreadyRegistered = false,
+  });
 
-  bool get ok => prepared != null && prepared!.isNotEmpty && error == null;
+  bool get ok => alreadyRegistered ||
+      (prepared != null && prepared!.isNotEmpty && error == null);
 }
 
 class AuthClient {
@@ -161,6 +167,9 @@ class AuthClient {
           return const PasskeyPreparationResult(
             error: 'A resposta de biometria do servidor está inválida.',
           );
+        }
+        if (decoded['alreadyRegistered'] == true) {
+          return const PasskeyPreparationResult(alreadyRegistered: true);
         }
       } on FormatException {
         return PasskeyPreparationResult(

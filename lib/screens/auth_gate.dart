@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/auth_client.dart';
 import '../services/repositorio.dart';
@@ -358,6 +359,27 @@ class _LoginViewState extends State<LoginView> {
   final _username = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_carregarUltimoUsuario());
+  }
+
+  Future<void> _carregarUltimoUsuario() async {
+    final preferences = await SharedPreferences.getInstance();
+    if (!mounted || _username.text.trim().isNotEmpty) return;
+    final username = preferences.getString('gv_last_username');
+    if (username != null && username.isNotEmpty) _username.text = username;
+  }
+
+  Future<void> _lembrarUsuario() async {
+    final username = _username.text.trim();
+    if (username.isEmpty) return;
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString('gv_last_username', username);
+  }
+
   Future<void> _submit() async {
     if (_username.text.trim().isEmpty || _password.text.isEmpty) return;
     setState(() => _busy = true);
@@ -365,6 +387,7 @@ class _LoginViewState extends State<LoginView> {
         ? await widget.auth.registerFirst(_username.text, _password.text)
         : await widget.auth.login(_username.text, _password.text);
     if (mounted) setState(() => _busy = false);
+    if (result.ok) await _lembrarUsuario();
     if (result.ok && result.user != null && !widget.setup && mounted) {
       await _oferecerBiometria();
     }
@@ -373,6 +396,7 @@ class _LoginViewState extends State<LoginView> {
 
   Future<void> _oferecerBiometria() async {
     final preparo = await widget.auth.preparePasskeyRegistration();
+    if (preparo.alreadyRegistered || !mounted) return;
     if (!preparo.ok || !mounted) {
       if (preparo.error != null && mounted) {
         await showDialog<void>(
@@ -433,10 +457,19 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _loginBiometria() async {
-    if (_username.text.trim().isEmpty || _busy) return;
+    if (_busy) return;
+    if (_username.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Informe seu usuário ou e-mail para usar a biometria.'),
+        ),
+      );
+      return;
+    }
     setState(() => _busy = true);
     final result = await widget.auth.loginWithPasskey(_username.text);
     if (mounted) setState(() => _busy = false);
+    if (result.ok) await _lembrarUsuario();
     await widget.onLoggedIn(result);
   }
 
