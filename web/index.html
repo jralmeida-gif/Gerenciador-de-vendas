@@ -177,8 +177,8 @@
             clientDataJSON: bytesToBase64Url(response.clientDataJSON),
             attestationObject: response.attestationObject
               ? bytesToBase64Url(response.attestationObject) : undefined,
-            authenticatorData: response.authenticatorData
-              ? bytesToBase64Url(response.authenticatorData) : undefined,
+            authenticatorData: response.getAuthenticatorData
+              ? bytesToBase64Url(response.getAuthenticatorData()) : undefined,
             signature: response.signature
               ? bytesToBase64Url(response.signature) : undefined,
             userHandle: response.userHandle
