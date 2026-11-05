@@ -12,6 +12,18 @@ import {
 
 export const onRequestOptions: PagesFunction<AuthEnv> = ({ request }) => optionsResponse(request);
 
+function decodeBase64UrlText(value: unknown): string | null {
+  if (typeof value !== 'string' || !value) return null;
+  try {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
+      .padEnd(Math.ceil(value.length / 4) * 4, '=');
+    const bytes = Uint8Array.from(atob(normalized), (char) => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch (_) {
+    return null;
+  }
+}
+
 export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) => {
   const body = await request.json().catch(() => null) as {
     username?: unknown;
@@ -19,20 +31,24 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
     authentication?: any;
   } | null;
   const username = normalizeUsername(body?.username);
-  const challenge = await env.DB.prepare(
-    username
-      ? "SELECT id, challenge FROM webauthn_challenges WHERE id = ? AND user_id = (SELECT id FROM users WHERE username = ? AND active = 1) AND purpose = 'authentication' AND used_at IS NULL AND expires_at > datetime('now')"
-      : "SELECT id, challenge FROM webauthn_challenges WHERE id = ? AND user_id IS NULL AND purpose = 'authentication' AND used_at IS NULL AND expires_at > datetime('now')",
-  ).bind(...(username ? [String(body?.challengeId ?? ''), username] : [String(body?.challengeId ?? '')])).first<{ id: string; challenge: string }>();
   const authentication = body?.authentication;
   const credentialId = String(authentication?.id ?? authentication?.rawId ?? '');
-  const credential = credentialId
+  const userHandle = decodeBase64UrlText(authentication?.response?.userHandle);
+  let credential = credentialId
     ? await env.DB.prepare(
         `SELECT c.*, u.id AS user_id, u.username, u.role, u.must_change_password, u.active
          FROM webauthn_credentials c JOIN users u ON u.id = c.user_id
-         WHERE c.credential_id = ? AND c.revoked_at IS NULL AND u.active = 1${username ? ' AND u.username = ?' : ''}`,
-      ).bind(...(username ? [credentialId, username] : [credentialId])).first<any>()
+         WHERE c.credential_id IN (?, ?) AND c.revoked_at IS NULL AND u.active = 1${username ? ' AND u.username = ?' : ''}`,
+      ).bind(...(username ? [credentialId, String(authentication?.rawId ?? ''), username] : [credentialId, String(authentication?.rawId ?? '')])).first<any>()
     : null;
+  if (!credential && userHandle) {
+    credential = await env.DB.prepare(
+      `SELECT c.*, u.id AS user_id, u.username, u.role, u.must_change_password, u.active
+       FROM webauthn_credentials c JOIN users u ON u.id = c.user_id
+       WHERE c.user_id = ? AND c.revoked_at IS NULL AND u.active = 1${username ? ' AND u.username = ?' : ''}
+       ORDER BY c.created_at DESC LIMIT 1`,
+    ).bind(...(username ? [userHandle, username] : [userHandle])).first<any>();
+  }
   const user = credential
     ? {
         id: credential.user_id as string,
@@ -41,6 +57,12 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
         must_change_password: Number(credential.must_change_password),
         active: Number(credential.active),
       }
+    : null;
+  const resolvedUserId = user?.id ?? userHandle;
+  const challenge = resolvedUserId
+    ? await env.DB.prepare(
+        "SELECT id, challenge FROM webauthn_challenges WHERE id = ? AND (user_id IS NULL OR user_id = ?) AND purpose = 'authentication' AND used_at IS NULL AND expires_at > datetime('now')",
+      ).bind(String(body?.challengeId ?? ''), resolvedUserId).first<{ id: string; challenge: string }>()
     : null;
   if (!user || !challenge || !credential || !authentication) {
     return json(request, { error: 'Biometria inválida ou expirada.' }, 401);
