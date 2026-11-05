@@ -34,6 +34,11 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
   const authentication = body?.authentication;
   const credentialId = String(authentication?.id ?? authentication?.rawId ?? '');
   const userHandle = decodeBase64UrlText(authentication?.response?.userHandle);
+  const hasAssertion = Boolean(
+    authentication?.response?.clientDataJSON &&
+    authentication?.response?.authenticatorData &&
+    authentication?.response?.signature,
+  );
   let credential = credentialId
     ? await env.DB.prepare(
         `SELECT c.*, u.id AS user_id, u.username, u.role, u.must_change_password, u.active
@@ -64,7 +69,15 @@ export const onRequestPost: PagesFunction<AuthEnv> = async ({ request, env }) =>
         "SELECT id, challenge FROM webauthn_challenges WHERE id = ? AND (user_id IS NULL OR user_id = ?) AND purpose = 'authentication' AND used_at IS NULL AND expires_at > datetime('now')",
       ).bind(String(body?.challengeId ?? ''), resolvedUserId).first<{ id: string; challenge: string }>()
     : null;
-  if (!user || !challenge || !credential || !authentication) {
+  if (!user || !challenge || !credential || !authentication || !hasAssertion) {
+    console.warn('[webauthn] invalid assertion envelope', {
+      hasAuthentication: Boolean(authentication),
+      hasCredentialId: Boolean(credentialId),
+      hasUserHandle: Boolean(userHandle),
+      hasAssertion,
+      hasUser: Boolean(user),
+      hasChallenge: Boolean(challenge),
+    });
     return json(request, { error: 'Biometria inválida ou expirada.' }, 401);
   }
   try {

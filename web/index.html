@@ -166,6 +166,8 @@
       }
       function serializeCredential(credential, registrationUser) {
         var response = credential.response;
+        var authenticatorData = response.authenticatorData ||
+          (response.getAuthenticatorData ? response.getAuthenticatorData() : null);
         var serialized = {
           id: credential.id,
           rawId: bytesToBase64Url(credential.rawId),
@@ -177,8 +179,8 @@
             clientDataJSON: bytesToBase64Url(response.clientDataJSON),
             attestationObject: response.attestationObject
               ? bytesToBase64Url(response.attestationObject) : undefined,
-            authenticatorData: response.getAuthenticatorData
-              ? bytesToBase64Url(response.getAuthenticatorData()) : undefined,
+            authenticatorData: authenticatorData
+              ? bytesToBase64Url(authenticatorData) : undefined,
             signature: response.signature
               ? bytesToBase64Url(response.signature) : undefined,
             userHandle: response.userHandle
@@ -289,15 +291,18 @@
         validateOptions(options, false);
         var credential;
         try {
-          credential = await navigator.credentials.get({ publicKey: {
+          var publicKey = {
             rpId: options.rpId,
             challenge: base64UrlToBytes(options.challenge).buffer,
-            allowCredentials: (options.allowCredentials || []).map(function (item) {
-              return { id: base64UrlToBytes(item.id).buffer, type: 'public-key', transports: item.transports || [] };
-            }),
             userVerification: 'required',
             timeout: options.timeout
-          }});
+          };
+          if (Array.isArray(options.allowCredentials) && options.allowCredentials.length > 0) {
+            publicKey.allowCredentials = options.allowCredentials.map(function (item) {
+              return { id: base64UrlToBytes(item.id).buffer, type: 'public-key', transports: item.transports || [] };
+            });
+          }
+          credential = await navigator.credentials.get({ publicKey: publicKey });
         } catch (error) {
           throw webAuthnError('O Safari não conseguiu iniciar o login biométrico', error);
         }
