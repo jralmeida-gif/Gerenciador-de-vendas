@@ -148,6 +148,7 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
       preparado = _passkeyPrepared;
     }
     if (preparado == null || preparado.isEmpty) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
